@@ -24,18 +24,27 @@ database - see "What changed" at the bottom if you're curious.
 
 ## 1. Set up Supabase (database + storage)
 
+Tables and the storage bucket are created **from code**, not by hand — no
+SQL editor, no manual bucket setup. The backend does this automatically on
+every boot (`backend/src/config/migrate.js` + `ensureStorageBucket.js`), and
+you can also trigger it manually with `npm run db:migrate`.
+
 1. Create a project at https://supabase.com (free tier is fine).
-2. Open **SQL Editor -> New query**, paste the contents of
-   `backend/supabase/schema.sql`, and run it. This creates every table
-   (`users`, `groups`, `study_groups`, `messages`, `mutabaah_entries`,
-   `notifications`, `content_items`, etc.) with indexes and RLS enabled.
-3. Go to **Storage -> Create a new bucket**, name it `halaqah-tracker`, and
-   mark it **public** (chat attachments are served via public URL, same as
-   the old Cloudinary setup).
-4. Collect three values you'll need for env vars:
+2. Collect three values you'll need for env vars:
    - **Project URL** and **service_role key** - Project Settings -> API
    - **Connection string** (Session pooler, URI format) - Project Settings ->
      Database -> Connection string. This is your `DATABASE_URL`.
+3. That's it — once the backend has those env vars and starts up (locally or
+   on Render), it connects to Postgres and:
+   - runs `backend/supabase/schema.sql` to create every table (`users`,
+     `groups`, `study_groups`, `messages`, `mutabaah_entries`,
+     `notifications`, `content_items`, etc.) with indexes and RLS enabled
+     — safe to re-run, every statement uses "if not exists"
+   - creates the `halaqah-tracker` public Storage bucket used for chat
+     attachments, if it doesn't already exist
+
+If you ever want to see it happen without starting the whole server:
+`cd backend && npm run db:migrate`.
 
 ## 2. Set up Google Sign-In
 
@@ -93,9 +102,12 @@ npm run dev              # http://localhost:5173, proxies /api to :5000
 ## What changed from the original version
 
 - **Database:** MongoDB/Mongoose -> **Supabase Postgres**. Schema lives in
-  `backend/supabase/schema.sql`. Data access goes through a
-  repository layer (`backend/src/repositories`) using `@supabase/supabase-js`.
-- **File uploads:** Cloudinary -> **Supabase Storage**.
+  `backend/supabase/schema.sql` and is applied automatically from code on
+  boot (`backend/src/config/migrate.js`) — no manual SQL editor step. Data
+  access goes through a repository layer (`backend/src/repositories`) using
+  `@supabase/supabase-js`.
+- **File uploads:** Cloudinary -> **Supabase Storage**, with the bucket also
+  created automatically from code (`backend/src/config/ensureStorageBucket.js`).
 - **Sessions:** Mongo-backed sessions -> Postgres-backed sessions via
   `connect-pg-simple`, using the same Supabase database.
 - **API response shapes are unchanged** - a serializer layer

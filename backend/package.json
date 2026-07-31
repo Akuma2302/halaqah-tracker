@@ -6,7 +6,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "db:migrate": "node scripts/migrate.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

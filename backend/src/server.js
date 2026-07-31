@@ -6,6 +6,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const sessionMiddleware = require('./config/session');
+const runMigrations = require('./config/migrate');
+const ensureStorageBucket = require('./config/ensureStorageBucket');
 const registerSocketHandlers = require('./sockets/chatSocket');
 const startReminderJob = require('./jobs/reminderCheck');
 
@@ -39,4 +41,15 @@ startReminderJob();
 // (If you ever want a single-service deploy instead, see README "Alternative: single-service deploy".)
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Sets up the Supabase database schema and storage bucket automatically —
+// no manual steps in the Supabase dashboard needed. Safe to run on every
+// boot (schema statements use "if not exists"; bucket creation checks first).
+Promise.all([runMigrations(), ensureStorageBucket()])
+  .then(() => {
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch((err) => {
+    console.error('Failed to set up Supabase database/storage:', err.message);
+    process.exit(1);
+  });
