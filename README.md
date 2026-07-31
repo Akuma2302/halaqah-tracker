@@ -5,13 +5,13 @@ chat, and scheduled-session reminders.
 
 ```
 halaqah-tracker/
-├── frontend/   React + Vite app -> deploy to Vercel
+├── frontend/   React + Vite app -> deploy to Netlify
 └── backend/    Express + Socket.io API -> deploy to Render, data in Supabase
 ```
 
 ## Stack
 
-- **Frontend:** React, Vite, React Router - hosted on **Vercel**
+- **Frontend:** React, Vite, React Router - hosted on **Netlify**
 - **Backend:** Express, Socket.io - hosted on **Render**
 - **Database + file storage:** **Supabase** (Postgres + Storage)
 - **Auth:** Google Sign-In, session cookie stored in Supabase Postgres
@@ -49,7 +49,7 @@ If you ever want to see it happen without starting the whole server:
 ## 2. Set up Google Sign-In
 
 If you don't already have one: console.cloud.google.com/apis/credentials
--> Create OAuth client ID -> Web application -> add your Vercel URL and
+-> Create OAuth client ID -> Web application -> add your Netlify URL and
 `http://localhost:5173` as authorized origins. Copy the **Client ID**.
 
 ## 3. Deploy the backend to Render
@@ -64,21 +64,22 @@ If you don't already have one: console.cloud.google.com/apis/credentials
    - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`
    - `DATABASE_URL` (the Supabase session-pooler string from step 1)
    - `GOOGLE_CLIENT_ID`, `SESSION_SECRET` (any long random string)
-   - `CLIENT_URL` -> your Vercel URL (set this after step 4 below, then redeploy)
+   - `CLIENT_URL` -> your Netlify URL (set this after step 4 below, then redeploy)
    - `NODE_ENV=production`
 5. Deploy. Check `https://your-backend.onrender.com/api/health` returns
    `{"ok":true}`.
 
-## 4. Deploy the frontend to Vercel
+## 4. Deploy the frontend to Netlify
 
-1. In Vercel: **New Project**, import the repo, set
-   **Root Directory** to `frontend`.
-2. Framework preset: Vite. Vercel will pick up `frontend/vercel.json` for
-   build/output settings automatically.
+1. In Netlify: **Add new site -> Import an existing project**, connect the
+   repo. Under **Site settings -> Build & deploy**, set **Base directory**
+   to `frontend`.
+2. Netlify will pick up `frontend/netlify.toml` for build/output settings
+   automatically (build command `npm run build`, publish dir `dist`).
 3. Add environment variables:
    - `VITE_GOOGLE_CLIENT_ID` - same Google client ID as above
    - `VITE_API_URL` - your Render backend URL, e.g. `https://your-backend.onrender.com`
-4. Deploy. Then go back to Render and set `CLIENT_URL` to this Vercel URL,
+4. Deploy. Then go back to Render and set `CLIENT_URL` to this Netlify URL,
    and redeploy the backend so CORS/cookies/Socket.io allow it.
 
 ## 5. Local development
@@ -115,7 +116,7 @@ npm run dev              # http://localhost:5173, proxies /api to :5000
   JSON shape (`_id`, camelCase fields, populated refs) the frontend already
   expects, so **no frontend code had to change** for the DB migration.
 - **Deployment:** one combined Render service (serving the built React app
-  statically) -> separate **Vercel** (frontend) and **Render** (backend)
+  statically) -> separate **Netlify** (frontend) and **Render** (backend)
   services, communicating over `VITE_API_URL` / `CLIENT_URL` and CORS with
   credentials.
 - **Folder structure:** reorganized to match standard frontend
@@ -126,7 +127,7 @@ npm run dev              # http://localhost:5173, proxies /api to :5000
 
 ### Alternative: single-service deploy
 If you'd rather deploy the backend and frontend together as one Render
-service (like the original setup) instead of Vercel + Render: build the
+service (like the original setup) instead of Netlify + Render: build the
 frontend (`npm run build` in `frontend/`), copy `frontend/dist` next to
 `backend/`, and add static-serving back into `backend/src/server.js` (there's
 a comment marking where it used to live). Not required - the two-service

@@ -36,7 +36,7 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 registerSocketHandlers(io, sessionMiddleware);
 startReminderJob();
 
-// In production the frontend is deployed separately on Vercel, so this backend
+// In production the frontend is deployed separately on Netlify, so this backend
 // (Render) only serves the JSON API + websocket — no static file serving here.
 // (If you ever want a single-service deploy instead, see README "Alternative: single-service deploy".)
 
