@@ -26,7 +26,7 @@ export default function StudyGroupRoom() {
       .get(`/study-groups/${id}`)
       .then((res) => setGroup(res.data))
       .catch(() => navigate('/study-groups'));
-    client.get(`/study-groups/${id}/messages`).then((res) => setMessages(res.data));
+    client.get(`/study-groups/${id}/messages`).then((res) => setMessages(res.data)).catch(() => setMessages([]));
   }, [id, navigate]);
 
   useEffect(() => {

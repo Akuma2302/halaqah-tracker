@@ -8,12 +8,15 @@ export default function Checklist() {
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [entry, setEntry] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     setLoading(true);
+    setError(false);
     client
       .get(`/mutabaah/${date}`)
       .then((res) => setEntry(res.data))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [date]);
 
@@ -63,8 +66,10 @@ export default function Checklist() {
         </button>
       </div>
 
-      {loading || !entry ? (
+      {loading ? (
         <div className="spinner" style={{ margin: '0 auto', display: 'block' }} />
+      ) : error || !entry ? (
+        <p className="page-subtitle">Couldn't load today's checklist. Please refresh the page.</p>
       ) : (
         <div>
           {MUTABAAH_FIELDS.map((f) => (

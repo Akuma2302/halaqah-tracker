@@ -17,6 +17,7 @@ export default function Compilation() {
     client
       .get('/content')
       .then((res) => setItems(res.data))
+      .catch(() => setItems([]))
       .finally(() => setLoading(false));
   }, []);
 

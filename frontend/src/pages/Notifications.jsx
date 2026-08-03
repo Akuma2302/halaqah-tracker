@@ -20,6 +20,7 @@ export default function Notifications() {
     client
       .get('/notifications')
       .then((res) => setNotifications(res.data))
+      .catch(() => setNotifications([]))
       .finally(() => setLoading(false));
   }, []);
 

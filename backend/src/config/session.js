@@ -11,7 +11,12 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-    sameSite: 'lax',
+    // Frontend (Netlify) and backend (Render) are different domains, so this
+    // is a cross-site request from the browser's point of view. SameSite=Lax
+    // cookies are NOT sent on cross-site fetch/XHR calls (only top-level
+    // navigations), which silently breaks every authenticated request after
+    // login. SameSite=None (+ Secure, required alongside it) fixes that.
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: process.env.NODE_ENV === 'production'
   }
 });

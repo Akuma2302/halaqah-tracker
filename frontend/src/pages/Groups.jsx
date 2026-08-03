@@ -8,6 +8,7 @@ export default function Groups() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [todayData, setTodayData] = useState(null);
+  const [todayError, setTodayError] = useState(false);
   const [newName, setNewName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -18,6 +19,7 @@ export default function Groups() {
     client
       .get('/groups')
       .then((res) => setGroups(res.data))
+      .catch(() => setGroups([]))
       .finally(() => setLoading(false));
   }
 
@@ -28,9 +30,14 @@ export default function Groups() {
   useEffect(() => {
     if (selected) {
       setTodayData(null);
-      client.get(`/groups/${selected}/today`).then((res) => setTodayData(res.data));
+      setTodayError(false);
+      client
+        .get(`/groups/${selected}/today`)
+        .then((res) => setTodayData(res.data))
+        .catch(() => setTodayError(true));
     } else {
       setTodayData(null);
+      setTodayError(false);
     }
   }, [selected]);
 
@@ -64,6 +71,17 @@ export default function Groups() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (selected && todayError) {
+    return (
+      <div className="page">
+        <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)} style={{ marginBottom: 10 }}>
+          ← All groups
+        </button>
+        <p className="page-subtitle">Couldn't load this group. Please try again.</p>
+      </div>
+    );
   }
 
   if (selected && !todayData) {

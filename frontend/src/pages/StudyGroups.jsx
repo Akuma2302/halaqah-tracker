@@ -18,6 +18,7 @@ export default function StudyGroups() {
     client
       .get('/study-groups')
       .then((res) => setGroups(res.data))
+      .catch(() => setGroups([]))
       .finally(() => setLoading(false));
   }
 

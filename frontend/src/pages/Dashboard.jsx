@@ -33,7 +33,7 @@ export default function Dashboard() {
   }, [user]);
 
   useEffect(() => {
-    client.get(`/mutabaah/${todayStr}`).then((res) => setToday(res.data));
+    client.get(`/mutabaah/${todayStr}`).then((res) => setToday(res.data)).catch(() => {});
   }, [todayStr]);
 
   useEffect(() => {
@@ -41,6 +41,7 @@ export default function Dashboard() {
     client
       .get(`/mutabaah/summary?range=${range}`)
       .then((res) => setSummary(res.data))
+      .catch(() => setSummary([]))
       .finally(() => setLoading(false));
   }, [range]);
 
