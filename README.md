@@ -72,15 +72,23 @@ If you don't already have one: console.cloud.google.com/apis/credentials
 ## 4. Deploy the frontend to Netlify
 
 1. In Netlify: **Add new site -> Import an existing project**, connect the
-   repo. Under **Site settings -> Build & deploy**, set **Base directory**
-   to `frontend`.
-2. Netlify will pick up `frontend/netlify.toml` for build/output settings
-   automatically (build command `npm run build`, publish dir `dist`).
-3. Add environment variables:
+   repo. Leave the build command / publish directory / base directory
+   fields **blank** in the setup wizard — `netlify.toml` at the repo root
+   already sets `base = "frontend"`, `command = "npm run build"`, and
+   `publish = "dist"`, so Netlify picks those up automatically.
+2. Add environment variables (Site configuration -> Environment variables):
    - `VITE_GOOGLE_CLIENT_ID` - same Google client ID as above
    - `VITE_API_URL` - your Render backend URL, e.g. `https://your-backend.onrender.com`
-4. Deploy. Then go back to Render and set `CLIENT_URL` to this Netlify URL,
+3. Deploy. Then go back to Render and set `CLIENT_URL` to this Netlify URL,
    and redeploy the backend so CORS/cookies/Socket.io allow it.
+
+> **Build fails with `npm error enoent ... open '/opt/build/repo/package.json'`?**
+> Netlify tried to run the build from the repo root instead of `frontend/`.
+> This usually means the dashboard's own Build command / Publish directory /
+> Base directory fields were filled in manually (they override
+> `netlify.toml`). Go to **Site configuration -> Build & deploy -> Build
+> settings -> Edit settings** and clear all three fields so `netlify.toml`
+> takes over, then trigger a new deploy.
 
 ## 5. Local development
 
