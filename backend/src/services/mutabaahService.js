@@ -1,16 +1,5 @@
 const mutabaahRepository = require('../repositories/mutabaahRepository');
-
-// API/frontend uses camelCase, the Postgres table uses snake_case.
-const FIELD_MAP = {
-  tahajud: 'tahajud',
-  subuhBerjemaah: 'subuh_berjemaah',
-  mathuratPagi: 'mathurat_pagi',
-  mathuratPetang: 'mathurat_petang',
-  dhuha: 'dhuha',
-  tilawah: 'tilawah',
-  zikir: 'zikir'
-};
-const CAMEL_FIELDS = Object.keys(FIELD_MAP);
+const { FIELD_MAP, CAMEL_FIELDS } = require('../models/MutabaahEntry');
 
 function toApiShape(row, userId, date) {
   if (!row) {

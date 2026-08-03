@@ -43,9 +43,11 @@ startReminderJob();
 const PORT = process.env.PORT || 5000;
 
 // Sets up the Supabase database schema and storage bucket automatically —
-// no manual steps in the Supabase dashboard needed. Safe to run on every
-// boot (schema statements use "if not exists"; bucket creation checks first).
-Promise.all([runMigrations(), ensureStorageBucket()])
+// no manual steps in the Supabase dashboard needed. Run sequentially (schema
+// first) rather than in parallel, so a storage hiccup can't cut off an
+// in-flight migration. Safe to run on every boot.
+runMigrations()
+  .then(() => ensureStorageBucket())
   .then(() => {
     server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })

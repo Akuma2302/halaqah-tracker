@@ -13,16 +13,22 @@
  * @property {boolean} zikir
  */
 
-// Field names shared between validators/services so the checklist stays in sync
-// with the schema in one place.
-const MUTABAAH_FIELDS = [
-  'tahajud',
-  'subuh_berjemaah',
-  'mathurat_pagi',
-  'mathurat_petang',
-  'dhuha',
-  'tilawah',
-  'zikir'
-];
+// API/frontend uses camelCase, the Postgres table uses snake_case. This map
+// is the single source of truth for that translation — both the service
+// (services/mutabaahService.js) and the request validator
+// (validators/mutabaahValidators.js) import it from here, so they can't
+// drift out of sync with each other (which previously caused subuhBerjemaah/
+// mathuratPagi/mathuratPetang updates to be silently dropped by validation).
+const FIELD_MAP = {
+  tahajud: 'tahajud',
+  subuhBerjemaah: 'subuh_berjemaah',
+  mathuratPagi: 'mathurat_pagi',
+  mathuratPetang: 'mathurat_petang',
+  dhuha: 'dhuha',
+  tilawah: 'tilawah',
+  zikir: 'zikir'
+};
+const CAMEL_FIELDS = Object.keys(FIELD_MAP);
+const MUTABAAH_FIELDS = Object.values(FIELD_MAP); // snake_case DB column names
 
-module.exports = { MUTABAAH_FIELDS };
+module.exports = { FIELD_MAP, CAMEL_FIELDS, MUTABAAH_FIELDS };

@@ -1,0 +1,17 @@
+i want to make 4 Flat community tracker for my halaqah
+
+the concept is they will login their google account, put name and kampus and so on
+
+so for first tab, it will have their on dashboard of their daily/weekly/monthly mutabaah. mutabaah consist of Tahajud, Subuh Berjemaah, Mathurat Pagi dan Petang, Dhuha, Tilawah, Zikir
+
+second tab is for mutabaah checklist. it will show today mutabaah checklist and if done they can tick it. they also can navigate foward dan backward date
+
+third tab is group. so they can make group with friends just to track together our daily mutabaah. so they can see his friend either they complete the mutabaah today or not. so everyone can see each other mutabaah. they can create group and have invitation code to invite our friend.
+
+fourth tab so they can make group with friends to make study group. they can create group, put name, subjek and so on. so in this group they can chat together, upload file, picture and so on. admin group can set reminder or schedule for study group session
+
+fifth tab is compilation of mathurat, zikir and doa. (later I will put)
+
+six tab is for the notification
+
+give me full instruction on how to setup, I plan to use mongoDB dan render.com. the theme make it more corporate style but not to schema and mesra study concept

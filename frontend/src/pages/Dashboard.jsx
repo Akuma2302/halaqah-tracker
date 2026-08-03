@@ -24,11 +24,13 @@ export default function Dashboard() {
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
   const [kampusDraft, setKampusDraft] = useState('');
 
   const todayStr = dayjs().format('YYYY-MM-DD');
 
   useEffect(() => {
+    setNameDraft(user?.name || '');
     setKampusDraft(user?.kampus || '');
   }, [user]);
 
@@ -54,7 +56,7 @@ export default function Dashboard() {
   const entryByDate = Object.fromEntries(summary.map((e) => [e.date, e]));
 
   async function saveProfile() {
-    await updateProfile({ kampus: kampusDraft });
+    await updateProfile({ name: nameDraft.trim() || user?.name, kampus: kampusDraft });
     setEditingProfile(false);
   }
 
@@ -62,9 +64,17 @@ export default function Dashboard() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Assalamualaikum, {user?.name?.split(' ')[0]}</h1>
-          <p className="page-subtitle">
-            {editingProfile ? (
+          {editingProfile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 260 }}>
+              <input
+                className="input"
+                style={{ padding: '6px 10px' }}
+                placeholder="Your name"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveProfile()}
+                autoFocus
+              />
               <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
                 <input
                   className="input"
@@ -73,22 +83,26 @@ export default function Dashboard() {
                   value={kampusDraft}
                   onChange={(e) => setKampusDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && saveProfile()}
-                  autoFocus
                 />
-                <button className="icon-btn" onClick={saveProfile} aria-label="Save kampus">
+                <button className="icon-btn" onClick={saveProfile} aria-label="Save profile">
                   <Check size={14} />
                 </button>
               </span>
-            ) : (
-              <span
-                style={{ display: 'inline-flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}
-                onClick={() => setEditingProfile(true)}
-              >
-                {user?.kampus || 'Add your kampus'}
-                <Pencil size={12} />
-              </span>
-            )}
-          </p>
+            </div>
+          ) : (
+            <>
+              <h1 className="page-title">Assalamualaikum, {user?.name?.split(' ')[0]}</h1>
+              <p className="page-subtitle">
+                <span
+                  style={{ display: 'inline-flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}
+                  onClick={() => setEditingProfile(true)}
+                >
+                  {user?.kampus || 'Add your name & kampus'}
+                  <Pencil size={12} />
+                </span>
+              </p>
+            </>
+          )}
         </div>
       </div>
 
