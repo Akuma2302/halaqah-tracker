@@ -12,7 +12,7 @@ const TABS = [
 ];
 
 export default function TabNav() {
-  const { user, logout } = useAuth();
+  const { user, logout, unreadCount } = useAuth();
 
   return (
     <>
@@ -47,6 +47,9 @@ export default function TabNav() {
             >
               <Icon size={15} />
               {label}
+              {to === '/notifications' && unreadCount > 0 && (
+                <span className="tab-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
             </NavLink>
           ))}
         </div>

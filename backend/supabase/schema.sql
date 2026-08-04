@@ -103,7 +103,7 @@ create table if not exists mutabaah_entries (
 create table if not exists notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
-  type text not null check (type in ('reminder', 'group_invite', 'session_scheduled')),
+  type text not null check (type in ('reminder', 'group_invite', 'session_scheduled', 'message')),
   title text not null,
   body text not null default '',
   related_id uuid,
@@ -148,6 +148,14 @@ alter table messages enable row level security;
 alter table mutabaah_entries enable row level security;
 alter table notifications enable row level security;
 alter table content_items enable row level security;
+
+-- ---------- schema upgrades for already-deployed databases ----------
+-- CREATE TABLE IF NOT EXISTS above won't retroactively change a table that
+-- already exists, so constraint widenings need to be applied explicitly here.
+-- Safe to run every boot: it just re-asserts the same (or newer) rule.
+alter table notifications drop constraint if exists notifications_type_check;
+alter table notifications add constraint notifications_type_check
+  check (type in ('reminder', 'group_invite', 'session_scheduled', 'message'));
 
 -- Note: the `session` table used for login sessions is created automatically
 -- by connect-pg-simple the first time the backend starts (createTableIfMissing: true).

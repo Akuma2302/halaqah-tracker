@@ -102,4 +102,32 @@ async function isMember(groupId, userId) {
   return groupRepository.isMember(groupId, userId);
 }
 
-module.exports = { createGroup, listGroupsForUser, joinGroup, getTodayStatus, listMessages, createMessage, isMember };
+async function notifyNewMessage(groupId, senderId, senderName, preview) {
+  const group = await groupRepository.findById(groupId);
+  if (!group) return [];
+
+  const memberRows = await groupRepository.listMembers(groupId);
+  const recipients = memberRows.filter((m) => m.user_id !== senderId);
+  if (!recipients.length) return [];
+
+  return notificationService.notifyMany(
+    recipients.map((m) => ({
+      userId: m.user_id,
+      type: 'message',
+      title: `${senderName} in ${group.name}`,
+      body: preview,
+      relatedId: group.id
+    }))
+  );
+}
+
+module.exports = {
+  createGroup,
+  listGroupsForUser,
+  joinGroup,
+  getTodayStatus,
+  listMessages,
+  createMessage,
+  isMember,
+  notifyNewMessage
+};

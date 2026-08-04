@@ -1,0 +1,1 @@
+now we want to improve our notification sistem, for now if there is any message from any group, it will appear in this page and appear on this device like other app notification

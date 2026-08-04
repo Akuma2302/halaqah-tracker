@@ -123,6 +123,25 @@ async function isMember(studyGroupId, userId) {
   return !!member;
 }
 
+async function notifyNewMessage(studyGroupId, senderId, senderName, preview) {
+  const group = await studyGroupRepository.findById(studyGroupId);
+  if (!group) return [];
+
+  const memberRows = await studyGroupRepository.listMembers(studyGroupId);
+  const recipients = memberRows.filter((m) => m.user_id !== senderId);
+  if (!recipients.length) return [];
+
+  return notificationService.notifyMany(
+    recipients.map((m) => ({
+      userId: m.user_id,
+      type: 'message',
+      title: `${senderName} in ${group.name}`,
+      body: preview,
+      relatedId: group.id
+    }))
+  );
+}
+
 module.exports = {
   createStudyGroup,
   listStudyGroupsForUser,
@@ -131,5 +150,6 @@ module.exports = {
   scheduleSession,
   listMessages,
   createMessage,
-  isMember
+  isMember,
+  notifyNewMessage
 };
