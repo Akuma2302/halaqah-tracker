@@ -14,7 +14,7 @@ halaqah-tracker/
 - **Frontend:** React, Vite, React Router - hosted on **Netlify**
 - **Backend:** Express, Socket.io - hosted on **Render**
 - **Database + file storage:** **Supabase** (Postgres + Storage)
-- **Auth:** Google Sign-In, session cookie stored in Supabase Postgres
+- **Auth:** Google Sign-In, stateless Bearer token (JWT) — not a cookie, so it works reliably across the Netlify/Render domain split, including iOS Safari, which blocks cross-site cookies outright
 
 This project used to run on MongoDB Atlas with everything in one Render
 service. It's now split into two services with Postgres (Supabase) as the
@@ -80,7 +80,7 @@ If you don't already have one: console.cloud.google.com/apis/credentials
    - `VITE_GOOGLE_CLIENT_ID` - same Google client ID as above
    - `VITE_API_URL` - your Render backend URL, e.g. `https://your-backend.onrender.com`
 3. Deploy. Then go back to Render and set `CLIENT_URL` to this Netlify URL,
-   and redeploy the backend so CORS/cookies/Socket.io allow it.
+   and redeploy the backend so CORS/Socket.io allow it.
 
 > **Build fails with `npm error enoent ... open '/opt/build/repo/package.json'`?**
 > Netlify tried to run the build from the repo root instead of `frontend/`.
@@ -117,8 +117,14 @@ npm run dev              # http://localhost:5173, proxies /api to :5000
   `@supabase/supabase-js`.
 - **File uploads:** Cloudinary -> **Supabase Storage**, with the bucket also
   created automatically from code (`backend/src/config/ensureStorageBucket.js`).
-- **Sessions:** Mongo-backed sessions -> Postgres-backed sessions via
-  `connect-pg-simple`, using the same Supabase database.
+- **Sessions:** Mongo-backed sessions -> stateless JWT Bearer tokens (not
+  cookies at all). Frontend/backend live on different domains (Netlify +
+  Render); cookies across that split get silently blocked by iOS Safari's
+  cross-site cookie policy (ITP) no matter what SameSite is set to, which
+  broke every authenticated request on iPhone/iPad specifically. A token in
+  the `Authorization` header isn't a cookie, so this is immune to that
+  entirely — same behavior on every platform (Windows, Android, iOS, desktop
+  Safari). See `backend/src/utils/authToken.js`.
 - **API response shapes are unchanged** - a serializer layer
   (`backend/src/utils/serializers.js`) maps Postgres rows back into the same
   JSON shape (`_id`, camelCase fields, populated refs) the frontend already

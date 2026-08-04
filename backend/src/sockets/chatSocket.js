@@ -1,3 +1,4 @@
+const { verifyToken } = require('../utils/authToken');
 const studyGroupService = require('../services/studyGroupService');
 const groupService = require('../services/groupService');
 
@@ -8,18 +9,23 @@ function messagePreview(content, attachmentType) {
   return attachmentType === 'image' ? 'Sent a photo' : 'Sent a file';
 }
 
-function registerSocketHandlers(io, sessionMiddleware) {
-  // Share the same session with socket.io so we know who's sending each chat message
+function registerSocketHandlers(io) {
+  // Auth via the same Bearer token used for REST calls (sent in the socket.io
+  // handshake), not a cookie — see utils/authToken.js for why cookies don't
+  // work reliably across the Netlify/Render domain split on iOS Safari.
   io.use((socket, next) => {
-    sessionMiddleware(socket.request, {}, next);
+    const token = socket.handshake.auth?.token;
+    const userId = token && verifyToken(token);
+    if (!userId) return next(new Error('Not logged in'));
+    socket.userId = userId;
+    next();
   });
 
   io.on('connection', (socket) => {
     // A per-user room lets us push notifications straight to someone's open
     // tabs/devices regardless of which group chat (if any) they're currently
     // viewing — this is what makes the "new message" notification live.
-    const userId = socket.request.session?.userId;
-    if (userId) socket.join(`user:${userId}`);
+    socket.join(`user:${socket.userId}`);
 
     // Prefixed so a study-group id and an accountability-group id can never
     // collide into the same room.
@@ -33,8 +39,7 @@ function registerSocketHandlers(io, sessionMiddleware) {
 
     socket.on('send-message', async (msg) => {
       try {
-        const senderId = socket.request.session?.userId;
-        if (!senderId) return socket.emit('message-error', 'Not logged in');
+        const senderId = socket.userId;
 
         const isMember = await studyGroupService.isMember(msg.studyGroupId, senderId);
         if (!isMember) return socket.emit('message-error', 'Not a member of this group');
@@ -63,8 +68,7 @@ function registerSocketHandlers(io, sessionMiddleware) {
 
     socket.on('send-group-message', async (msg) => {
       try {
-        const senderId = socket.request.session?.userId;
-        if (!senderId) return socket.emit('group-message-error', 'Not logged in');
+        const senderId = socket.userId;
 
         const isMember = await groupService.isMember(msg.groupId, senderId);
         if (!isMember) return socket.emit('group-message-error', 'Not a member of this group');

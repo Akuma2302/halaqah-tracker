@@ -2,18 +2,18 @@ const studyGroupService = require('../services/studyGroupService');
 const { uploadBufferToSupabase } = require('../utils/upload');
 
 async function create(req, res) {
-  const group = await studyGroupService.createStudyGroup(req.body.name.trim(), (req.body.subject || '').trim(), req.session.userId);
+  const group = await studyGroupService.createStudyGroup(req.body.name.trim(), (req.body.subject || '').trim(), req.userId);
   res.status(201).json(group);
 }
 
 async function list(req, res) {
-  const groups = await studyGroupService.listStudyGroupsForUser(req.session.userId);
+  const groups = await studyGroupService.listStudyGroupsForUser(req.userId);
   res.json(groups);
 }
 
 async function detail(req, res) {
   try {
-    const group = await studyGroupService.getStudyGroupDetail(req.params.id, req.session.userId);
+    const group = await studyGroupService.getStudyGroupDetail(req.params.id, req.userId);
     res.json(group);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -22,7 +22,7 @@ async function detail(req, res) {
 
 async function join(req, res) {
   try {
-    const group = await studyGroupService.joinStudyGroup(req.body.inviteCode, req.session.userId);
+    const group = await studyGroupService.joinStudyGroup(req.body.inviteCode, req.userId);
     res.json(group);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -31,7 +31,7 @@ async function join(req, res) {
 
 async function schedule(req, res) {
   try {
-    const group = await studyGroupService.scheduleSession(req.params.id, req.session.userId, req.body);
+    const group = await studyGroupService.scheduleSession(req.params.id, req.userId, req.body);
     res.json(group);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });

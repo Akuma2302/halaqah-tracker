@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState, useCallback } from 'react';
-import client from '../services/apiClient';
+import client, { getToken, setToken } from '../services/apiClient';
 import socket from '../services/socket';
 
 export const AuthContext = createContext(null);
@@ -10,10 +10,15 @@ export function AuthProvider({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    // No stored token = definitely logged out, skip the request entirely.
+    if (!getToken()) {
+      setLoading(false);
+      return;
+    }
     client
       .get('/auth/me')
       .then((res) => setUser(res.data))
-      .catch(() => setUser(null))
+      .catch(() => setToken(null))
       .finally(() => setLoading(false));
   }, []);
 
@@ -67,8 +72,9 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = useCallback(async (credential) => {
     const res = await client.post('/auth/google', { credential });
-    setUser(res.data);
-    return res.data;
+    setToken(res.data.token);
+    setUser(res.data.user);
+    return res.data.user;
   }, []);
 
   const updateProfile = useCallback(async (updates) => {
@@ -78,8 +84,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await client.post('/auth/logout');
-    setUser(null);
+    try {
+      await client.post('/auth/logout');
+    } finally {
+      setToken(null);
+      setUser(null);
+    }
   }, []);
 
   return (

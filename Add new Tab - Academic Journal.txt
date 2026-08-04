@@ -1,0 +1,54 @@
+First Load for the Academic Journal Tab, Dashboard of total study hour for this week (from Sunday to Saturday) total need to achieve is 10 hour per week. so make ring chart like mutabaah (it will appear also at the dashboard page, they will have button or can click that will directly go to the Academic Journal Page)
+
+Below it, have section Subject Currently Taking
+
+Below it, put overview of assignment or project available, what the subject and due
+
+Then they can update they subject, make the tab below this Academic Journal Tab is "Subject List"
+what they need to insert:
+- Button (Add New)
+- Subjek Name
+- Subjek Code
+- Lecturer Name
+- Credit Hour
+- Assessment (detail for they assessment, they can add either quiz, test,assignment,project,presentation,final exam. then put how much percentage for every assessment)
+- Button (Save, Appear "Done Update")
+- (after finish key in 1 subject, system will ask want to add another subject?)
+- Then they can edit,delete and option Show/Unshowed(can choose either want to appear at the first page of Academic Journal)
+
+Then weekly academic update, what they need to insert:
+- Week (give dropdown of all date from sunday to saturday,everyweek)
+- align with this dropdown, it will have button "Download Report" (it will download the report for the whole week)
+
+Then item below will refresh based on the Week
+1) Study Hour
+- Button (Add New)
+- Day (dropdown choose day)
+- Choose subjek (based on subject that they list)
+  - Dropdown either Notes,Question,Project,Study Group (tick box, can choose multiple
+  - Study Hour Subject (number only, choose 1 to 24) 
+- Button (Save, Appear "Done Update")
+- (after finish key in 1 subject, system will ask want to add another subject?)
+
+2) Do Question/Past Year/Tutorial/Exercise
+- Button (Add new)
+- Choose subjek (based on subject that they list)
+- Choose how much Quetion (number)
+- After the question number have tick box (either question validate or not)
+- Button (Save, Appear "Done Update")
+- (after finish key in 1 subject, system will ask want to add another subject?)
+
+3) Ask/Consult Lecturer
+- Button (Add new)
+- Choose subjek (based on subject that they list)
+- Lecture (automatic appear based on subject)(can edit if meet other lecturer)
+- Detail (description of what they do during meeting lecturer)
+- Date (Choose from calander)
+- Venue (writte manually)
+- Upload Picture 
+- Button (Save, Appear "Done Update")
+- (after finish key in 1 subject, system will ask want to add another subject?)
+
+4) Validated by Mentor
+- Tick Box
+- Date (when it validated)

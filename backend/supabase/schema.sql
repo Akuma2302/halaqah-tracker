@@ -156,6 +156,3 @@ alter table content_items enable row level security;
 alter table notifications drop constraint if exists notifications_type_check;
 alter table notifications add constraint notifications_type_check
   check (type in ('reminder', 'group_invite', 'session_scheduled', 'message'));
-
--- Note: the `session` table used for login sessions is created automatically
--- by connect-pg-simple the first time the backend starts (createTableIfMissing: true).
