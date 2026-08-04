@@ -6,7 +6,6 @@ export default function MutabaahRing({ entry, size = 168 }) {
   const radius = size / 2 - 14;
   const circumference = 2 * Math.PI * radius;
   const segmentLen = circumference / total;
-  const gap = 5;
 
   return (
     <svg
@@ -30,7 +29,7 @@ export default function MutabaahRing({ entry, size = 168 }) {
             stroke={isDone ? 'var(--primary)' : 'transparent'}
             strokeWidth="10"
             strokeLinecap="round"
-            strokeDasharray={`${segmentLen - gap} ${circumference - (segmentLen - gap)}`}
+            strokeDasharray={`${segmentLen} ${circumference - segmentLen}`}
             strokeDashoffset={-offset}
             transform={`rotate(-90 ${size / 2} ${size / 2})`}
           />
