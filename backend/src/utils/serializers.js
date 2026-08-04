@@ -81,6 +81,20 @@ function serializeMessage(row) {
   };
 }
 
+function serializeGroupMessage(row) {
+  return {
+    _id: row.id,
+    groupId: row.group_id,
+    content: row.content,
+    attachmentUrl: row.attachment_url,
+    attachmentType: row.attachment_type,
+    createdAt: row.created_at,
+    senderId: row.sender
+      ? { _id: row.sender.id, name: row.sender.name, avatarUrl: row.sender.avatar_url }
+      : { _id: row.sender_id }
+  };
+}
+
 function serializeNotification(row) {
   return {
     _id: row.id,
@@ -112,6 +126,7 @@ module.exports = {
   serializeStudyGroup,
   serializeStudyGroupDetail,
   serializeMessage,
+  serializeGroupMessage,
   serializeNotification,
   serializeContentItem
 };

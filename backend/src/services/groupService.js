@@ -1,10 +1,11 @@
 const groupRepository = require('../repositories/groupRepository');
 const userRepository = require('../repositories/userRepository');
 const mutabaahRepository = require('../repositories/mutabaahRepository');
+const groupMessageRepository = require('../repositories/groupMessageRepository');
 const mutabaahService = require('./mutabaahService');
 const notificationService = require('./notificationService');
 const generateInviteCode = require('../utils/generateCode');
-const { serializeGroup, serializeUser } = require('../utils/serializers');
+const { serializeGroup, serializeUser, serializeGroupMessage } = require('../utils/serializers');
 
 async function createGroup(name, ownerId) {
   let inviteCode;
@@ -87,4 +88,18 @@ async function getTodayStatus(groupId, requestingUserId) {
   };
 }
 
-module.exports = { createGroup, listGroupsForUser, joinGroup, getTodayStatus };
+async function listMessages(groupId) {
+  const rows = await groupMessageRepository.findByGroup(groupId);
+  return rows.map(serializeGroupMessage);
+}
+
+async function createMessage({ groupId, senderId, content, attachmentUrl, attachmentType }) {
+  const row = await groupMessageRepository.create({ groupId, senderId, content, attachmentUrl, attachmentType });
+  return serializeGroupMessage(row);
+}
+
+async function isMember(groupId, userId) {
+  return groupRepository.isMember(groupId, userId);
+}
+
+module.exports = { createGroup, listGroupsForUser, joinGroup, getTodayStatus, listMessages, createMessage, isMember };

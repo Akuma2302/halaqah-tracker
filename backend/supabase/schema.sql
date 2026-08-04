@@ -33,6 +33,16 @@ create table if not exists group_members (
   primary key (group_id, user_id)
 );
 
+create table if not exists group_messages (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references groups(id) on delete cascade,
+  sender_id uuid not null references users(id) on delete cascade,
+  content text not null default '',
+  attachment_url text not null default '',
+  attachment_type text not null default '' check (attachment_type in ('image', 'file', '')),
+  created_at timestamptz not null default now()
+);
+
 -- ---------- study groups ----------
 create table if not exists study_groups (
   id uuid primary key default gen_random_uuid(),
@@ -116,6 +126,7 @@ create table if not exists content_items (
 
 -- ---------- helpful indexes ----------
 create index if not exists idx_group_members_user on group_members(user_id);
+create index if not exists idx_group_messages_group on group_messages(group_id, created_at);
 create index if not exists idx_study_group_members_user on study_group_members(user_id);
 create index if not exists idx_messages_study_group on messages(study_group_id, created_at);
 create index if not exists idx_mutabaah_user_date on mutabaah_entries(user_id, date);
@@ -129,6 +140,7 @@ create index if not exists idx_schedule_datetime on study_group_schedule(datetim
 alter table users enable row level security;
 alter table groups enable row level security;
 alter table group_members enable row level security;
+alter table group_messages enable row level security;
 alter table study_groups enable row level security;
 alter table study_group_members enable row level security;
 alter table study_group_schedule enable row level security;

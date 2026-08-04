@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Plus, Users, Copy } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Users, Copy, Send, Paperclip } from 'lucide-react';
 import client from '../services/apiClient';
+import socket from '../services/socket';
+import { useAuth } from '../hooks/useAuth';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 
 export default function Groups() {
+  const { user } = useAuth();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -13,6 +16,12 @@ export default function Groups() {
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   function loadGroups() {
     setLoading(true);
@@ -31,15 +40,35 @@ export default function Groups() {
     if (selected) {
       setTodayData(null);
       setTodayError(false);
+      setMessages([]);
       client
         .get(`/groups/${selected}/today`)
         .then((res) => setTodayData(res.data))
         .catch(() => setTodayError(true));
+      client
+        .get(`/groups/${selected}/messages`)
+        .then((res) => setMessages(res.data))
+        .catch(() => setMessages([]));
     } else {
       setTodayData(null);
       setTodayError(false);
+      setMessages([]);
     }
   }, [selected]);
+
+  useEffect(() => {
+    if (!selected) return;
+    socket.emit('join-group', selected);
+    function onNewMessage(msg) {
+      if (msg.groupId === selected) setMessages((prev) => [...prev, msg]);
+    }
+    socket.on('new-group-message', onNewMessage);
+    return () => socket.off('new-group-message', onNewMessage);
+  }, [selected]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   async function createGroup(e) {
     e.preventDefault();
@@ -73,6 +102,37 @@ export default function Groups() {
     }
   }
 
+  function sendMessage(e) {
+    e.preventDefault();
+    if (!text.trim()) return;
+    socket.emit('send-group-message', { groupId: selected, content: text.trim() });
+    setText('');
+  }
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await client.post(`/groups/${selected}/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      socket.emit('send-group-message', {
+        groupId: selected,
+        content: '',
+        attachmentUrl: res.data.url,
+        attachmentType: res.data.type
+      });
+    } catch {
+      // Best-effort for the starter app - wire up a toast here later
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
   if (selected && todayError) {
     return (
       <div className="page">
@@ -103,10 +163,6 @@ export default function Groups() {
             <h1 className="page-title">{todayData.group.name}</h1>
             <p className="page-subtitle">Who's completed their mutabaah today</p>
           </div>
-        </div>
-
-        <div className="card" style={{ marginBottom: 14 }}>
-          <span className="section-label">Invite code</span>
           <div
             className="invite-code"
             onClick={() => navigator.clipboard?.writeText(todayData.group.inviteCode)}
@@ -117,34 +173,83 @@ export default function Groups() {
           </div>
         </div>
 
-        <div className="card">
-          {todayData.members.map((m) => {
-            const count = m.entry ? MUTABAAH_FIELDS.filter((f) => m.entry[f.key]).length : 0;
-            return (
-              <div className="member-row" key={m.user._id}>
-                {m.user.avatarUrl ? (
-                  <img className="avatar" src={m.user.avatarUrl} alt={m.user.name} />
-                ) : (
-                  <div className="avatar" />
-                )}
-                <div>
-                  <div className="name">{m.user.name}</div>
-                  {m.user.kampus && <div className="kampus">{m.user.kampus}</div>}
-                </div>
-                <div className="member-progress">
-                  <div className="mini-bar">
-                    <div
-                      className="mini-bar-fill"
-                      style={{ width: `${(count / MUTABAAH_FIELDS.length) * 100}%` }}
-                    />
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)' }}>
-                    {count}/{MUTABAAH_FIELDS.length}
-                  </span>
-                </div>
+        <div className="grid-2">
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="chat-window">
+              <div className="chat-messages">
+                {messages.map((m) => {
+                  const mine = m.senderId?._id === user?._id;
+                  return (
+                    <div className={`chat-bubble${mine ? ' mine' : ''}`} key={m._id}>
+                      {!mine && <div className="sender">{m.senderId?.name}</div>}
+                      {m.content && <div className="content">{m.content}</div>}
+                      {m.attachmentType === 'image' && m.attachmentUrl && (
+                        <img src={m.attachmentUrl} alt="Shared attachment" />
+                      )}
+                      {m.attachmentType === 'file' && m.attachmentUrl && (
+                        <a className="file-link" href={m.attachmentUrl} target="_blank" rel="noreferrer">
+                          <Paperclip size={12} /> Download file
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
               </div>
-            );
-          })}
+              <form className="chat-input-row" onSubmit={sendMessage}>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  aria-label="Attach file"
+                >
+                  <Paperclip size={15} />
+                </button>
+                <input type="file" ref={fileInputRef} onChange={handleFile} style={{ display: 'none' }} />
+                <input
+                  className="input"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={uploading ? 'Uploading…' : 'Type a message'}
+                />
+                <button className="icon-btn" type="submit" aria-label="Send">
+                  <Send size={15} />
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div className="card">
+            <span className="section-label">Today's progress</span>
+            {todayData.members.map((m) => {
+              const count = m.entry ? MUTABAAH_FIELDS.filter((f) => m.entry[f.key]).length : 0;
+              return (
+                <div className="member-row" key={m.user._id}>
+                  {m.user.avatarUrl ? (
+                    <img className="avatar" src={m.user.avatarUrl} alt={m.user.name} />
+                  ) : (
+                    <div className="avatar" />
+                  )}
+                  <div>
+                    <div className="name">{m.user.name}</div>
+                    {m.user.kampus && <div className="kampus">{m.user.kampus}</div>}
+                  </div>
+                  <div className="member-progress">
+                    <div className="mini-bar">
+                      <div
+                        className="mini-bar-fill"
+                        style={{ width: `${(count / MUTABAAH_FIELDS.length) * 100}%` }}
+                      />
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)' }}>
+                      {count}/{MUTABAAH_FIELDS.length}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -215,7 +320,7 @@ export default function Groups() {
                     {g.members.length} member{g.members.length === 1 ? '' : 's'}
                   </div>
                 </div>
-                <span className="badge badge-primary">View today</span>
+                <span className="badge badge-primary">View & chat</span>
               </div>
             ))}
           </div>
