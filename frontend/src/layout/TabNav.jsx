@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, Users, GraduationCap, BookMarked, Bell, LogOut } from 'lucide-react';
+import { LayoutDashboard, ListChecks, Users, GraduationCap, BookMarked, Bell, LogOut, BookOpen, ClipboardList } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const TABS = [
@@ -7,6 +7,8 @@ const TABS = [
   { to: '/checklist', label: 'Checklist', icon: ListChecks },
   { to: '/groups', label: 'Groups', icon: Users },
   { to: '/study-groups', label: 'Study groups', icon: GraduationCap },
+  { to: '/academic-journal', label: 'Academic Journal', icon: BookOpen },
+  { to: '/subject-list', label: 'Subject List', icon: ClipboardList },
   { to: '/compilation', label: 'Compilation', icon: BookMarked },
   { to: '/notifications', label: 'Notifications', icon: Bell }
 ];

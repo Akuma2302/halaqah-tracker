@@ -110,6 +110,18 @@ npm run dev              # http://localhost:5173, proxies /api to :5000
 
 ## What changed from the original version
 
+- **New: Academic Journal + Subject List tabs.** Weekly study-hour tracking
+  (Sun-Sat, 10hr/week target ring shown on both the Dashboard and the
+  Academic Journal page), a Subject List with per-subject assessment
+  breakdowns, an assignments/projects overview, and a week-scoped log split
+  into four sections (Study Hour, Question Practice, Lecturer Consultation
+  with photo upload, and self-ticked Mentor Validation), plus a weekly report
+  downloadable as PDF or Excel. Backend: `backend/src/routes/academic.js`
+  and everything under `services/`, `repositories/`, `controllers/` prefixed
+  accordingly. New tables in `backend/supabase/schema.sql`: `subjects`,
+  `subject_assessments`, `assignments`, `study_sessions`,
+  `question_practice`, `lecturer_consultations`, `mentor_validations`.
+
 - **Database:** MongoDB/Mongoose -> **Supabase Postgres**. Schema lives in
   `backend/supabase/schema.sql` and is applied automatically from code on
   boot (`backend/src/config/migrate.js`) — no manual SQL editor step. Data

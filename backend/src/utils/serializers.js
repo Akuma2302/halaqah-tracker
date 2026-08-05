@@ -120,6 +120,80 @@ function serializeContentItem(row) {
   };
 }
 
+function serializeSubject(row) {
+  return {
+    _id: row.id,
+    name: row.name,
+    code: row.code,
+    lecturerName: row.lecturer_name,
+    creditHour: row.credit_hour,
+    isVisible: row.is_visible,
+    assessments: (row.subject_assessments || []).map((a) => ({
+      _id: a.id,
+      type: a.type,
+      percentage: a.percentage
+    })),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function serializeAssignment(row) {
+  return {
+    _id: row.id,
+    title: row.title,
+    type: row.type,
+    dueDate: row.due_date,
+    isDone: row.is_done,
+    subject: row.subject ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code } : null,
+    createdAt: row.created_at
+  };
+}
+
+function serializeStudySession(row) {
+  return {
+    _id: row.id,
+    weekStart: row.week_start,
+    date: row.date,
+    categories: row.categories || [],
+    hours: Number(row.hours),
+    subject: row.subject ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code } : null,
+    createdAt: row.created_at
+  };
+}
+
+function serializeQuestionPractice(row) {
+  return {
+    _id: row.id,
+    weekStart: row.week_start,
+    questionCount: row.question_count,
+    isValidated: row.is_validated,
+    subject: row.subject ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code } : null,
+    createdAt: row.created_at
+  };
+}
+
+function serializeConsultation(row) {
+  return {
+    _id: row.id,
+    weekStart: row.week_start,
+    lecturerName: row.lecturer_name,
+    detail: row.detail,
+    date: row.date,
+    venue: row.venue,
+    photoUrl: row.photo_url,
+    subject: row.subject
+      ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code, lecturerName: row.subject.lecturer_name }
+      : null,
+    createdAt: row.created_at
+  };
+}
+
+function serializeMentorValidation(row, weekStart) {
+  if (!row) return { weekStart, isValidated: false, validatedDate: null };
+  return { weekStart: row.week_start, isValidated: row.is_validated, validatedDate: row.validated_date };
+}
+
 module.exports = {
   serializeUser,
   serializeGroup,
@@ -128,5 +202,11 @@ module.exports = {
   serializeMessage,
   serializeGroupMessage,
   serializeNotification,
-  serializeContentItem
+  serializeContentItem,
+  serializeSubject,
+  serializeAssignment,
+  serializeStudySession,
+  serializeQuestionPractice,
+  serializeConsultation,
+  serializeMentorValidation
 };

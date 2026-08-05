@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const requireAuth = require('../middlewares/requireAuth');
 const validate = require('../middlewares/validate');
+const asyncHandler = require('../middlewares/asyncHandler');
 const studyGroupController = require('../controllers/studyGroupController');
 const { upload } = require('../utils/upload');
 const {
@@ -11,12 +12,12 @@ const {
 
 router.use(requireAuth);
 
-router.post('/', validate(createStudyGroupSchema), studyGroupController.create);
-router.get('/', studyGroupController.list);
-router.get('/:id', studyGroupController.detail);
-router.post('/join', validate(joinStudyGroupSchema), studyGroupController.join);
-router.post('/:id/schedule', validate(scheduleSessionSchema), studyGroupController.schedule);
-router.get('/:id/messages', studyGroupController.messages);
-router.post('/:id/upload', upload.single('file'), studyGroupController.upload);
+router.post('/', validate(createStudyGroupSchema), asyncHandler(studyGroupController.create));
+router.get('/', asyncHandler(studyGroupController.list));
+router.get('/:id', asyncHandler(studyGroupController.detail));
+router.post('/join', validate(joinStudyGroupSchema), asyncHandler(studyGroupController.join));
+router.post('/:id/schedule', validate(scheduleSessionSchema), asyncHandler(studyGroupController.schedule));
+router.get('/:id/messages', asyncHandler(studyGroupController.messages));
+router.post('/:id/upload', upload.single('file'), asyncHandler(studyGroupController.upload));
 
 module.exports = router;

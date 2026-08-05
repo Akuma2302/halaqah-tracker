@@ -27,8 +27,17 @@ app.use('/api/groups', require('./routes/groups'));
 app.use('/api/study-groups', require('./routes/studyGroups'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/content', require('./routes/content'));
+app.use('/api/academic', require('./routes/academic'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// Catches every error forwarded by asyncHandler (see middlewares/asyncHandler.js)
+// so a failure in one request returns a clean error response instead of
+// crashing the whole process and dropping every other active connection.
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({ error: err.message || 'Something went wrong' });
+});
 
 registerSocketHandlers(io);
 startReminderJob();

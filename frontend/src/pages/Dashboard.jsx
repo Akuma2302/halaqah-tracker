@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { Pencil, Check } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Pencil, Check, ArrowRight } from 'lucide-react';
 import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
 import MutabaahRing from '../components/MutabaahRing';
+import ProgressRing from '../components/ProgressRing';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
+import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 
 function cellColor(entry) {
   if (!entry) return 'var(--border)';
@@ -26,6 +29,7 @@ export default function Dashboard() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [kampusDraft, setKampusDraft] = useState('');
+  const [academicSummary, setAcademicSummary] = useState(null);
 
   const todayStr = dayjs().format('YYYY-MM-DD');
 
@@ -37,6 +41,13 @@ export default function Dashboard() {
   useEffect(() => {
     client.get(`/mutabaah/${todayStr}`).then((res) => setToday(res.data)).catch(() => {});
   }, [todayStr]);
+
+  useEffect(() => {
+    client
+      .get('/academic/summary')
+      .then((res) => setAcademicSummary(res.data))
+      .catch(() => setAcademicSummary(null));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -115,6 +126,26 @@ export default function Dashboard() {
               {f.label}
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="card ring-card" style={{ marginTop: 14 }}>
+        <ProgressRing
+          percent={academicSummary?.percent || 0}
+          size={140}
+          primaryText={`${academicSummary?.hours ?? 0}h`}
+          secondaryText={`of ${WEEKLY_TARGET_HOURS}h this week`}
+        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <span className="section-label" style={{ marginBottom: 0 }}>
+            Academic Journal
+          </span>
+          <p className="page-subtitle" style={{ margin: 0 }}>
+            Study hours logged this week toward your target.
+          </p>
+          <Link to="/academic-journal" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
+            Open Academic Journal <ArrowRight size={14} />
+          </Link>
         </div>
       </div>
 
