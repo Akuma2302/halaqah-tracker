@@ -131,7 +131,10 @@ function serializeSubject(row) {
     assessments: (row.subject_assessments || []).map((a) => ({
       _id: a.id,
       type: a.type,
-      percentage: a.percentage
+      percentage: a.percentage,
+      dueDate: a.due_date,
+      progressPercentage: a.progress_percentage,
+      isDone: a.is_done
     })),
     createdAt: row.created_at,
     updatedAt: row.updated_at

@@ -4,7 +4,10 @@ const { STUDY_CATEGORIES } = require('../models/StudySession');
 
 const assessmentSchema = z.object({
   type: z.enum(ASSESSMENT_TYPES),
-  percentage: z.number().min(0).max(100)
+  percentage: z.number().min(0).max(100),
+  dueDate: z.string().nullish(),
+  progressPercentage: z.number().min(0).max(100).optional(),
+  isDone: z.boolean().optional()
 });
 
 const createSubjectSchema = z.object({

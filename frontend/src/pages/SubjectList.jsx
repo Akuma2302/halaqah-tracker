@@ -42,7 +42,13 @@ export default function SubjectList() {
       code: subject.code,
       lecturerName: subject.lecturerName,
       creditHour: subject.creditHour,
-      assessments: subject.assessments.map((a) => ({ type: a.type, percentage: a.percentage }))
+      assessments: subject.assessments.map((a) => ({
+        type: a.type,
+        percentage: a.percentage,
+        dueDate: a.dueDate || '',
+        progressPercentage: a.progressPercentage ?? '',
+        isDone: a.isDone || false
+      }))
     });
     setEditingId(subject._id);
     setJustSaved(false);
@@ -51,7 +57,10 @@ export default function SubjectList() {
   }
 
   function addAssessmentRow() {
-    setForm((f) => ({ ...f, assessments: [...f.assessments, { type: 'quiz', percentage: '' }] }));
+    setForm((f) => ({
+      ...f,
+      assessments: [...f.assessments, { type: 'quiz', percentage: '', dueDate: '', progressPercentage: '', isDone: false }]
+    }));
   }
 
   function updateAssessmentRow(i, field, value) {
@@ -79,7 +88,13 @@ export default function SubjectList() {
       creditHour: form.creditHour === '' ? 0 : Number(form.creditHour),
       assessments: form.assessments
         .filter((a) => a.percentage !== '')
-        .map((a) => ({ type: a.type, percentage: Number(a.percentage) }))
+        .map((a) => ({
+          type: a.type,
+          percentage: Number(a.percentage),
+          dueDate: a.dueDate || null,
+          progressPercentage: a.progressPercentage === '' ? 0 : Number(a.progressPercentage),
+          isDone: a.isDone
+        }))
     };
     try {
       if (editingId) {
@@ -197,32 +212,72 @@ export default function SubjectList() {
               <div className="field">
                 <label>Assessment</label>
                 {form.assessments.map((a, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                    <select
-                      className="input"
-                      style={{ flex: 1 }}
-                      value={a.type}
-                      onChange={(e) => updateAssessmentRow(i, 'type', e.target.value)}
-                    >
-                      {ASSESSMENT_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      className="input"
-                      style={{ width: 90 }}
-                      type="number"
-                      min="0"
-                      max="100"
-                      placeholder="%"
-                      value={a.percentage}
-                      onChange={(e) => updateAssessmentRow(i, 'percentage', e.target.value)}
-                    />
-                    <button className="icon-btn" onClick={() => removeAssessmentRow(i)} aria-label="Remove assessment">
-                      <Trash2 size={14} />
-                    </button>
+                  <div
+                    key={i}
+                    style={{
+                      border: '1px solid var(--border)',
+                      borderRadius: 10,
+                      padding: 10,
+                      marginBottom: 8
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                      <select
+                        className="input"
+                        style={{ flex: 1 }}
+                        value={a.type}
+                        onChange={(e) => updateAssessmentRow(i, 'type', e.target.value)}
+                      >
+                        {ASSESSMENT_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="input"
+                        style={{ width: 80 }}
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Weight %"
+                        title="Weightage toward final grade"
+                        value={a.percentage}
+                        onChange={(e) => updateAssessmentRow(i, 'percentage', e.target.value)}
+                      />
+                      <button className="icon-btn" onClick={() => removeAssessmentRow(i)} aria-label="Remove assessment">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        className="input"
+                        style={{ flex: '1 1 140px' }}
+                        type="date"
+                        title="Due date"
+                        value={a.dueDate}
+                        onChange={(e) => updateAssessmentRow(i, 'dueDate', e.target.value)}
+                      />
+                      <input
+                        className="input"
+                        style={{ width: 100 }}
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Progress %"
+                        title="Progress made so far"
+                        value={a.progressPercentage}
+                        onChange={(e) => updateAssessmentRow(i, 'progressPercentage', e.target.value)}
+                      />
+                      <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, whiteSpace: 'nowrap' }}>
+                        <input
+                          type="checkbox"
+                          checked={a.isDone}
+                          onChange={(e) => updateAssessmentRow(i, 'isDone', e.target.checked)}
+                        />
+                        Done
+                      </label>
+                    </div>
                   </div>
                 ))}
                 <button className="btn btn-ghost btn-sm" onClick={addAssessmentRow} type="button">

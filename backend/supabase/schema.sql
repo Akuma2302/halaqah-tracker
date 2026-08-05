@@ -151,6 +151,9 @@ create table if not exists subject_assessments (
   subject_id uuid not null references subjects(id) on delete cascade,
   type text not null check (type in ('quiz', 'test', 'assignment', 'project', 'presentation', 'final_exam')),
   percentage numeric not null default 0,
+  due_date date,
+  progress_percentage numeric not null default 0,
+  is_done boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -249,3 +252,7 @@ alter table mentor_validations enable row level security;
 alter table notifications drop constraint if exists notifications_type_check;
 alter table notifications add constraint notifications_type_check
   check (type in ('reminder', 'group_invite', 'session_scheduled', 'message'));
+
+alter table subject_assessments add column if not exists due_date date;
+alter table subject_assessments add column if not exists progress_percentage numeric not null default 0;
+alter table subject_assessments add column if not exists is_done boolean not null default false;

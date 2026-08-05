@@ -1,5 +1,16 @@
 const supabase = require('../config/supabaseClient');
 
+function toAssessmentRow(subjectId, a) {
+  return {
+    subject_id: subjectId,
+    type: a.type,
+    percentage: a.percentage,
+    due_date: a.dueDate || null,
+    progress_percentage: a.progressPercentage || 0,
+    is_done: !!a.isDone
+  };
+}
+
 async function findAllForUser(userId) {
   const { data, error } = await supabase
     .from('subjects')
@@ -43,7 +54,7 @@ async function create(userId, { name, code, lecturerName, creditHour, assessment
   if (assessments?.length) {
     const { error: assessError } = await supabase
       .from('subject_assessments')
-      .insert(assessments.map((a) => ({ subject_id: subject.id, type: a.type, percentage: a.percentage })));
+      .insert(assessments.map((a) => toAssessmentRow(subject.id, a)));
     if (assessError) throw assessError;
   }
 
@@ -68,7 +79,7 @@ async function update(id, userId, { name, code, lecturerName, creditHour, isVisi
     if (assessments.length) {
       const { error: insError } = await supabase
         .from('subject_assessments')
-        .insert(assessments.map((a) => ({ subject_id: id, type: a.type, percentage: a.percentage })));
+        .insert(assessments.map((a) => toAssessmentRow(id, a)));
       if (insError) throw insError;
     }
   }
