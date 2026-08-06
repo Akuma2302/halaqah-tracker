@@ -54,4 +54,24 @@ async function upload(req, res) {
   }
 }
 
-module.exports = { create, list, detail, join, schedule, messages, upload };
+async function scoreboard(req, res) {
+  try {
+    const data = await studyGroupService.getScoreboard(req.params.id, req.userId);
+    res.json(data);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+}
+
+async function scheduleIcs(req, res) {
+  try {
+    const ics = await studyGroupService.getScheduleIcs(req.params.id, req.params.scheduleId, req.userId);
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="session-${req.params.scheduleId}.ics"`);
+    res.send(ics);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+}
+
+module.exports = { create, list, detail, join, schedule, messages, upload, scoreboard, scheduleIcs };

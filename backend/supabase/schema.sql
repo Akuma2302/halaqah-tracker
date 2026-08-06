@@ -222,6 +222,25 @@ create index if not exists idx_question_practice_user_week on question_practice(
 create index if not exists idx_consultations_user_week on lecturer_consultations(user_id, week_start);
 create index if not exists idx_mentor_validations_user_week on mentor_validations(user_id, week_start);
 
+-- ---------- group folders (personal organization, per user) ----------
+create table if not exists group_folders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists group_folder_items (
+  folder_id uuid not null references group_folders(id) on delete cascade,
+  study_group_id uuid not null references study_groups(id) on delete cascade,
+  added_at timestamptz not null default now(),
+  primary key (folder_id, study_group_id)
+);
+
+create index if not exists idx_group_folders_user on group_folders(user_id);
+create index if not exists idx_group_folder_items_group on group_folder_items(study_group_id);
+
 -- ---------- row level security ----------
 -- The backend talks to Postgres with the service_role key (see config/supabaseClient.js),
 -- which always bypasses RLS. Enabling RLS with no policies just guarantees that nobody
@@ -244,6 +263,8 @@ alter table study_sessions enable row level security;
 alter table question_practice enable row level security;
 alter table lecturer_consultations enable row level security;
 alter table mentor_validations enable row level security;
+alter table group_folders enable row level security;
+alter table group_folder_items enable row level security;
 
 -- ---------- schema upgrades for already-deployed databases ----------
 -- CREATE TABLE IF NOT EXISTS above won't retroactively change a table that
