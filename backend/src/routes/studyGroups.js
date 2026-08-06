@@ -19,5 +19,7 @@ router.post('/join', validate(joinStudyGroupSchema), asyncHandler(studyGroupCont
 router.post('/:id/schedule', validate(scheduleSessionSchema), asyncHandler(studyGroupController.schedule));
 router.get('/:id/messages', asyncHandler(studyGroupController.messages));
 router.post('/:id/upload', upload.single('file'), asyncHandler(studyGroupController.upload));
+router.get('/:id/scoreboard', asyncHandler(studyGroupController.scoreboard));
+router.get('/:id/schedule/:scheduleId/ics', asyncHandler(studyGroupController.scheduleIcs));
 
 module.exports = router;

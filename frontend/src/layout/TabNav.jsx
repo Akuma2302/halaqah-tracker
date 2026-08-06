@@ -1,12 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, Users, GraduationCap, BookMarked, Bell, LogOut, BookOpen, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, Bell, LogOut, BookOpen, ClipboardList } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const TABS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/checklist', label: 'Checklist', icon: ListChecks },
-  { to: '/groups', label: 'Groups', icon: Users },
-  { to: '/study-groups', label: 'Study groups', icon: GraduationCap },
+  { to: '/study-groups', label: 'Your Groups', icon: GraduationCap },
   { to: '/academic-journal', label: 'Academic Journal', icon: BookOpen },
   { to: '/subject-list', label: 'Subject List', icon: ClipboardList },
   { to: '/compilation', label: 'Compilation', icon: BookMarked },
