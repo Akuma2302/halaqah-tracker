@@ -1,6 +1,7 @@
 import { createContext, useEffect, useState, useCallback } from 'react';
 import client, { getToken, setToken } from '../services/apiClient';
 import socket from '../services/socket';
+import { setupPushNotifications } from '../services/push';
 
 export const AuthContext = createContext(null);
 
@@ -25,11 +26,10 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (user) {
       socket.connect();
-      // Ask once per session — browsers remember the choice after that, and
-      // silently no-op on unsupported browsers instead of throwing.
-      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
+      // Real OS-level push (works even if the app isn't open) — see
+      // services/push.js. Replaces the old plain Notification.requestPermission()
+      // call, which only ever worked while a tab was open.
+      setupPushNotifications();
     } else {
       socket.disconnect();
     }
@@ -48,22 +48,13 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   useEffect(() => {
-    function onNewNotification(notification) {
+    function onNewNotification() {
+      // The OS-level popup itself now comes from the service worker's real
+      // Web Push handler (services/push.js + service-worker.js), which fires
+      // independently of whether this tab is open. Calling `new Notification()`
+      // here too would show a duplicate popup on any device with push already
+      // subscribed — so this listener only needs to keep the in-app badge live.
       setUnreadCount((c) => c + 1);
-
-      // Native "this device" notification, same as any other app —
-      // only fires if the user granted permission and the tab isn't focused.
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
-        try {
-          new Notification(notification.title, {
-            body: notification.body,
-            icon: '/favicon.svg',
-            tag: notification._id
-          });
-        } catch {
-          // Some browsers (notably iOS Safari PWA-less) throw on `new Notification`; ignore.
-        }
-      }
     }
 
     socket.on('new-notification', onNewNotification);

@@ -230,6 +230,17 @@ create table if not exists group_folder_items (
   primary key (folder_id, study_group_id)
 );
 
+-- ---------- push notification subscriptions (one row per device) ----------
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_push_subscriptions_user on push_subscriptions(user_id);
 create index if not exists idx_group_folders_user on group_folders(user_id);
 create index if not exists idx_group_folder_items_group on group_folder_items(study_group_id);
 create index if not exists idx_subjects_user on subjects(user_id);
@@ -264,6 +275,7 @@ alter table lecturer_consultations enable row level security;
 alter table mentor_validations enable row level security;
 alter table group_folders enable row level security;
 alter table group_folder_items enable row level security;
+alter table push_subscriptions enable row level security;
 
 -- ---------- schema upgrades for already-deployed databases ----------
 -- CREATE TABLE IF NOT EXISTS above won't retroactively change a table that

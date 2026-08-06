@@ -28,6 +28,7 @@ app.use('/api/folders', require('./routes/folders'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/content', require('./routes/content'));
 app.use('/api/academic', require('./routes/academic'));
+app.use('/api/push', require('./routes/push'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
