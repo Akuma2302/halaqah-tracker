@@ -23,8 +23,8 @@ app.use(express.json());
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/mutabaah', require('./routes/mutabaah'));
+app.use('/api/groups', require('./routes/groups'));
 app.use('/api/study-groups', require('./routes/studyGroups'));
-app.use('/api/folders', require('./routes/folders'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/content', require('./routes/content'));
 app.use('/api/academic', require('./routes/academic'));
@@ -44,9 +44,14 @@ startReminderJob();
 
 // In production the frontend is deployed separately on Netlify, so this backend
 // (Render) only serves the JSON API + websocket — no static file serving here.
+// (If you ever want a single-service deploy instead, see README "Alternative: single-service deploy".)
 
 const PORT = process.env.PORT || 5000;
 
+// Sets up the Supabase database schema and storage bucket automatically —
+// no manual steps in the Supabase dashboard needed. Run sequentially (schema
+// first) rather than in parallel, so a storage hiccup can't cut off an
+// in-flight migration. Safe to run on every boot.
 runMigrations()
   .then(() => ensureStorageBucket())
   .then(() => {

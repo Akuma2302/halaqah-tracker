@@ -1,14 +1,9 @@
 const studyGroupRepository = require('../repositories/studyGroupRepository');
 const messageRepository = require('../repositories/messageRepository');
 const userRepository = require('../repositories/userRepository');
-const mutabaahRepository = require('../repositories/mutabaahRepository');
-const studySessionRepository = require('../repositories/studySessionRepository');
 const notificationService = require('./notificationService');
-const mutabaahService = require('./mutabaahService');
 const generateInviteCode = require('../utils/generateCode');
-const { getWeekStart } = require('../utils/weekUtils');
-const { buildIcsEvent } = require('../utils/ics');
-const { serializeStudyGroup, serializeStudyGroupDetail, serializeMessage, serializeUser } = require('../utils/serializers');
+const { serializeStudyGroup, serializeStudyGroupDetail, serializeMessage } = require('../utils/serializers');
 
 async function createStudyGroup(name, subject, adminId) {
   let inviteCode;
@@ -147,72 +142,6 @@ async function notifyNewMessage(studyGroupId, senderId, senderName, preview) {
   );
 }
 
-// Combines what used to be the separate "Groups" (mutabaah scoreboard) and
-// "Study Groups" features: today's mutabaah completion + this week's study
-// hours, per member, in one unified group.
-async function getScoreboard(studyGroupId, requestingUserId) {
-  const group = await studyGroupRepository.findById(studyGroupId);
-  if (!group) {
-    const err = new Error('Study group not found');
-    err.status = 404;
-    throw err;
-  }
-
-  const member = await studyGroupRepository.findMember(studyGroupId, requestingUserId);
-  if (!member) {
-    const err = new Error('Not a member of this group');
-    err.status = 403;
-    throw err;
-  }
-
-  const memberRows = await studyGroupRepository.listMembers(studyGroupId);
-  const memberIds = memberRows.map((m) => m.user_id);
-  const users = await userRepository.findByIds(memberIds);
-  const usersById = Object.fromEntries(users.map((u) => [u.id, u]));
-
-  const today = new Date().toISOString().slice(0, 10);
-  const weekStart = getWeekStart(today);
-
-  const [mutabaahEntries, weeklyHours] = await Promise.all([
-    mutabaahRepository.findByUsersAndDate(memberIds, today),
-    studySessionRepository.sumHoursForUsersAndWeek(memberIds, weekStart)
-  ]);
-  const entryByUser = Object.fromEntries(mutabaahEntries.map((e) => [e.user_id, e]));
-
-  return memberIds.map((userId) => ({
-    user: serializeUser(usersById[userId]),
-    mutabaah: entryByUser[userId] ? mutabaahService.toApiShapePublic(entryByUser[userId]) : null,
-    studyHoursThisWeek: Math.round((weeklyHours[userId] || 0) * 10) / 10
-  }));
-}
-
-// Generates a standard .ics file for a scheduled session so members can add
-// it to whatever calendar app they use with one tap — no Google Calendar
-// permission needed.
-async function getScheduleIcs(studyGroupId, scheduleId, requestingUserId) {
-  const member = await studyGroupRepository.findMember(studyGroupId, requestingUserId);
-  if (!member) {
-    const err = new Error('Not a member of this group');
-    err.status = 403;
-    throw err;
-  }
-
-  const group = await studyGroupRepository.findById(studyGroupId);
-  const entry = await studyGroupRepository.findScheduleEntryById(scheduleId, studyGroupId);
-  if (!group || !entry) {
-    const err = new Error('Session not found');
-    err.status = 404;
-    throw err;
-  }
-
-  return buildIcsEvent({
-    id: entry.id,
-    title: `${entry.title} — ${group.name}`,
-    description: entry.notes,
-    start: entry.datetime
-  });
-}
-
 module.exports = {
   createStudyGroup,
   listStudyGroupsForUser,
@@ -222,7 +151,5 @@ module.exports = {
   listMessages,
   createMessage,
   isMember,
-  notifyNewMessage,
-  getScoreboard,
-  getScheduleIcs
+  notifyNewMessage
 };

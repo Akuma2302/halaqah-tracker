@@ -90,17 +90,6 @@ async function listSchedule(studyGroupId) {
   return data;
 }
 
-async function findScheduleEntryById(id, studyGroupId) {
-  const { data, error } = await supabase
-    .from('study_group_schedule')
-    .select('*')
-    .eq('id', id)
-    .eq('study_group_id', studyGroupId)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
 async function findDueUnremindedSessions(windowStart, windowEnd) {
   const { data, error } = await supabase
     .from('study_group_schedule')
@@ -128,7 +117,6 @@ module.exports = {
   addMember,
   addScheduleEntry,
   listSchedule,
-  findScheduleEntryById,
   findDueUnremindedSessions,
   markSessionReminded
 };

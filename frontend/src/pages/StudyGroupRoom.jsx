@@ -1,11 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { Copy, Send, Paperclip, Calendar, Users, Download, Trophy } from 'lucide-react';
+import { Copy, Send, Paperclip, Calendar, Users } from 'lucide-react';
 import client from '../services/apiClient';
 import socket from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
-import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 
 export default function StudyGroupRoom() {
   const { id } = useParams();
@@ -19,16 +18,8 @@ export default function StudyGroupRoom() {
   const [sessionTitle, setSessionTitle] = useState('');
   const [sessionTime, setSessionTime] = useState('');
   const [sessionNotes, setSessionNotes] = useState('');
-  const [scoreboard, setScoreboard] = useState(null);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
-
-  useEffect(() => {
-    client
-      .get(`/study-groups/${id}/scoreboard`)
-      .then((res) => setScoreboard(res.data))
-      .catch(() => setScoreboard([]));
-  }, [id]);
 
   useEffect(() => {
     client
@@ -97,22 +88,6 @@ export default function StudyGroupRoom() {
     setShowSchedule(false);
   }
 
-  async function downloadIcs(scheduleId, title) {
-    try {
-      const res = await client.get(`/study-groups/${id}/schedule/${scheduleId}/ics`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'session'}.ics`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      // best-effort
-    }
-  }
-
   if (!group) {
     return (
       <div className="page">
@@ -131,7 +106,7 @@ export default function StudyGroupRoom() {
       <div className="page-header">
         <div>
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/study-groups')} style={{ marginBottom: 10 }}>
-            ← Your Groups
+            ← Study groups
           </button>
           <h1 className="page-title">{group.name}</h1>
           <p className="page-subtitle">{group.subject || 'No subject set'}</p>
@@ -195,37 +170,6 @@ export default function StudyGroupRoom() {
 
         <div>
           <div className="card">
-            <span className="section-label">
-              <Trophy size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
-              Scoreboard
-            </span>
-            {!scoreboard ? (
-              <div className="spinner" style={{ margin: '10px auto' }} />
-            ) : scoreboard.length === 0 ? (
-              <p style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Couldn't load the scoreboard.</p>
-            ) : (
-              scoreboard.map((row) => {
-                const doneCount = row.mutabaah ? MUTABAAH_FIELDS.filter((f) => row.mutabaah[f.key]).length : 0;
-                return (
-                  <div className="member-row" key={row.user._id}>
-                    {row.user.avatarUrl ? (
-                      <img className="avatar" src={row.user.avatarUrl} alt={row.user.name} />
-                    ) : (
-                      <div className="avatar" />
-                    )}
-                    <div style={{ flex: 1 }}>
-                      <div className="name">{row.user.name}</div>
-                      <div className="kampus">
-                        Mutabaah {doneCount}/{MUTABAAH_FIELDS.length} today · {row.studyHoursThisWeek}h study this week
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="card" style={{ marginTop: 14 }}>
             <span className="section-label">
               <Users size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
               Members ({group.members.length})
@@ -303,18 +247,10 @@ export default function StudyGroupRoom() {
               upcoming.map((s, i) => (
                 <div className="schedule-item" key={s._id || i}>
                   <span className="when">{dayjs(s.datetime).format('D MMM, h:mm A')}</span>
-                  <div style={{ flex: 1 }}>
+                  <div>
                     <div style={{ fontWeight: 600, fontSize: 13.5 }}>{s.title}</div>
                     {s.notes && <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{s.notes}</div>}
                   </div>
-                  <button
-                    className="icon-btn"
-                    onClick={() => downloadIcs(s._id, s.title)}
-                    title="Add to calendar (.ics)"
-                    aria-label="Add to calendar"
-                  >
-                    <Download size={14} />
-                  </button>
                 </div>
               ))
             )}

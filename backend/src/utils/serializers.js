@@ -197,10 +197,6 @@ function serializeMentorValidation(row, weekStart) {
   return { weekStart: row.week_start, isValidated: row.is_validated, validatedDate: row.validated_date };
 }
 
-function serializeFolder(row) {
-  return { _id: row.id, name: row.name, sortOrder: row.sort_order, createdAt: row.created_at };
-}
-
 module.exports = {
   serializeUser,
   serializeGroup,
@@ -215,6 +211,5 @@ module.exports = {
   serializeStudySession,
   serializeQuestionPractice,
   serializeConsultation,
-  serializeMentorValidation,
-  serializeFolder
+  serializeMentorValidation
 };

@@ -1,60 +1,47 @@
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, Bell, LogOut, BookOpen, ClipboardList } from 'lucide-react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import Login from './components/Login';
+import TabNav from './layout/TabNav';
+import Dashboard from './pages/Dashboard';
+import Checklist from './pages/Checklist';
+import Groups from './pages/Groups';
+import StudyGroups from './pages/StudyGroups';
+import StudyGroupRoom from './pages/StudyGroupRoom';
+import AcademicJournal from './pages/AcademicJournal';
+import SubjectList from './pages/SubjectList';
+import Compilation from './pages/Compilation';
+import Notifications from './pages/Notifications';
 
-const TABS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/checklist', label: 'Checklist', icon: ListChecks },
-  { to: '/study-groups', label: 'Your Groups', icon: GraduationCap },
-  { to: '/academic-journal', label: 'Academic Journal', icon: BookOpen },
-  { to: '/subject-list', label: 'Subject List', icon: ClipboardList },
-  { to: '/compilation', label: 'Compilation', icon: BookMarked },
-  { to: '/notifications', label: 'Notifications', icon: Bell }
-];
+export default function App() {
+  const { user, loading } = useAuth();
 
-export default function TabNav() {
-  const { user, logout, unreadCount } = useAuth();
+  if (loading) {
+    return (
+      <div className="center-screen">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   return (
-    <>
-      <header className="top-bar">
-        <div className="top-bar-inner">
-          <div className="brand">
-            <span className="brand-mark">M</span>
-            Mutabaah
-          </div>
-          <div className="user-chip">
-            {user?.avatarUrl ? (
-              <img className="avatar" src={user.avatarUrl} alt={user.name} />
-            ) : (
-              <div className="avatar" />
-            )}
-            <span className="name">{user?.name}</span>
-            <button className="icon-btn" onClick={logout} title="Log out" aria-label="Log out">
-              <LogOut size={16} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <nav className="tab-nav">
-        <div className="tab-nav-inner">
-          {TABS.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) => `tab-link${isActive ? ' active' : ''}`}
-            >
-              <Icon size={15} />
-              {label}
-              {to === '/notifications' && unreadCount > 0 && (
-                <span className="tab-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
-    </>
+    <div className="app-shell">
+      <TabNav />
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/checklist" element={<Checklist />} />
+        <Route path="/groups" element={<Groups />} />
+        <Route path="/study-groups" element={<StudyGroups />} />
+        <Route path="/study-groups/:id" element={<StudyGroupRoom />} />
+        <Route path="/academic-journal" element={<AcademicJournal />} />
+        <Route path="/subject-list" element={<SubjectList />} />
+        <Route path="/compilation" element={<Compilation />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
   );
 }
