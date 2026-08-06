@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, Bell, LogOut, BookOpen, ClipboardList } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from './hooks/useAuth';
 
 const TABS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
