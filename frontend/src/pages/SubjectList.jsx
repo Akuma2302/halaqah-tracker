@@ -5,6 +5,21 @@ import { ASSESSMENT_TYPES } from '../features/academic/constants';
 
 const emptyForm = { name: '', code: '', lecturerName: '', creditHour: '', assessments: [] };
 
+function clampPercentage(value) {
+  if (value === '') return '';
+  const n = Math.max(0, Math.min(100, Number(value)));
+  return Number.isNaN(n) ? '' : n;
+}
+
+function progressColor(value) {
+  const n = Number(value);
+  if (value === '' || Number.isNaN(n)) return 'var(--border)';
+  if (n >= 100) return '#1f9d55'; // green - complete
+  if (n >= 60) return '#e17b1f'; // orange - 60-99%
+  if (n >= 30) return '#d4a017'; // yellow - 30-59%
+  return '#d64545'; // red - under 30%
+}
+
 export default function SubjectList() {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -249,27 +264,42 @@ export default function SubjectList() {
                         <Trash2 size={14} />
                       </button>
                     </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <input
-                        className="input"
-                        style={{ flex: '1 1 140px' }}
-                        type="date"
-                        title="Due date"
-                        value={a.dueDate}
-                        onChange={(e) => updateAssessmentRow(i, 'dueDate', e.target.value)}
-                      />
-                      <input
-                        className="input"
-                        style={{ width: 100 }}
-                        type="number"
-                        min="0"
-                        max="100"
-                        placeholder="Progress %"
-                        title="Progress made so far"
-                        value={a.progressPercentage}
-                        onChange={(e) => updateAssessmentRow(i, 'progressPercentage', e.target.value)}
-                      />
-                      <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 140px' }}>
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-soft)', marginBottom: 4 }}>
+                          Due Date
+                        </span>
+                        <input
+                          className="input"
+                          style={{ width: '100%' }}
+                          type="date"
+                          value={a.dueDate}
+                          onChange={(e) => updateAssessmentRow(i, 'dueDate', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-soft)', marginBottom: 4 }}>
+                          Progress %
+                        </span>
+                        <input
+                          className="input"
+                          style={{
+                            width: 100,
+                            borderColor: progressColor(a.progressPercentage),
+                            color: progressColor(a.progressPercentage),
+                            fontWeight: 700
+                          }}
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={a.progressPercentage}
+                          onChange={(e) => {
+                            const clamped = clampPercentage(e.target.value);
+                            updateAssessmentRow(i, 'progressPercentage', clamped);
+                          }}
+                        />
+                      </div>
+                      <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, whiteSpace: 'nowrap', paddingBottom: 9 }}>
                         <input
                           type="checkbox"
                           checked={a.isDone}
