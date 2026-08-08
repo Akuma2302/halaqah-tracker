@@ -392,7 +392,12 @@ a {
 }
 
 @media (max-width: 720px) {
-  .room-tabs {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.room-tabs {
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
@@ -423,10 +428,6 @@ a {
 .room-tab.active {
   color: var(--primary);
   border-bottom-color: var(--primary);
-}
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
 }
 
 .btn {
