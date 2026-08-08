@@ -10,13 +10,13 @@ const { getWeekStart } = require('../utils/weekUtils');
 const { buildIcsEvent } = require('../utils/ics');
 const { serializeStudyGroup, serializeStudyGroupDetail, serializeMessage, serializeUser } = require('../utils/serializers');
 
-async function createStudyGroup(name, subject, adminId) {
+async function createStudyGroup(name, subject, adminId, { showMutabaah = true, showStudyHours = true } = {}) {
   let inviteCode;
   do {
     inviteCode = generateInviteCode();
   } while (await studyGroupRepository.inviteCodeExists(inviteCode));
 
-  const group = await studyGroupRepository.create({ name, subject, adminId, inviteCode });
+  const group = await studyGroupRepository.create({ name, subject, adminId, inviteCode, showMutabaah, showStudyHours });
   const members = await studyGroupRepository.listMembers(group.id);
   return serializeStudyGroup(group, members);
 }

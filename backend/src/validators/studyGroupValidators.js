@@ -2,7 +2,9 @@ const { z } = require('zod');
 
 const createStudyGroupSchema = z.object({
   name: z.string().trim().min(1, 'Group name is required'),
-  subject: z.string().trim().optional()
+  subject: z.string().trim().optional(),
+  showMutabaah: z.boolean().optional(),
+  showStudyHours: z.boolean().optional()
 });
 
 const joinStudyGroupSchema = z.object({

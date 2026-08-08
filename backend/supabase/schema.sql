@@ -50,6 +50,8 @@ create table if not exists study_groups (
   subject text not null default '',
   admin_id uuid not null references users(id) on delete cascade,
   invite_code text unique not null,
+  show_mutabaah_scoreboard boolean not null default true,
+  show_study_hours_scoreboard boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -288,3 +290,5 @@ alter table notifications add constraint notifications_type_check
 alter table subject_assessments add column if not exists due_date date;
 alter table subject_assessments add column if not exists progress_percentage numeric not null default 0;
 alter table subject_assessments add column if not exists is_done boolean not null default false;
+alter table study_groups add column if not exists show_mutabaah_scoreboard boolean not null default true;
+alter table study_groups add column if not exists show_study_hours_scoreboard boolean not null default true;

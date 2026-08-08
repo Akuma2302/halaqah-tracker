@@ -1,19 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, GraduationCap, FolderPlus, Folder, X } from 'lucide-react';
+import { Plus, GraduationCap, FolderPlus, Folder, X, Trophy } from 'lucide-react';
 import client from '../services/apiClient';
 
 export default function StudyGroups() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [folders, setFolders] = useState([]);
-  const [activeFolder, setActiveFolder] = useState('all');
+  const [activeFolder, setActiveFolder] = useState('all'); // 'all' or a folder _id
   const [newFolderOpen, setNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const [folderPickerFor, setFolderPickerFor] = useState(null);
+  const [folderPickerFor, setFolderPickerFor] = useState(null); // group _id whose picker is open
 
   const [newName, setNewName] = useState('');
   const [newSubject, setNewSubject] = useState('');
+  // Two-step create flow: fill in details, then — per the spec — a follow-up
+  // "Which scoreboard want to include?" prompt appears before the group is
+  // actually created.
+  const [createStep, setCreateStep] = useState('details'); // 'details' | 'scoreboard'
+  const [showMutabaah, setShowMutabaah] = useState(true);
+  const [showStudyHours, setShowStudyHours] = useState(true);
+
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -40,18 +47,43 @@ export default function StudyGroups() {
     loadFolders();
   }, []);
 
-  async function createGroup(e) {
+  function goToScoreboardStep(e) {
     e.preventDefault();
     if (!newName.trim()) return;
+    setCreateStep('scoreboard');
+  }
+
+  function toggleNoScoreboard(checked) {
+    if (checked) {
+      setShowMutabaah(false);
+      setShowStudyHours(false);
+    } else {
+      setShowMutabaah(true);
+      setShowStudyHours(true);
+    }
+  }
+
+  async function finishCreateGroup() {
     setBusy(true);
     setError('');
     try {
-      const res = await client.post('/study-groups', { name: newName.trim(), subject: newSubject.trim() });
+      const res = await client.post('/study-groups', {
+        name: newName.trim(),
+        subject: newSubject.trim(),
+        showMutabaah,
+        showStudyHours
+      });
       navigate(`/study-groups/${res.data._id}`);
     } catch {
       setError('Could not create the group. Please try again.');
       setBusy(false);
     }
+  }
+
+  function cancelCreate() {
+    setCreateStep('details');
+    setShowMutabaah(true);
+    setShowStudyHours(true);
   }
 
   async function joinGroup(e) {
@@ -127,30 +159,77 @@ export default function StudyGroups() {
       </div>
 
       <div className="grid-2">
-        <form className="card" onSubmit={createGroup}>
-          <span className="section-label">Create a group</span>
-          <div className="field">
-            <label>Group name</label>
-            <input
-              className="input"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. Fiqh Muamalat"
-            />
-          </div>
-          <div className="field">
-            <label>Subject</label>
-            <input
-              className="input"
-              value={newSubject}
-              onChange={(e) => setNewSubject(e.target.value)}
-              placeholder="e.g. Fiqh"
-            />
-          </div>
-          <button className="btn btn-primary btn-block" disabled={busy} type="submit">
-            <Plus size={15} /> Create group
-          </button>
-        </form>
+        <div className="card">
+          {createStep === 'details' ? (
+            <form onSubmit={goToScoreboardStep}>
+              <span className="section-label">Create a group</span>
+              <div className="field">
+                <label>Group name</label>
+                <input
+                  className="input"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. Fiqh Muamalat"
+                />
+              </div>
+              <div className="field">
+                <label>Subject</label>
+                <input
+                  className="input"
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  placeholder="e.g. Fiqh"
+                />
+              </div>
+              <button className="btn btn-primary btn-block" type="submit">
+                <Plus size={15} /> Create group
+              </button>
+            </form>
+          ) : (
+            <div>
+              <span className="section-label">
+                <Trophy size={12} style={{ verticalAlign: -2, marginRight: 4 }} />
+                Which scoreboard want to include?
+              </span>
+              <p className="page-subtitle" style={{ marginTop: -4, marginBottom: 14 }}>
+                Choose what group members can see about each other in "{newName.trim()}".
+              </p>
+              <label style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 0', fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={showMutabaah}
+                  onChange={(e) => setShowMutabaah(e.target.checked)}
+                />
+                Mutabaah
+              </label>
+              <label style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 0', fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={showStudyHours}
+                  onChange={(e) => setShowStudyHours(e.target.checked)}
+                />
+                Study Hour
+              </label>
+              <label style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 0', fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={!showMutabaah && !showStudyHours}
+                  onChange={(e) => toggleNoScoreboard(e.target.checked)}
+                />
+                No Need
+              </label>
+              {error && <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 8 }}>{error}</p>}
+              <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                <button className="btn btn-primary" onClick={finishCreateGroup} disabled={busy}>
+                  {busy ? 'Creating…' : 'Create group'}
+                </button>
+                <button className="btn btn-ghost" onClick={cancelCreate} disabled={busy}>
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <form className="card" onSubmit={joinGroup}>
           <span className="section-label">Join with a code</span>
@@ -169,8 +248,9 @@ export default function StudyGroups() {
         </form>
       </div>
 
-      {error && <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 12 }}>{error}</p>}
+      {error && createStep === 'details' && <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 12 }}>{error}</p>}
 
+      {/* Folder tabs, Telegram-style: All + each folder + New folder */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 24, marginBottom: 10 }}>
         <button
           className={`btn btn-sm ${activeFolder === 'all' ? 'btn-primary' : 'btn-ghost'}`}

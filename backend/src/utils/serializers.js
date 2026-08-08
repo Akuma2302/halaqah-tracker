@@ -35,6 +35,8 @@ function serializeStudyGroup(row, memberRows = []) {
     subject: row.subject,
     adminId: row.admin_id,
     inviteCode: row.invite_code,
+    showMutabaah: row.show_mutabaah_scoreboard,
+    showStudyHours: row.show_study_hours_scoreboard,
     members: memberRows.map((m) => ({ userId: m.user_id, role: m.role, joinedAt: m.joined_at })),
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -49,6 +51,8 @@ function serializeStudyGroupDetail(row, memberRows, usersById, scheduleRows) {
     subject: row.subject,
     adminId: row.admin_id,
     inviteCode: row.invite_code,
+    showMutabaah: row.show_mutabaah_scoreboard,
+    showStudyHours: row.show_study_hours_scoreboard,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     members: memberRows.map((m) => ({

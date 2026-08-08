@@ -2,7 +2,10 @@ const studyGroupService = require('../services/studyGroupService');
 const { uploadBufferToSupabase } = require('../utils/upload');
 
 async function create(req, res) {
-  const group = await studyGroupService.createStudyGroup(req.body.name.trim(), (req.body.subject || '').trim(), req.userId);
+  const group = await studyGroupService.createStudyGroup(req.body.name.trim(), (req.body.subject || '').trim(), req.userId, {
+    showMutabaah: req.body.showMutabaah,
+    showStudyHours: req.body.showStudyHours
+  });
   res.status(201).json(group);
 }
 

@@ -6,10 +6,17 @@ async function inviteCodeExists(inviteCode) {
   return !!data;
 }
 
-async function create({ name, subject, adminId, inviteCode }) {
+async function create({ name, subject, adminId, inviteCode, showMutabaah, showStudyHours }) {
   const { data: group, error } = await supabase
     .from('study_groups')
-    .insert({ name, subject: subject || '', admin_id: adminId, invite_code: inviteCode })
+    .insert({
+      name,
+      subject: subject || '',
+      admin_id: adminId,
+      invite_code: inviteCode,
+      show_mutabaah_scoreboard: showMutabaah !== false,
+      show_study_hours_scoreboard: showStudyHours !== false
+    })
     .select()
     .single();
   if (error) throw error;

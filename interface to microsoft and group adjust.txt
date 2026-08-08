@@ -1,0 +1,9 @@
+for the make it like the microsoft team interface include the  navigation tab put it on the left
+
+
+
+for the you groups interface, can follow this microsoft interface, but for now the tab for group created just put main chat,members,scoreboard. 
+
+
+
+and also for the user want to create new group, it can just option either want to reveal the teams member mutabaah and study hour or not. so after the click the create group, it will appear "Which scoreboard want to include?". put tick box, Mutabaah, Study Hour, No Need(means no scoreboard will appear in the group)

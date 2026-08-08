@@ -1,7 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Login from './components/Login';
-import TabNav from './layout/TabNav';
+import SideNav from './layout/SideNav';
+import TopBar from './layout/TopBar';
 import Dashboard from './pages/Dashboard';
 import Checklist from './pages/Checklist';
 import StudyGroups from './pages/StudyGroups';
@@ -28,18 +29,21 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <TabNav />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/checklist" element={<Checklist />} />
-        <Route path="/study-groups" element={<StudyGroups />} />
-        <Route path="/study-groups/:id" element={<StudyGroupRoom />} />
-        <Route path="/academic-journal" element={<AcademicJournal />} />
-        <Route path="/subject-list" element={<SubjectList />} />
-        <Route path="/compilation" element={<Compilation />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <SideNav />
+      <div className="app-main">
+        <TopBar />
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/checklist" element={<Checklist />} />
+          <Route path="/study-groups" element={<StudyGroups />} />
+          <Route path="/study-groups/:id" element={<StudyGroupRoom />} />
+          <Route path="/academic-journal" element={<AcademicJournal />} />
+          <Route path="/subject-list" element={<SubjectList />} />
+          <Route path="/compilation" element={<Compilation />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
     </div>
   );
 }
