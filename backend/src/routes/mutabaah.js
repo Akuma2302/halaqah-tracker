@@ -9,6 +9,7 @@ router.use(requireAuth);
 
 // Declared before '/:date' so the literal path always wins the match
 router.get('/summary', asyncHandler(mutabaahController.summary));
+router.get('/period', asyncHandler(mutabaahController.period));
 router.get('/:date', asyncHandler(mutabaahController.getForDate));
 router.put('/:date', validate(updateEntrySchema), asyncHandler(mutabaahController.updateForDate));
 

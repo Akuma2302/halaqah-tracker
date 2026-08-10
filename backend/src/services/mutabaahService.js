@@ -37,4 +37,21 @@ async function getSummary(userId, range) {
   return rows.map((row) => toApiShape(row, userId, row.date));
 }
 
-module.exports = { getEntry, upsertEntry, getSummary, toApiShapePublic: toApiShape };
+// Per-item "done/total days" totals over an arbitrary [from, to] range, for
+// the Checklist page's period view + "Copy" summary.
+async function getPeriodTotals(userId, from, to) {
+  const totalDays = Math.round((new Date(`${to}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 86400000) + 1;
+
+  const rows = await mutabaahRepository.findBoundedRangeForUser(userId, from, to);
+
+  const totals = Object.fromEntries(CAMEL_FIELDS.map((camel) => [camel, 0]));
+  rows.forEach((row) => {
+    CAMEL_FIELDS.forEach((camel) => {
+      if (row[FIELD_MAP[camel]]) totals[camel] += 1;
+    });
+  });
+
+  return { from, to, totalDays, totals };
+}
+
+module.exports = { getEntry, upsertEntry, getSummary, getPeriodTotals, toApiShapePublic: toApiShape };

@@ -5,6 +5,15 @@ async function summary(req, res) {
   res.json(entries);
 }
 
+async function period(req, res) {
+  const { from, to } = req.query;
+  if (!from || !to || from > to) {
+    return res.status(400).json({ error: 'Provide a valid from/to date range (from must not be after to).' });
+  }
+  const result = await mutabaahService.getPeriodTotals(req.userId, from, to);
+  res.json(result);
+}
+
 async function getForDate(req, res) {
   const entry = await mutabaahService.getEntry(req.userId, req.params.date);
   res.json(entry);
@@ -15,4 +24,4 @@ async function updateForDate(req, res) {
   res.json(entry);
 }
 
-module.exports = { summary, getForDate, updateForDate };
+module.exports = { summary, period, getForDate, updateForDate };

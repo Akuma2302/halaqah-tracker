@@ -1,14 +1,37 @@
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Calendar, Copy, X } from 'lucide-react';
 import client from '../services/apiClient';
+import { useAuth } from '../hooks/useAuth';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 
+// Labels used specifically for the "Copy" summary text, per the requested
+// format — a couple of these differ from the on-screen checklist labels
+// (Tilawah -> "Alquran 1juz", Zikir -> "Istighfar 100x").
+const COPY_LABELS = {
+  tahajud: 'Tahajud',
+  subuhBerjemaah: 'Subuh Berjemaah',
+  mathuratPagi: 'Mathurat pagi',
+  mathuratPetang: 'Mathurat petang',
+  dhuha: 'Dhuha',
+  tilawah: 'Alquran 1juz',
+  zikir: 'Istighfar 100x'
+};
+
 export default function Checklist() {
+  const { user } = useAuth();
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [entry, setEntry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const [fromDate, setFromDate] = useState(dayjs().subtract(6, 'day').format('YYYY-MM-DD'));
+  const [toDate, setToDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [periodData, setPeriodData] = useState(null);
+  const [periodLoading, setPeriodLoading] = useState(false);
+  const [periodError, setPeriodError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -34,6 +57,36 @@ export default function Checklist() {
     }
   }
 
+  function loadPeriod() {
+    if (!fromDate || !toDate || fromDate > toDate) {
+      setPeriodError('Please choose a valid range (from must not be after to).');
+      return;
+    }
+    setPeriodLoading(true);
+    setPeriodError('');
+    setCopied(false);
+    client
+      .get('/mutabaah/period', { params: { from: fromDate, to: toDate } })
+      .then((res) => setPeriodData(res.data))
+      .catch(() => setPeriodError("Couldn't load that period. Please try again."))
+      .finally(() => setPeriodLoading(false));
+  }
+
+  function copySummary() {
+    if (!periodData) return;
+    const lines = [
+      'Checklist Mutabaah Amal',
+      user?.name || '',
+      ...MUTABAAH_FIELDS.map(
+        (f) => `${COPY_LABELS[f.key]} - ${periodData.totals[f.key]}/${periodData.totalDays}`
+      )
+    ];
+    navigator.clipboard?.writeText(lines.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   const completedCount = entry ? MUTABAAH_FIELDS.filter((f) => entry[f.key]).length : 0;
 
   return (
@@ -45,7 +98,60 @@ export default function Checklist() {
             {completedCount}/{MUTABAAH_FIELDS.length} done {isToday ? 'today' : `on ${dayjs(date).format('D MMM')}`}
           </p>
         </div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setPeriodOpen((v) => !v)}>
+          <Calendar size={13} /> {periodOpen ? 'Hide' : 'View'} period performance
+        </button>
       </div>
+
+      {periodOpen && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <span className="section-label">Period performance</span>
+            <button className="icon-btn" onClick={() => setPeriodOpen(false)} aria-label="Close">
+              <X size={15} />
+            </button>
+          </div>
+
+          <div className="grid-2">
+            <div className="field">
+              <label>From</label>
+              <input className="input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} max={toDate} />
+            </div>
+            <div className="field">
+              <label>To</label>
+              <input className="input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} min={fromDate} max={dayjs().format('YYYY-MM-DD')} />
+            </div>
+          </div>
+
+          <button className="btn btn-primary" onClick={loadPeriod} disabled={periodLoading}>
+            {periodLoading ? 'Loading…' : 'Show performance'}
+          </button>
+
+          {periodError && <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 10 }}>{periodError}</p>}
+
+          {periodData && (
+            <div style={{ marginTop: 16 }}>
+              <p className="page-subtitle" style={{ marginBottom: 10 }}>
+                {dayjs(periodData.from).format('D MMM YYYY')} – {dayjs(periodData.to).format('D MMM YYYY')} ·{' '}
+                {periodData.totalDays} day{periodData.totalDays === 1 ? '' : 's'}
+              </p>
+              {MUTABAAH_FIELDS.map((f) => (
+                <div className="member-row" key={f.key}>
+                  <div style={{ flex: 1 }}>
+                    <div className="name">{f.label}</div>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>
+                    {periodData.totals[f.key]}/{periodData.totalDays}
+                  </span>
+                </div>
+              ))}
+              <button className="btn btn-ghost btn-block" onClick={copySummary} style={{ marginTop: 12 }}>
+                <Copy size={14} /> {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="date-nav">
         <button

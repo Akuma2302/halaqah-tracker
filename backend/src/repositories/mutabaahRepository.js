@@ -33,6 +33,21 @@ async function findRangeForUser(userId, sinceDate) {
   return data;
 }
 
+// Bounded [from, to] range, both inclusive — used by the Checklist page's
+// custom date-range performance view (distinct from findRangeForUser above,
+// which is "since X days ago through today" for the Dashboard trend strip).
+async function findBoundedRangeForUser(userId, fromDate, toDate) {
+  const { data, error } = await supabase
+    .from('mutabaah_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', fromDate)
+    .lte('date', toDate)
+    .order('date', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
 // Upsert on (user_id, date) — mirrors the old findOneAndUpdate(..., { upsert: true })
 async function upsert(userId, date, fields) {
   const { data, error } = await supabase
@@ -47,4 +62,4 @@ async function upsert(userId, date, fields) {
   return data;
 }
 
-module.exports = { findByUserAndDate, findByUsersAndDate, findRangeForUser, upsert };
+module.exports = { findByUserAndDate, findByUsersAndDate, findRangeForUser, findBoundedRangeForUser, upsert };
