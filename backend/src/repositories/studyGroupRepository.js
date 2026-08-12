@@ -124,6 +124,34 @@ async function markSessionReminded(sessionId) {
   if (error) throw error;
 }
 
+async function remove(id) {
+  const { error } = await supabase.from('study_groups').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function removeMember(studyGroupId, userId) {
+  const { error } = await supabase
+    .from('study_group_members')
+    .delete()
+    .eq('study_group_id', studyGroupId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+async function updateMemberRole(studyGroupId, userId, role) {
+  const { error } = await supabase
+    .from('study_group_members')
+    .update({ role })
+    .eq('study_group_id', studyGroupId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+async function updateAdmin(studyGroupId, adminId) {
+  const { error } = await supabase.from('study_groups').update({ admin_id: adminId }).eq('id', studyGroupId);
+  if (error) throw error;
+}
+
 module.exports = {
   inviteCodeExists,
   create,
@@ -137,5 +165,9 @@ module.exports = {
   listSchedule,
   findScheduleEntryById,
   findDueUnremindedSessions,
-  markSessionReminded
+  markSessionReminded,
+  remove,
+  removeMember,
+  updateMemberRole,
+  updateAdmin
 };

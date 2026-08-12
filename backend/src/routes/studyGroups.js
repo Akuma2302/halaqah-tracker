@@ -21,5 +21,8 @@ router.get('/:id/messages', asyncHandler(studyGroupController.messages));
 router.post('/:id/upload', upload.single('file'), asyncHandler(studyGroupController.upload));
 router.get('/:id/scoreboard', asyncHandler(studyGroupController.scoreboard));
 router.get('/:id/schedule/:scheduleId/ics', asyncHandler(studyGroupController.scheduleIcs));
+router.delete('/:id', asyncHandler(studyGroupController.remove));
+router.post('/:id/leave', asyncHandler(studyGroupController.leave));
+router.delete('/:id/members/:userId', asyncHandler(studyGroupController.kickMember));
 
 module.exports = router;

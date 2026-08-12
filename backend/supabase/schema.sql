@@ -216,6 +216,14 @@ create table if not exists mentor_validations (
   unique (user_id, week_start)
 );
 
+create index if not exists idx_subjects_user on subjects(user_id);
+create index if not exists idx_subject_assessments_subject on subject_assessments(subject_id);
+create index if not exists idx_assignments_user on assignments(user_id, due_date);
+create index if not exists idx_study_sessions_user_week on study_sessions(user_id, week_start);
+create index if not exists idx_question_practice_user_week on question_practice(user_id, week_start);
+create index if not exists idx_consultations_user_week on lecturer_consultations(user_id, week_start);
+create index if not exists idx_mentor_validations_user_week on mentor_validations(user_id, week_start);
+
 -- ---------- group folders (personal organization, per user) ----------
 create table if not exists group_folders (
   id uuid primary key default gen_random_uuid(),
@@ -232,6 +240,9 @@ create table if not exists group_folder_items (
   primary key (folder_id, study_group_id)
 );
 
+create index if not exists idx_group_folders_user on group_folders(user_id);
+create index if not exists idx_group_folder_items_group on group_folder_items(study_group_id);
+
 -- ---------- push notification subscriptions (one row per device) ----------
 create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),
@@ -243,15 +254,6 @@ create table if not exists push_subscriptions (
 );
 
 create index if not exists idx_push_subscriptions_user on push_subscriptions(user_id);
-create index if not exists idx_group_folders_user on group_folders(user_id);
-create index if not exists idx_group_folder_items_group on group_folder_items(study_group_id);
-create index if not exists idx_subjects_user on subjects(user_id);
-create index if not exists idx_subject_assessments_subject on subject_assessments(subject_id);
-create index if not exists idx_assignments_user on assignments(user_id, due_date);
-create index if not exists idx_study_sessions_user_week on study_sessions(user_id, week_start);
-create index if not exists idx_question_practice_user_week on question_practice(user_id, week_start);
-create index if not exists idx_consultations_user_week on lecturer_consultations(user_id, week_start);
-create index if not exists idx_mentor_validations_user_week on mentor_validations(user_id, week_start);
 
 -- ---------- row level security ----------
 -- The backend talks to Postgres with the service_role key (see config/supabaseClient.js),
@@ -290,5 +292,6 @@ alter table notifications add constraint notifications_type_check
 alter table subject_assessments add column if not exists due_date date;
 alter table subject_assessments add column if not exists progress_percentage numeric not null default 0;
 alter table subject_assessments add column if not exists is_done boolean not null default false;
+
 alter table study_groups add column if not exists show_mutabaah_scoreboard boolean not null default true;
 alter table study_groups add column if not exists show_study_hours_scoreboard boolean not null default true;

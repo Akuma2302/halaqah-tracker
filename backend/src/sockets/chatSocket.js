@@ -9,6 +9,9 @@ function messagePreview(content, attachmentType) {
 }
 
 function registerSocketHandlers(io) {
+  // Auth via the same Bearer token used for REST calls (sent in the socket.io
+  // handshake), not a cookie — see utils/authToken.js for why cookies don't
+  // work reliably across the Netlify/Render domain split on iOS Safari.
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     const userId = token && verifyToken(token);
@@ -18,6 +21,9 @@ function registerSocketHandlers(io) {
   });
 
   io.on('connection', (socket) => {
+    // A per-user room lets us push notifications straight to someone's open
+    // tabs/devices regardless of which group chat (if any) they're currently
+    // viewing — this is what makes the "new message" notification live.
     socket.join(`user:${socket.userId}`);
 
     socket.on('join-study-group', (groupId) => {

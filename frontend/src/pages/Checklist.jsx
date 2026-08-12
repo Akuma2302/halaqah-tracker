@@ -93,7 +93,7 @@ export default function Checklist() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Checklist</h1>
+          <h1 className="page-title">Mutabaah</h1>
           <p className="page-subtitle">
             {completedCount}/{MUTABAAH_FIELDS.length} done {isToday ? 'today' : `on ${dayjs(date).format('D MMM')}`}
           </p>

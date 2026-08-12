@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, Bell, BookOpen, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, Bell, NotebookText, ClipboardList, BookOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const TABS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/checklist', label: 'Checklist', icon: ListChecks },
+  { to: '/checklist', label: 'Mutabaah', icon: ListChecks },
   { to: '/study-groups', label: 'Your Groups', icon: GraduationCap },
-  { to: '/academic-journal', label: 'Academic', icon: BookOpen },
+  { to: '/academic-journal', label: 'Academic', icon: NotebookText },
   { to: '/subject-list', label: 'Subjects', icon: ClipboardList },
   { to: '/compilation', label: 'Compilation', icon: BookMarked },
   { to: '/notifications', label: 'Notify', icon: Bell }
@@ -18,7 +18,10 @@ export default function SideNav() {
   return (
     <nav className="side-nav">
       <div className="side-nav-brand">
-        <span className="brand-mark">M</span>
+        <span className="side-nav-brand-name">Double 4 Flat</span>
+        <span className="brand-mark">
+          <BookOpen size={16} />
+        </span>
       </div>
 
       <div className="side-nav-links">

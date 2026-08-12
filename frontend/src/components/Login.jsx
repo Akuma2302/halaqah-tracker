@@ -1,4 +1,5 @@
 import { GoogleLogin } from '@react-oauth/google';
+import { BookOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useState } from 'react';
 
@@ -9,8 +10,10 @@ export default function Login() {
   return (
     <div className="center-screen">
       <div className="card login-card">
-        <div className="brand-mark">M</div>
-        <h1>Mutabaah</h1>
+        <div className="brand-mark">
+          <BookOpen size={20} />
+        </div>
+        <h1>Double 4 Flat</h1>
         <p className="tagline">Your daily amal, tracked with your halaqah.</p>
 
         <div className="google-btn-wrap">

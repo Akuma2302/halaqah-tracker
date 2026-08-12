@@ -213,6 +213,87 @@ async function getScheduleIcs(studyGroupId, scheduleId, requestingUserId) {
   });
 }
 
+async function deleteGroup(studyGroupId, requestingUserId) {
+  const group = await studyGroupRepository.findById(studyGroupId);
+  if (!group) {
+    const err = new Error('Study group not found');
+    err.status = 404;
+    throw err;
+  }
+  if (group.admin_id !== requestingUserId) {
+    const err = new Error('Admins only');
+    err.status = 403;
+    throw err;
+  }
+  await studyGroupRepository.remove(studyGroupId);
+}
+
+// Leaving is available to any member, including the admin. If the admin
+// leaves and others remain, the earliest-joined remaining member is
+// auto-promoted so the group always has an admin. If the leaver is the last
+// member, the whole group (and its chat/schedule, via cascade) is deleted.
+async function leaveGroup(studyGroupId, requestingUserId) {
+  const group = await studyGroupRepository.findById(studyGroupId);
+  if (!group) {
+    const err = new Error('Study group not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const member = await studyGroupRepository.findMember(studyGroupId, requestingUserId);
+  if (!member) {
+    const err = new Error('Not a member of this group');
+    err.status = 403;
+    throw err;
+  }
+
+  const memberRows = await studyGroupRepository.listMembers(studyGroupId);
+  const remaining = memberRows.filter((m) => m.user_id !== requestingUserId);
+
+  if (remaining.length === 0) {
+    await studyGroupRepository.remove(studyGroupId);
+    return { deleted: true };
+  }
+
+  if (member.role === 'admin') {
+    const nextAdmin = [...remaining].sort((a, b) => new Date(a.joined_at) - new Date(b.joined_at))[0];
+    await studyGroupRepository.updateMemberRole(studyGroupId, nextAdmin.user_id, 'admin');
+    await studyGroupRepository.updateAdmin(studyGroupId, nextAdmin.user_id);
+  }
+
+  await studyGroupRepository.removeMember(studyGroupId, requestingUserId);
+  return { deleted: false };
+}
+
+async function kickMember(studyGroupId, requestingUserId, targetUserId) {
+  if (targetUserId === requestingUserId) {
+    const err = new Error('Use "Leave group" to remove yourself instead.');
+    err.status = 400;
+    throw err;
+  }
+
+  const group = await studyGroupRepository.findById(studyGroupId);
+  if (!group) {
+    const err = new Error('Study group not found');
+    err.status = 404;
+    throw err;
+  }
+  if (group.admin_id !== requestingUserId) {
+    const err = new Error('Admins only');
+    err.status = 403;
+    throw err;
+  }
+
+  const target = await studyGroupRepository.findMember(studyGroupId, targetUserId);
+  if (!target) {
+    const err = new Error('That person is not a member of this group');
+    err.status = 404;
+    throw err;
+  }
+
+  await studyGroupRepository.removeMember(studyGroupId, targetUserId);
+}
+
 module.exports = {
   createStudyGroup,
   listStudyGroupsForUser,
@@ -224,5 +305,8 @@ module.exports = {
   isMember,
   notifyNewMessage,
   getScoreboard,
-  getScheduleIcs
+  getScheduleIcs,
+  deleteGroup,
+  leaveGroup,
+  kickMember
 };

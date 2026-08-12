@@ -45,9 +45,14 @@ startReminderJob();
 
 // In production the frontend is deployed separately on Netlify, so this backend
 // (Render) only serves the JSON API + websocket — no static file serving here.
+// (If you ever want a single-service deploy instead, see README "Alternative: single-service deploy".)
 
 const PORT = process.env.PORT || 5000;
 
+// Sets up the Supabase database schema and storage bucket automatically —
+// no manual steps in the Supabase dashboard needed. Run sequentially (schema
+// first) rather than in parallel, so a storage hiccup can't cut off an
+// in-flight migration. Safe to run on every boot.
 runMigrations()
   .then(() => ensureStorageBucket())
   .then(() => {

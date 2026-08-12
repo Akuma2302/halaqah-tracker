@@ -10,27 +10,44 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // Registers the service worker, asks for notification permission, subscribes
-// to Web Push, and tells the backend about this device. Safe to call
-// whenever — every step feature-detects and silently no-ops if unsupported
-// (e.g. iOS Safari when the app hasn't been added to the home screen).
+// to Web Push, and tells the backend about this device.
+//
+// Returns `true` only if a real push subscription was confirmed end-to-end
+// (server has VAPID configured AND accepted this device's subscription).
+// Every step logs clearly to the console so a failure can be diagnosed from
+// a live deployment without needing to reproduce it locally — check
+// DevTools > Console and look for lines starting with "[push]".
 export async function setupPushNotifications() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    return; // Not supported on this browser/context at all
+    console.log('[push] Not supported in this browser/context (e.g. iOS Safari not added to Home Screen yet).');
+    return false;
   }
 
-  if (typeof Notification === 'undefined') return;
+  if (typeof Notification === 'undefined') {
+    console.log('[push] Notification API unavailable.');
+    return false;
+  }
 
   if (Notification.permission === 'default') {
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return;
+    console.log('[push] Permission prompt result:', permission);
+    if (permission !== 'granted') return false;
   }
-  if (Notification.permission !== 'granted') return;
+  if (Notification.permission !== 'granted') {
+    console.log('[push] Notification permission is', Notification.permission, '- not proceeding.');
+    return false;
+  }
 
   try {
     const registration = await navigator.serviceWorker.register('/service-worker.js');
+    console.log('[push] Service worker registered:', registration.scope);
 
     const { data } = await client.get('/push/vapid-public-key');
-    if (!data.configured || !data.publicKey) return; // Push not set up on this deployment yet
+    console.log('[push] Backend VAPID config:', data);
+    if (!data.configured || !data.publicKey) {
+      console.log('[push] Backend has no VAPID keys set (VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY env vars on Render) - push disabled server-side.');
+      return false;
+    }
 
     let subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
@@ -38,11 +55,16 @@ export async function setupPushNotifications() {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(data.publicKey)
       });
+      console.log('[push] Created new push subscription.');
+    } else {
+      console.log('[push] Reusing existing push subscription.');
     }
 
     await client.post('/push/subscribe', subscription.toJSON());
+    console.log('[push] Subscription sent to backend successfully. Push notifications are live for this device.');
+    return true;
   } catch (err) {
-    // Best-effort — a failed push setup should never block the rest of the app.
-    console.warn('Push notification setup failed:', err.message);
+    console.warn('[push] Setup failed:', err);
+    return false;
   }
 }

@@ -1,5 +1,8 @@
+// Runs in a separate thread from the page, independent of any open tab —
+// this is what lets a notification show up even if the app isn't open.
+
 self.addEventListener('push', (event) => {
-  let data = { title: 'Mutabaah', body: 'You have a new notification.', url: '/notifications' };
+  let data = { title: 'Double 4 Flat', body: 'You have a new notification.', url: '/notifications' };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch {
@@ -16,6 +19,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// Focuses an already-open tab if one exists, otherwise opens a new one.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/notifications';

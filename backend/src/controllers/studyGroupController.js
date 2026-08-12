@@ -77,4 +77,31 @@ async function scheduleIcs(req, res) {
   }
 }
 
-module.exports = { create, list, detail, join, schedule, messages, upload, scoreboard, scheduleIcs };
+async function remove(req, res) {
+  try {
+    await studyGroupService.deleteGroup(req.params.id, req.userId);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+}
+
+async function leave(req, res) {
+  try {
+    const result = await studyGroupService.leaveGroup(req.params.id, req.userId);
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+}
+
+async function kickMember(req, res) {
+  try {
+    await studyGroupService.kickMember(req.params.id, req.userId, req.params.userId);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+}
+
+module.exports = { create, list, detail, join, schedule, messages, upload, scoreboard, scheduleIcs, remove, leave, kickMember };

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { Copy, Send, Paperclip, Calendar, Users, Download, Trophy, MessageSquare } from 'lucide-react';
+import { Copy, Send, Paperclip, Calendar, Users, Download, Trophy, MessageSquare, UserX, LogOut, Trash2 } from 'lucide-react';
 import client from '../services/apiClient';
 import socket from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
@@ -21,6 +21,7 @@ export default function StudyGroupRoom() {
   const [sessionTime, setSessionTime] = useState('');
   const [sessionNotes, setSessionNotes] = useState('');
   const [scoreboard, setScoreboard] = useState(null);
+  const [groupActionBusy, setGroupActionBusy] = useState(false);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -111,6 +112,41 @@ export default function StudyGroupRoom() {
       window.URL.revokeObjectURL(url);
     } catch {
       // best-effort
+    }
+  }
+
+  async function kickMember(targetUserId, targetName) {
+    if (!window.confirm(`Remove ${targetName} from this group?`)) return;
+    setGroupActionBusy(true);
+    try {
+      await client.delete(`/study-groups/${id}/members/${targetUserId}`);
+      setGroup((prev) => ({ ...prev, members: prev.members.filter((m) => m.userId._id !== targetUserId) }));
+    } catch {
+      // best-effort
+    } finally {
+      setGroupActionBusy(false);
+    }
+  }
+
+  async function leaveGroup() {
+    if (!window.confirm(`Leave "${group.name}"?`)) return;
+    setGroupActionBusy(true);
+    try {
+      await client.post(`/study-groups/${id}/leave`);
+      navigate('/study-groups');
+    } catch {
+      setGroupActionBusy(false);
+    }
+  }
+
+  async function deleteGroup() {
+    if (!window.confirm(`Delete "${group.name}" permanently? This removes the group, chat, and schedule for everyone and can't be undone.`)) return;
+    setGroupActionBusy(true);
+    try {
+      await client.delete(`/study-groups/${id}`);
+      navigate('/study-groups');
+    } catch {
+      setGroupActionBusy(false);
     }
   }
 
@@ -233,16 +269,39 @@ export default function StudyGroupRoom() {
           {group.members.map((m) => (
             <div className="member-row" key={m.userId._id}>
               {m.userId.avatarUrl ? <img className="avatar" src={m.userId.avatarUrl} alt="" /> : <div className="avatar" />}
-              <div>
+              <div style={{ flex: 1 }}>
                 <div className="name">{m.userId.name}</div>
               </div>
-              {m.role === 'admin' && (
-                <span className="badge badge-gold" style={{ marginLeft: 'auto' }}>
-                  Admin
-                </span>
+              {m.role === 'admin' && <span className="badge badge-gold">Admin</span>}
+              {isAdmin && m.userId._id !== user?._id && (
+                <button
+                  className="icon-btn"
+                  onClick={() => kickMember(m.userId._id, m.userId.name)}
+                  disabled={groupActionBusy}
+                  title="Remove from group"
+                  aria-label={`Remove ${m.userId.name}`}
+                >
+                  <UserX size={15} />
+                </button>
               )}
             </div>
           ))}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+            <button className="btn btn-ghost btn-sm" onClick={leaveGroup} disabled={groupActionBusy}>
+              <LogOut size={13} /> Leave group
+            </button>
+            {isAdmin && (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={deleteGroup}
+                disabled={groupActionBusy}
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+              >
+                <Trash2 size={13} /> Delete group
+              </button>
+            )}
+          </div>
         </div>
       )}
 
