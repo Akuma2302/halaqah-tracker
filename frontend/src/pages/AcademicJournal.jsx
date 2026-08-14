@@ -8,7 +8,11 @@ import {
   ClipboardList,
   Users as UsersIcon,
   CheckCircle2,
-  Paperclip
+  Paperclip,
+  FolderOpen,
+  Upload,
+  File as FileIcon,
+  X
 } from 'lucide-react';
 import client from '../services/apiClient';
 import ProgressRing from '../components/ProgressRing';
@@ -17,6 +21,13 @@ import { generateWeekOptions, formatWeekLabel, getWeekStart, toDateKey, DAY_LABE
 
 const weekOptions = generateWeekOptions(16);
 const currentWeekKey = toDateKey(getWeekStart());
+
+function formatFileSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 const emptyStudyForm = { day: '0', subjectId: '', categories: [], hours: '' };
 const emptyQuestionForm = { subjectId: '', questionCount: '', isValidated: false };
@@ -39,6 +50,13 @@ export default function AcademicJournal() {
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Per-subject "folder" of files: which subject's panel is open, its files,
+  // and upload state — keyed by subject id so multiple subjects don't clash.
+  const [openFilesFor, setOpenFilesFor] = useState(null);
+  const [filesBySubject, setFilesBySubject] = useState({});
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [fileUploading, setFileUploading] = useState(false);
 
   useEffect(() => {
     setOverviewLoading(true);
@@ -123,6 +141,50 @@ export default function AcademicJournal() {
       // best-effort
     } finally {
       setSaving(false);
+    }
+  }
+
+  function toggleSubjectFiles(subjectId) {
+    if (openFilesFor === subjectId) {
+      setOpenFilesFor(null);
+      return;
+    }
+    setOpenFilesFor(subjectId);
+    if (!filesBySubject[subjectId]) {
+      setFilesLoading(true);
+      client
+        .get(`/academic/subjects/${subjectId}/files`)
+        .then((res) => setFilesBySubject((prev) => ({ ...prev, [subjectId]: res.data })))
+        .catch(() => setFilesBySubject((prev) => ({ ...prev, [subjectId]: [] })))
+        .finally(() => setFilesLoading(false));
+    }
+  }
+
+  async function uploadSubjectFile(subjectId, e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await client.post(`/academic/subjects/${subjectId}/files`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setFilesBySubject((prev) => ({ ...prev, [subjectId]: [res.data, ...(prev[subjectId] || [])] }));
+    } catch {
+      // best-effort
+    } finally {
+      setFileUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  async function removeSubjectFile(subjectId, fileId) {
+    setFilesBySubject((prev) => ({ ...prev, [subjectId]: prev[subjectId].filter((f) => f._id !== fileId) }));
+    try {
+      await client.delete(`/academic/subjects/${subjectId}/files/${fileId}`);
+    } catch {
+      // best-effort - could refetch here if we want to be strict
     }
   }
 
@@ -230,12 +292,73 @@ export default function AcademicJournal() {
               <span className="section-label">Subject Currently Taking</span>
               {overview?.subjects?.length ? (
                 overview.subjects.map((s) => (
-                  <div className="member-row" key={s._id}>
-                    <BookOpen size={16} style={{ color: 'var(--ink-soft)' }} />
-                    <div>
-                      <div className="name">{s.name}</div>
-                      <div className="kampus">{s.code || s.lecturerName || '—'}</div>
+                  <div key={s._id}>
+                    <div className="member-row">
+                      <BookOpen size={16} style={{ color: 'var(--ink-soft)' }} />
+                      <div style={{ flex: 1 }}>
+                        <div className="name">{s.name}</div>
+                        <div className="kampus">{s.code || s.lecturerName || '—'}</div>
+                      </div>
+                      <button
+                        className="icon-btn"
+                        onClick={() => toggleSubjectFiles(s._id)}
+                        title="Files for this subject"
+                        aria-label={`Files for ${s.name}`}
+                      >
+                        <FolderOpen size={15} />
+                      </button>
                     </div>
+
+                    {openFilesFor === s._id && (
+                      <div style={{ background: 'var(--paper)', borderRadius: 10, padding: 12, margin: '0 0 10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)' }}>
+                            {s.name} — Files
+                          </span>
+                          <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+                            <Upload size={12} /> {fileUploading ? 'Uploading…' : 'Add file'}
+                            <input
+                              type="file"
+                              style={{ display: 'none' }}
+                              onChange={(e) => uploadSubjectFile(s._id, e)}
+                              disabled={fileUploading}
+                            />
+                          </label>
+                        </div>
+
+                        {filesLoading && !filesBySubject[s._id] ? (
+                          <div className="spinner" style={{ margin: '8px auto' }} />
+                        ) : !filesBySubject[s._id]?.length ? (
+                          <p style={{ fontSize: 12, color: 'var(--ink-soft)' }}>No files yet — add one above.</p>
+                        ) : (
+                          filesBySubject[s._id].map((f) => (
+                            <div
+                              key={f._id}
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: '1px solid var(--border)' }}
+                            >
+                              <FileIcon size={13} style={{ color: 'var(--ink-soft)', flexShrink: 0 }} />
+                              <a
+                                href={f.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ flex: 1, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              >
+                                {f.fileName}
+                              </a>
+                              <span style={{ fontSize: 11, color: 'var(--ink-soft)', flexShrink: 0 }}>{formatFileSize(f.fileSize)}</span>
+                              <button
+                                className="icon-btn"
+                                style={{ width: 22, height: 22, flexShrink: 0 }}
+                                onClick={() => removeSubjectFile(s._id, f._id)}
+                                aria-label={`Remove ${f.fileName}`}
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (

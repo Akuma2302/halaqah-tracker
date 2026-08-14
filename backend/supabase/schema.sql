@@ -159,6 +159,19 @@ create table if not exists subject_assessments (
   created_at timestamptz not null default now()
 );
 
+-- Per-subject file storage — the "folder" each subject's files live in.
+create table if not exists subject_files (
+  id uuid primary key default gen_random_uuid(),
+  subject_id uuid not null references subjects(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  file_name text not null,
+  file_url text not null,
+  file_size bigint not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_subject_files_subject on subject_files(subject_id);
+
 create table if not exists assignments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
@@ -272,6 +285,7 @@ alter table notifications enable row level security;
 alter table content_items enable row level security;
 alter table subjects enable row level security;
 alter table subject_assessments enable row level security;
+alter table subject_files enable row level security;
 alter table assignments enable row level security;
 alter table study_sessions enable row level security;
 alter table question_practice enable row level security;

@@ -5,6 +5,7 @@ const asyncHandler = require('../middlewares/asyncHandler');
 const { upload } = require('../utils/upload');
 
 const subjectController = require('../controllers/subjectController');
+const subjectFileController = require('../controllers/subjectFileController');
 const assignmentController = require('../controllers/assignmentController');
 const weeklyLogController = require('../controllers/weeklyLogController');
 const academicController = require('../controllers/academicController');
@@ -31,6 +32,11 @@ router.get('/subjects', asyncHandler(subjectController.list));
 router.post('/subjects', validate(createSubjectSchema), asyncHandler(subjectController.create));
 router.put('/subjects/:id', validate(updateSubjectSchema), asyncHandler(subjectController.update));
 router.delete('/subjects/:id', asyncHandler(subjectController.remove));
+
+// Per-subject files ("folder" of files for that subject)
+router.get('/subjects/:id/files', asyncHandler(subjectFileController.list));
+router.post('/subjects/:id/files', upload.single('file'), asyncHandler(subjectFileController.upload));
+router.delete('/subjects/:id/files/:fileId', asyncHandler(subjectFileController.remove));
 
 // Assignments / projects overview
 router.get('/assignments', asyncHandler(assignmentController.list));

@@ -205,6 +205,17 @@ function serializeFolder(row) {
   return { _id: row.id, name: row.name, sortOrder: row.sort_order, createdAt: row.created_at };
 }
 
+function serializeSubjectFile(row) {
+  return {
+    _id: row.id,
+    subjectId: row.subject_id,
+    fileName: row.file_name,
+    fileUrl: row.file_url,
+    fileSize: row.file_size,
+    createdAt: row.created_at
+  };
+}
+
 module.exports = {
   serializeUser,
   serializeGroup,
@@ -220,5 +231,6 @@ module.exports = {
   serializeQuestionPractice,
   serializeConsultation,
   serializeMentorValidation,
-  serializeFolder
+  serializeFolder,
+  serializeSubjectFile
 };
