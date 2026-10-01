@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { fetchChapter, fetchChapterAudio, keyFromHash, saveLastRead } from '../services/quranApi';
 import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses, { BISMILLAH } from '../components/QuranVerses';
@@ -104,6 +104,11 @@ function QuranSurahReader() {
           <button type="button" className="btn btn-primary btn-sm" onClick={togglePlay}>
             {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Listen'}
           </button>
+          {chapter && (
+            <Link to={`/quran/page/${chapter.pages[0]}`} className="chip quran-mushaf-link">
+              <BookOpen size={13} /> Membaca
+            </Link>
+          )}
           <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />
         </div>
         <audio

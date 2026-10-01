@@ -1267,6 +1267,97 @@ a {
   margin: 12px 0 0;
 }
 
+.quran-mode {
+  margin: 14px 0 0;
+}
+
+.quran-mushaf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+}
+
+/* Mushaf ("Membaca") page: 15 justified lines in the page's QCF font */
+.mushaf {
+  position: relative;
+  margin-top: 14px;
+  padding: 18px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.mushaf-loading {
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mushaf-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+  left: 0;
+  top: 0;
+}
+
+/* Each measured line mirrors a real line: words side by side, with the same
+   gap the centred opening pages use, so the fitted size never overflows. */
+.mushaf-measure > span {
+  display: flex;
+  width: max-content;
+  gap: 0.15em;
+}
+
+.mushaf.opening .mushaf-measure > span {
+  gap: 0.4em;
+}
+
+.mushaf-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.15em;
+  white-space: nowrap;
+  line-height: 1.95;
+}
+
+.mushaf.opening .mushaf-line,
+.mushaf-line.short {
+  justify-content: center;
+  gap: 0.4em;
+}
+
+.mushaf-end {
+  color: var(--gold);
+}
+
+.mushaf-title {
+  margin: 4px 0;
+  padding: 4px 0;
+  display: flex;
+  justify-content: center;
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-sm);
+  background: var(--gold-tint);
+  font-family: 'Amiri Quran', 'Amiri', serif;
+  line-height: 1.7;
+  color: var(--gold-ink);
+}
+
+.mushaf-bismillah {
+  margin: 2px 0 4px;
+  text-align: center;
+  font-family: 'Amiri Quran', 'Amiri', serif;
+  line-height: 2.2;
+}
+
 .quran-more {
   display: flex;
   justify-content: center;
@@ -1653,6 +1744,7 @@ a {
   cursor: pointer;
   transition: transform 0.08s ease, opacity 0.15s ease, background 0.15s ease;
   background: none;
+  text-decoration: none; /* for <Link>s styled as buttons */
 }
 
 .btn:active {

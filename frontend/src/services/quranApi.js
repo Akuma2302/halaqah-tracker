@@ -55,6 +55,54 @@ export async function fetchVersesBy(kind, number, batch = 1) {
   };
 }
 
+// Mushaf ("Membaca") view: every word on a page with its QCF v2 glyph code and
+// line number (1-15), for rendering with that page's font (see mushafFont).
+export async function fetchPageWords(page) {
+  const data = await get(`/verses/by_page/${page}?words=true&word_fields=code_v2,line_number&per_page=50`);
+  const verses = data.verses.map((v) => ({
+    key: v.verse_key,
+    surah: Number(v.verse_key.split(':')[0]),
+    n: v.verse_number,
+    firstLine: Math.min(...v.words.map((w) => w.line_number)),
+    juz: v.juz_number
+  }));
+  const words = data.verses.flatMap((v) =>
+    v.words.map((w) => ({
+      id: `${v.verse_key}:${w.position}`,
+      key: v.verse_key,
+      line: w.line_number,
+      glyph: w.code_v2,
+      end: w.char_type_name === 'end'
+    }))
+  );
+  return { verses, words };
+}
+
+// King Fahd Complex QCF v2 fonts: one font per mushaf page, served (CORS-enabled)
+// by the Quran Foundation CDN. Loaded once per page and cached by the browser.
+const fontLoads = new Map();
+
+export function mushafFontFamily(page) {
+  return `qcf-p${page}-v2`;
+}
+
+export function loadMushafFont(page) {
+  if (!fontLoads.has(page)) {
+    const face = new FontFace(
+      mushafFontFamily(page),
+      `url(https://verses.quran.foundation/fonts/quran/hafs/v2/woff2/p${page}.woff2) format('woff2')`,
+      { display: 'block' }
+    );
+    const load = face.load().then((loaded) => {
+      document.fonts.add(loaded);
+      return loaded;
+    });
+    load.catch(() => fontLoads.delete(page)); // allow a retry after a failure
+    fontLoads.set(page, load);
+  }
+  return fontLoads.get(page);
+}
+
 export function fetchVerses(chapterId, batch = 1) {
   return fetchVersesBy('chapter', chapterId, batch);
 }

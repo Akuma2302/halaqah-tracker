@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Languages } from 'lucide-react';
 import { fetchChapters, fetchJuzs, keyFromHash, saveLastRead, TOTAL_JUZ, TOTAL_PAGES } from '../services/quranApi';
 import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses from '../components/QuranVerses';
+import MushafPage from '../components/MushafPage';
 import { QuranDisplayControls, useQuranPrefs } from '../components/QuranControls';
 
 // Reader for a whole juzuk (/quran/juz/:number) or a single mushaf page
@@ -18,9 +19,12 @@ function QuranRangeReader({ kind }) {
   const targetKey = keyFromHash(hash);
 
   const [prefs, setPrefs] = useQuranPrefs();
+  // Pages open in mushaf ("Membaca") view unless the reader chose ayat-by-ayat.
+  const reading = kind === 'page' && prefs.pageMode !== 'verses';
   const [chapters, setChapters] = useState([]);
   const [juzs, setJuzs] = useState([]);
-  const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses(kind, valid ? number : null, {
+  const [mushafVerses, setMushafVerses] = useState([]);
+  const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses(kind, valid && !reading ? number : null, {
     untilKey: targetKey,
     loadAll: kind === 'page'
   });
@@ -55,10 +59,23 @@ function QuranRangeReader({ kind }) {
   if (kind === 'juz') {
     const juz = juzs.find((j) => j.n === number);
     if (juz) subtitle = `Bermula ${chaptersById[juz.start.surah]?.name_simple || `Surah ${juz.start.surah}`} ayat ${juz.start.ayah}`;
-  } else if (verses.length) {
-    const surahs = [...new Set(verses.map((v) => v.surah))].map((s) => chaptersById[s]?.name_simple || `Surah ${s}`);
-    subtitle = `${surahs.join(', ')} · Juzuk ${verses[0].juz}`;
+  } else {
+    const shown = reading ? mushafVerses : verses;
+    if (shown.length) {
+      const surahs = [...new Set(shown.map((v) => v.surah))].map((s) => chaptersById[s]?.name_simple || `Surah ${s}`);
+      subtitle = `${surahs.join(', ')} · Juzuk ${shown[0].juz}`;
+    }
   }
+
+  // In mushaf view there's no scrolling per ayah: opening the page counts as
+  // reading it. Saved once surah names are loaded, so the label reads well.
+  const onMushafLoaded = useCallback(({ verses: pageVerses }) => setMushafVerses(pageVerses), []);
+  useEffect(() => {
+    const first = mushafVerses[0];
+    const name = first && chaptersById[first.surah]?.name_simple;
+    if (!reading || !name) return;
+    saveLastRead({ kind, number, key: first.key, label: `${name}, ayat ${first.n} (${unit} ${number})` });
+  }, [reading, mushafVerses, chaptersById, kind, number, unit]);
 
   const pager = (where) => (
     <nav className={`quran-pager${where === 'top' ? ' top' : ''}`}>
@@ -104,13 +121,34 @@ function QuranRangeReader({ kind }) {
           {unit} {number}
         </h1>
         <p className="page-subtitle">{subtitle || ' '}</p>
-        <div className="quran-tools">
-          <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />
-        </div>
+        {kind === 'page' && (
+          <div className="range-toggle segmented quran-mode">
+            <button
+              className={reading ? 'active' : ''}
+              onClick={() => setPrefs((p) => ({ ...p, pageMode: 'reading' }))}
+            >
+              <BookOpen size={14} /> Membaca
+            </button>
+            <button
+              className={reading ? '' : 'active'}
+              onClick={() => setPrefs((p) => ({ ...p, pageMode: 'verses' }))}
+            >
+              <Languages size={14} /> Terjemahan
+            </button>
+          </div>
+        )}
+        {!reading && (
+          <div className="quran-tools">
+            <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />
+          </div>
+        )}
       </div>
 
       {kind === 'page' && pager('top')}
 
+      {reading ? (
+        <MushafPage page={number} chaptersById={chaptersById} onLoaded={onMushafLoaded} />
+      ) : (
       <QuranVerses
         verses={verses}
         chaptersById={chaptersById}
@@ -121,8 +159,11 @@ function QuranRangeReader({ kind }) {
         targetKey={targetKey}
         onTopVerse={onTopVerse}
       />
+      )}
 
-      {error ? (
+      {reading ? (
+        pager('bottom')
+      ) : error ? (
         <div className="card empty-state" style={{ marginTop: 12 }}>
           <h3>Couldn't load the ayat</h3>
           <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={loadMore}>
@@ -138,7 +179,9 @@ function QuranRangeReader({ kind }) {
       )}
 
       <p className="mathurat-source">
-        Text and Malay translation (Abdullah Muhammad Basmeih) from the Quran.com API (Quran Foundation).
+        {reading
+          ? 'Mushaf text: King Fahd Complex QCF fonts, via the Quran.com API (Quran Foundation).'
+          : 'Text and Malay translation (Abdullah Muhammad Basmeih) from the Quran.com API (Quran Foundation).'}
       </p>
     </div>
   );
