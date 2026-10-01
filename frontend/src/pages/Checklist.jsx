@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { ChevronLeft, ChevronRight, Check, Calendar, Copy, X } from 'lucide-react';
 import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
-import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
+import { MUTABAAH_FIELDS, MUTABAAH_PERIODS, currentPeriodKey } from '../features/mutabaah/mutabaahFields';
 
 // Labels used specifically for the "Copy" summary text, per the requested
 // format — a couple of these differ from the on-screen checklist labels
@@ -44,6 +44,7 @@ export default function Checklist() {
   }, [date]);
 
   const isToday = date === dayjs().format('YYYY-MM-DD');
+  const nowPeriod = isToday ? currentPeriodKey(dayjs().hour()) : null;
 
   async function toggle(key) {
     const previous = entry;
@@ -178,23 +179,39 @@ export default function Checklist() {
         <p className="page-subtitle">Couldn't load today's checklist. Please refresh the page.</p>
       ) : (
         <div>
-          {MUTABAAH_FIELDS.map((f) => (
-            <div
-              key={f.key}
-              className={`checklist-item${entry[f.key] ? ' done' : ''}`}
-              onClick={() => toggle(f.key)}
-              role="checkbox"
-              aria-checked={!!entry[f.key]}
-              tabIndex={0}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(f.key)}
-            >
-              <span className="check-circle">{entry[f.key] && <Check size={15} />}</span>
-              <div>
-                <div className="item-name">{f.label}</div>
-                <div className="item-time">{f.time}</div>
-              </div>
-            </div>
-          ))}
+          {MUTABAAH_PERIODS.map((p) => {
+            const fields = MUTABAAH_FIELDS.filter((f) => f.period === p.key);
+            const doneCount = fields.filter((f) => entry[f.key]).length;
+            const isNow = p.key === nowPeriod;
+            return (
+              <section key={p.key} className={`checklist-group${isNow ? ' now' : ''}`}>
+                <div className="checklist-group-head">
+                  <span className="checklist-group-title">{p.label}</span>
+                  {isNow && <span className="badge badge-gold">Now</span>}
+                  <span className="checklist-group-count">
+                    {doneCount}/{fields.length}
+                  </span>
+                </div>
+                {fields.map((f) => (
+                  <div
+                    key={f.key}
+                    className={`checklist-item${entry[f.key] ? ' done' : ''}`}
+                    onClick={() => toggle(f.key)}
+                    role="checkbox"
+                    aria-checked={!!entry[f.key]}
+                    tabIndex={0}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(f.key)}
+                  >
+                    <span className="check-circle">{entry[f.key] && <Check size={15} strokeWidth={3} />}</span>
+                    <div>
+                      <div className="item-name">{f.label}</div>
+                      <div className="item-time">{f.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </section>
+            );
+          })}
         </div>
       )}
     </div>

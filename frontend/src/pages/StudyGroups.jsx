@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, GraduationCap, FolderPlus, Folder, X, Trophy } from 'lucide-react';
+import { Plus, GraduationCap, FolderPlus, Folder, X, Trophy, LogIn, ChevronRight, Users } from 'lucide-react';
 import client from '../services/apiClient';
+import Sheet from '../components/Sheet';
 
 export default function StudyGroups() {
   const [groups, setGroups] = useState([]);
@@ -25,6 +26,28 @@ export default function StudyGroups() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  // Join/create live in a sheet so the group list is the first thing on the page.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState('join'); // 'join' | 'create'
+
+  function openSheet(mode) {
+    setSheetMode(mode);
+    setError('');
+    setSheetOpen(true);
+  }
+
+  function switchMode(mode) {
+    setSheetMode(mode);
+    setError('');
+  }
+
+  const closeSheet = useCallback(() => {
+    if (busy) return;
+    setSheetOpen(false);
+    setCreateStep('details');
+    setError('');
+  }, [busy]);
 
   function loadGroups() {
     setLoading(true);
@@ -151,18 +174,47 @@ export default function StudyGroups() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <div>
+      <div className="page-header" style={{ flexWrap: 'nowrap' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="page-title">Your Groups</h1>
           <p className="page-subtitle">Chat, see the mutabaah scoreboard, study hours, and schedule sessions together</p>
         </div>
+        <button className="btn btn-primary" onClick={() => openSheet('join')}>
+          <Plus size={15} /> New
+        </button>
       </div>
 
-      <div className="grid-2">
-        <div className="card">
+      <Sheet open={sheetOpen} onClose={closeSheet} title={sheetMode === 'join' ? 'Join a group' : 'Create a group'}>
+        <div className="range-toggle segmented">
+          <button className={sheetMode === 'join' ? 'active' : ''} onClick={() => switchMode('join')}>
+            <LogIn size={13} /> Join with code
+          </button>
+          <button className={sheetMode === 'create' ? 'active' : ''} onClick={() => switchMode('create')}>
+            <Plus size={13} /> Create new
+          </button>
+        </div>
+
+        {sheetMode === 'join' ? (
+          <form onSubmit={joinGroup}>
+            <div className="field">
+              <label>Invite code</label>
+              <input
+                className="input invite-input"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="e.g. 7K2QXM"
+                autoFocus
+              />
+            </div>
+            {error && <p style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 10 }}>{error}</p>}
+            <button className="btn btn-primary btn-block" disabled={busy || !joinCode.trim()} type="submit">
+              {busy ? 'Joining…' : 'Join group'}
+            </button>
+          </form>
+        ) : (
+        <div>
           {createStep === 'details' ? (
             <form onSubmit={goToScoreboardStep}>
-              <span className="section-label">Create a group</span>
               <div className="field">
                 <label>Group name</label>
                 <input
@@ -170,6 +222,7 @@ export default function StudyGroups() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Fiqh Muamalat"
+                  autoFocus
                 />
               </div>
               <div className="field">
@@ -181,8 +234,8 @@ export default function StudyGroups() {
                   placeholder="e.g. Fiqh"
                 />
               </div>
-              <button className="btn btn-primary btn-block" type="submit">
-                <Plus size={15} /> Create group
+              <button className="btn btn-primary btn-block" type="submit" disabled={!newName.trim()}>
+                Next: choose scoreboard
               </button>
             </form>
           ) : (
@@ -230,28 +283,11 @@ export default function StudyGroups() {
             </div>
           )}
         </div>
-
-        <form className="card" onSubmit={joinGroup}>
-          <span className="section-label">Join with a code</span>
-          <div className="field">
-            <label>Invite code</label>
-            <input
-              className="input"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="e.g. 7K2QXM"
-            />
-          </div>
-          <button className="btn btn-ghost btn-block" disabled={busy} type="submit">
-            Join group
-          </button>
-        </form>
-      </div>
-
-      {error && createStep === 'details' && <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 12 }}>{error}</p>}
+        )}
+      </Sheet>
 
       {/* Folder tabs, Telegram-style: All + each folder + New folder */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 24, marginBottom: 10 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
         <button
           className={`btn btn-sm ${activeFolder === 'all' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setActiveFolder('all')}
@@ -305,17 +341,32 @@ export default function StudyGroups() {
                 ? "Create one, or join a friend's group with their invite code."
                 : 'Add a group to this folder from the folder icon on each group.'}
             </p>
+            {activeFolder === 'all' && (
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" onClick={() => openSheet('join')}>
+                  <LogIn size={14} /> Join with code
+                </button>
+                <button className="btn btn-ghost" onClick={() => openSheet('create')}>
+                  <Plus size={14} /> Create group
+                </button>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="card">
+          <div className="group-cards">
             {visibleGroups.map((g) => (
-              <div className="group-list-item" key={g._id}>
-                <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => navigate(`/study-groups/${g._id}`)}>
-                  <div className="group-name">{g.name}</div>
-                  <div className="group-meta">
-                    {g.subject || 'No subject'} · {g.members.length} member{g.members.length === 1 ? '' : 's'}
-                  </div>
-                </div>
+              <div className="group-card" key={g._id}>
+                <button type="button" className="group-card-main" onClick={() => navigate(`/study-groups/${g._id}`)}>
+                  <span className="group-avatar" aria-hidden="true">
+                    {g.name.trim().charAt(0).toUpperCase() || '?'}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span className="group-name">{g.name}</span>
+                    <span className="group-meta">
+                      {g.subject || 'No subject'} · <Users size={11} style={{ verticalAlign: -1 }} /> {g.members.length}
+                    </span>
+                  </span>
+                </button>
 
                 <span style={{ position: 'relative' }}>
                   <button
@@ -359,9 +410,7 @@ export default function StudyGroups() {
                   )}
                 </span>
 
-                <span className="badge badge-gold" onClick={() => navigate(`/study-groups/${g._id}`)} style={{ cursor: 'pointer' }}>
-                  Open
-                </span>
+                <ChevronRight size={18} className="group-card-chevron" onClick={() => navigate(`/study-groups/${g._id}`)} />
               </div>
             ))}
           </div>
