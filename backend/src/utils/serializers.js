@@ -11,6 +11,7 @@ function serializeUser(row) {
     name: row.name,
     kampus: row.kampus,
     avatarUrl: row.avatar_url,
+    mutabaahReminders: row.mutabaah_reminders !== false,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

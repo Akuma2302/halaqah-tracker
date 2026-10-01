@@ -307,6 +307,20 @@ alter table subject_assessments add column if not exists due_date date;
 alter table subject_assessments add column if not exists progress_percentage numeric not null default 0;
 alter table subject_assessments add column if not exists is_done boolean not null default false;
 
+-- Daily "mutabaah not done yet" push reminders (services/mutabaahReminderService.js).
+alter table users add column if not exists mutabaah_reminders boolean not null default true;
+
+-- One row per reminder actually sent, so the in-process cron and the external
+-- wake-up ping (/api/jobs/run) can both fire without double-sending.
+create table if not exists mutabaah_reminders_sent (
+  user_id uuid not null references users(id) on delete cascade,
+  date date not null,
+  slot text not null,
+  sent_at timestamptz not null default now(),
+  primary key (user_id, date, slot)
+);
+alter table mutabaah_reminders_sent enable row level security;
+
 -- Secret for the read-only home-screen widget URL (/api/widget/:token). Null = off.
 alter table users add column if not exists widget_token text unique;
 

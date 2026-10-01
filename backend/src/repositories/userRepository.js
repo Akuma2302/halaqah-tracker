@@ -46,4 +46,18 @@ async function findByWidgetToken(token) {
   return data;
 }
 
-module.exports = { findByGoogleId, findById, create, update, findByIds, findByWidgetToken };
+async function findWithMutabaahRemindersOn() {
+  const { data, error } = await supabase.from('users').select('id, name').eq('mutabaah_reminders', true);
+  if (error) throw error;
+  return data;
+}
+
+module.exports = {
+  findByGoogleId,
+  findById,
+  create,
+  update,
+  findByIds,
+  findByWidgetToken,
+  findWithMutabaahRemindersOn
+};

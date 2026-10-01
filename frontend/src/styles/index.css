@@ -657,6 +657,122 @@ a {
   }
 }
 
+/* ---------- mutabaah reminders ---------- */
+
+.reminder-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reminder-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: var(--gold-tint);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reminder-title {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.reminder-sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.reminder-schedule {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.reminder-schedule li {
+  display: flex;
+  gap: 12px;
+}
+
+.reminder-time {
+  width: 64px;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.reminder-push {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.reminder-warn,
+.reminder-ok {
+  margin-top: 14px;
+  font-size: 12.5px;
+}
+
+.reminder-push .reminder-warn {
+  margin-top: 0;
+}
+
+.reminder-warn {
+  color: var(--danger);
+}
+
+.reminder-ok {
+  color: var(--primary-dark);
+}
+
+.switch {
+  position: relative;
+  width: 46px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.switch.on {
+  background: var(--primary);
+}
+
+.switch:disabled {
+  opacity: 0.6;
+}
+
+.switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.switch.on .switch-knob {
+  transform: translateX(18px);
+}
+
 /* ---------- home screen widget sheet ---------- */
 
 .widget-intro {

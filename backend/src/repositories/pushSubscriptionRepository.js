@@ -21,4 +21,11 @@ async function removeByEndpoint(endpoint) {
   if (error) throw error;
 }
 
-module.exports = { upsert, findByUserId, removeByEndpoint };
+// Distinct users with at least one subscribed device.
+async function findSubscribedUserIds() {
+  const { data, error } = await supabase.from('push_subscriptions').select('user_id');
+  if (error) throw error;
+  return [...new Set(data.map((r) => r.user_id))];
+}
+
+module.exports = { upsert, findByUserId, removeByEndpoint, findSubscribedUserIds };

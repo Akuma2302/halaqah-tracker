@@ -6,7 +6,8 @@ const googleLoginSchema = z.object({
 
 const updateProfileSchema = z.object({
   name: z.string().trim().min(1).optional(),
-  kampus: z.string().trim().optional()
+  kampus: z.string().trim().optional(),
+  mutabaahReminders: z.boolean().optional()
 });
 
 module.exports = { googleLoginSchema, updateProfileSchema };

@@ -23,10 +23,11 @@ async function getCurrentUser(userId) {
   return userRepository.findById(userId);
 }
 
-async function updateProfile(userId, { name, kampus }) {
+async function updateProfile(userId, { name, kampus, mutabaahReminders }) {
   const updates = {};
   if (typeof name === 'string' && name.trim()) updates.name = name.trim();
   if (typeof kampus === 'string') updates.kampus = kampus.trim();
+  if (typeof mutabaahReminders === 'boolean') updates.mutabaah_reminders = mutabaahReminders;
   return userRepository.update(userId, updates);
 }
 

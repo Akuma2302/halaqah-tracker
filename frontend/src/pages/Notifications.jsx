@@ -5,6 +5,7 @@ import { Bell, Users, Calendar, Clock, MessageCircle } from 'lucide-react';
 import client from '../services/apiClient';
 import socket from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
+import MutabaahReminderCard from '../components/MutabaahReminderCard';
 
 dayjs.extend(relativeTime);
 
@@ -61,6 +62,8 @@ export default function Notifications() {
           <p className="page-subtitle">Reminders, invites, messages, and scheduled sessions</p>
         </div>
       </div>
+
+      <MutabaahReminderCard />
 
       {loading ? (
         <div className="spinner" />
