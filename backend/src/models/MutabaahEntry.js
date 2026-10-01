@@ -11,6 +11,7 @@
  * @property {boolean} dhuha
  * @property {boolean} tilawah
  * @property {boolean} zikir
+ * @property {number} tilawah_pages  pages of Quran read that day, 0-604
  */
 
 // API/frontend uses camelCase, the Postgres table uses snake_case. This map
@@ -31,4 +32,9 @@ const FIELD_MAP = {
 const CAMEL_FIELDS = Object.keys(FIELD_MAP);
 const MUTABAAH_FIELDS = Object.values(FIELD_MAP); // snake_case DB column names
 
-module.exports = { FIELD_MAP, CAMEL_FIELDS, MUTABAAH_FIELDS };
+// Numeric companion to the tilawah tick. Kept out of FIELD_MAP, which is the
+// list of yes/no checklist items (counted in completion %, totals, etc).
+const TILAWAH_PAGES_COLUMN = 'tilawah_pages';
+const MAX_TILAWAH_PAGES = 604;
+
+module.exports = { FIELD_MAP, CAMEL_FIELDS, MUTABAAH_FIELDS, TILAWAH_PAGES_COLUMN, MAX_TILAWAH_PAGES };

@@ -86,9 +86,15 @@ export default function Dashboard() {
     if (!today) return;
     const previous = today;
     const next = { ...today, [key]: !today[key] };
+    const body = { [key]: next[key] };
+    // Matches the Mutabaah page: unticking Tilawah clears its page count.
+    if (key === 'tilawah' && !next.tilawah && today.tilawahPages) {
+      next.tilawahPages = 0;
+      body.tilawahPages = 0;
+    }
     setToday(next);
     try {
-      const res = await client.put(`/mutabaah/${todayStr}`, { [key]: next[key] });
+      const res = await client.put(`/mutabaah/${todayStr}`, body);
       setToday(res.data);
       const patch = (rows) => [...rows.filter((r) => r.date !== todayStr), { ...res.data, date: todayStr }];
       setSummary(patch);
@@ -179,7 +185,9 @@ export default function Dashboard() {
             >
               <span className="quick-check-box">{today?.[f.key] && <Check size={13} strokeWidth={3} />}</span>
               <span className="quick-check-label">{f.label}</span>
-              <span className="quick-check-time">{f.time}</span>
+              <span className="quick-check-time">
+                {f.key === 'tilawah' && today?.tilawahPages ? `${today.tilawahPages} pages` : f.time}
+              </span>
             </button>
           ))}
         </div>

@@ -8,6 +8,11 @@ export const MUTABAAH_FIELDS = [
   { key: 'zikir', label: 'Zikir', time: 'Anytime', period: 'anytime' }
 ];
 
+// Tilawah pages: the daily target in the copy summary is 1 juz (~20 pages of
+// the standard 604-page mushaf). Max matches the backend validator.
+export const PAGES_PER_JUZ = 20;
+export const MAX_TILAWAH_PAGES = 604;
+
 // Display order for the grouped checklist. `from`/`to` are local hours used to
 // highlight the period that's happening now (anytime is never "now").
 export const MUTABAAH_PERIODS = [

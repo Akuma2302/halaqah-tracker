@@ -1467,6 +1467,102 @@ a {
   color: var(--primary-dark);
 }
 
+.checklist-item:has(.tilawah) {
+  flex-wrap: wrap;
+}
+
+.tilawah {
+  flex-basis: 100%;
+  margin-left: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: default;
+}
+
+.tilawah-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tilawah-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tilawah-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.tilawah-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tilawah-input {
+  width: 56px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.tilawah-input::-webkit-outer-spin-button,
+.tilawah-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tilawah-unit {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.tilawah-goal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tilawah-goal-bar {
+  flex: 1;
+  max-width: 160px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.tilawah-goal-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gold);
+  transition: width 0.3s ease;
+}
+
+.tilawah-goal-text {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
 .checklist-group + .checklist-group {
   margin-top: 22px;
 }

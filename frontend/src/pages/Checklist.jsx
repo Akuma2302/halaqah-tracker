@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { ChevronLeft, ChevronRight, Check, Calendar, Copy, X } from 'lucide-react';
 import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
-import { MUTABAAH_FIELDS, MUTABAAH_PERIODS, currentPeriodKey } from '../features/mutabaah/mutabaahFields';
+import { MUTABAAH_FIELDS, MUTABAAH_PERIODS, currentPeriodKey, PAGES_PER_JUZ } from '../features/mutabaah/mutabaahFields';
+import TilawahStepper from '../components/TilawahStepper';
 
 // Labels used specifically for the "Copy" summary text, per the requested
 // format — a couple of these differ from the on-screen checklist labels
@@ -32,6 +33,7 @@ export default function Checklist() {
   const [periodLoading, setPeriodLoading] = useState(false);
   const [periodError, setPeriodError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [pagesError, setPagesError] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -49,14 +51,61 @@ export default function Checklist() {
   async function toggle(key) {
     const previous = entry;
     const next = { ...entry, [key]: !entry[key] };
+    const body = { [key]: next[key] };
+    // Unticking Tilawah clears its page count too, so the two never disagree.
+    if (key === 'tilawah' && !next.tilawah && entry.tilawahPages) {
+      next.tilawahPages = 0;
+      body.tilawahPages = 0;
+    }
+    cancelPendingPages();
     setEntry(next);
     try {
-      const res = await client.put(`/mutabaah/${date}`, { [key]: next[key] });
+      const res = await client.put(`/mutabaah/${date}`, body);
       setEntry(res.data);
     } catch {
       setEntry(previous);
     }
   }
+
+  // Page taps are applied instantly and saved once the user pauses, so tapping
+  // "+" ten times is one request rather than ten.
+  const pendingPages = useRef(null); // { date, body, timer }
+
+  function cancelPendingPages() {
+    if (pendingPages.current) clearTimeout(pendingPages.current.timer);
+    pendingPages.current = null;
+  }
+
+  function flushPendingPages() {
+    const pending = pendingPages.current;
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    pendingPages.current = null;
+    return client.put(`/mutabaah/${pending.date}`, pending.body);
+  }
+
+  function setTilawahPages(pages) {
+    const next = { ...entry, tilawahPages: pages, tilawah: pages > 0 ? true : entry.tilawah };
+    setEntry(next);
+    cancelPendingPages();
+    const body = { tilawahPages: pages, tilawah: next.tilawah };
+    pendingPages.current = {
+      date,
+      body,
+      timer: setTimeout(() => {
+        flushPendingPages()
+          ?.then((res) => {
+            // Ignore the reply if the user has kept tapping since.
+            if (!pendingPages.current) setEntry((cur) => (cur?.date === res.data.date ? res.data : cur));
+          })
+          .catch(() => setPagesError(true));
+      }, 700)
+    };
+    setPagesError(false);
+  }
+
+  // Don't lose a pending page count when switching day or leaving the page.
+  useEffect(() => () => void flushPendingPages()?.catch(() => {}), [date]);
 
   function loadPeriod() {
     if (!fromDate || !toDate || fromDate > toDate) {
@@ -146,6 +195,17 @@ export default function Checklist() {
                   </span>
                 </div>
               ))}
+              {/* Older backends don't send tilawahPages; hide the row rather than show 0 */}
+              {typeof periodData.tilawahPages === 'number' && (
+                <div className="member-row">
+                  <div style={{ flex: 1 }}>
+                    <div className="name">Tilawah pages read</div>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>
+                    {periodData.tilawahPages} ≈ {(periodData.tilawahPages / PAGES_PER_JUZ).toFixed(1)} juz
+                  </span>
+                </div>
+              )}
               <button className="btn btn-ghost btn-block" onClick={copySummary} style={{ marginTop: 12 }}>
                 <Copy size={14} /> {copied ? 'Copied!' : 'Copy'}
               </button>
@@ -207,11 +267,19 @@ export default function Checklist() {
                       <div className="item-name">{f.label}</div>
                       <div className="item-time">{f.time}</div>
                     </div>
+                    {f.key === 'tilawah' && (
+                      <TilawahStepper pages={entry.tilawahPages || 0} onChange={setTilawahPages} />
+                    )}
                   </div>
                 ))}
               </section>
             );
           })}
+          {pagesError && (
+            <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 12 }}>
+              Couldn't save your Tilawah pages. Change the number again to retry.
+            </p>
+          )}
         </div>
       )}
     </div>

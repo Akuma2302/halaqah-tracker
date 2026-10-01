@@ -1,15 +1,16 @@
 const mutabaahRepository = require('../repositories/mutabaahRepository');
-const { FIELD_MAP, CAMEL_FIELDS } = require('../models/MutabaahEntry');
+const { FIELD_MAP, CAMEL_FIELDS, TILAWAH_PAGES_COLUMN } = require('../models/MutabaahEntry');
 
 function toApiShape(row, userId, date) {
   if (!row) {
-    return { userId, date, ...Object.fromEntries(CAMEL_FIELDS.map((f) => [f, false])) };
+    return { userId, date, ...Object.fromEntries(CAMEL_FIELDS.map((f) => [f, false])), tilawahPages: 0 };
   }
   return {
     id: row.id,
     userId: row.user_id,
     date: row.date,
-    ...Object.fromEntries(CAMEL_FIELDS.map((camel) => [camel, row[FIELD_MAP[camel]]]))
+    ...Object.fromEntries(CAMEL_FIELDS.map((camel) => [camel, row[FIELD_MAP[camel]]])),
+    tilawahPages: row[TILAWAH_PAGES_COLUMN] ?? 0
   };
 }
 
@@ -23,6 +24,7 @@ async function upsertEntry(userId, date, body) {
   for (const camel of CAMEL_FIELDS) {
     if (typeof body[camel] === 'boolean') dbFields[FIELD_MAP[camel]] = body[camel];
   }
+  if (Number.isInteger(body.tilawahPages)) dbFields[TILAWAH_PAGES_COLUMN] = body.tilawahPages;
   const row = await mutabaahRepository.upsert(userId, date, dbFields);
   return toApiShape(row, userId, date);
 }
@@ -45,13 +47,15 @@ async function getPeriodTotals(userId, from, to) {
   const rows = await mutabaahRepository.findBoundedRangeForUser(userId, from, to);
 
   const totals = Object.fromEntries(CAMEL_FIELDS.map((camel) => [camel, 0]));
+  let tilawahPages = 0;
   rows.forEach((row) => {
     CAMEL_FIELDS.forEach((camel) => {
       if (row[FIELD_MAP[camel]]) totals[camel] += 1;
     });
+    tilawahPages += row[TILAWAH_PAGES_COLUMN] || 0;
   });
 
-  return { from, to, totalDays, totals };
+  return { from, to, totalDays, totals, tilawahPages };
 }
 
 module.exports = { getEntry, upsertEntry, getSummary, getPeriodTotals, toApiShapePublic: toApiShape };
