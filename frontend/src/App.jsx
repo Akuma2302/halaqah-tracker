@@ -18,6 +18,7 @@ import Notifications from './pages/Notifications';
 const Mathurat = lazy(() => import('./pages/Mathurat'));
 const QuranIndex = lazy(() => import('./pages/QuranIndex'));
 const QuranSurah = lazy(() => import('./pages/QuranSurah'));
+const QuranRange = lazy(() => import('./pages/QuranRange'));
 
 const pageFallback = (
   <div className="page">
@@ -61,6 +62,22 @@ export default function App() {
             element={
               <Suspense fallback={pageFallback}>
                 <QuranIndex />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/quran/juz/:number"
+            element={
+              <Suspense fallback={pageFallback}>
+                <QuranRange kind="juz" />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/quran/page/:number"
+            element={
+              <Suspense fallback={pageFallback}>
+                <QuranRange kind="page" />
               </Suspense>
             }
           />

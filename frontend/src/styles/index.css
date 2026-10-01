@@ -1157,6 +1157,116 @@ a {
   color: var(--ink);
 }
 
+.quran-page-marker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--gold-ink);
+  letter-spacing: 0.02em;
+}
+
+.quran-page-marker::before,
+.quran-page-marker::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gold-border);
+  opacity: 0.6;
+}
+
+.quran-surah-divider {
+  margin: 24px 0 4px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--primary-tint);
+}
+
+.quran-surah-divider-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--primary-dark);
+}
+
+.quran-surah-divider-ar {
+  font-family: 'Amiri Quran', 'Amiri', serif;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.quran-surah-divider .quran-bismillah {
+  margin: 8px 0 0;
+  font-size: 24px;
+}
+
+.quran-juz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.quran-juz {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.quran-juz:hover {
+  border-color: var(--primary);
+}
+
+.quran-juz-num {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.quran-juz-label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.quran-page-jump {
+  margin-bottom: 18px;
+}
+
+.quran-page-jump-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.quran-page-jump-row .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.quran-row-page {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--primary-dark);
+}
+
+.quran-pager.top {
+  margin: 12px 0 0;
+}
+
 .quran-more {
   display: flex;
   justify-content: center;

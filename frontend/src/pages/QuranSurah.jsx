@@ -1,143 +1,45 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Minus, Pause, Play, Plus } from 'lucide-react';
-import { fetchChapter, fetchChapterAudio, fetchVerses, saveLastRead } from '../services/quranApi';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import { fetchChapter, fetchChapterAudio, keyFromHash, saveLastRead } from '../services/quranApi';
+import { useQuranVerses } from '../hooks/useQuranVerses';
+import QuranVerses, { BISMILLAH } from '../components/QuranVerses';
+import { QuranDisplayControls, useQuranPrefs } from '../components/QuranControls';
 
-const PREFS_KEY = 'quran_prefs';
-const DEFAULT_PREFS = { translation: true, size: 28 };
-const MIN_SIZE = 20;
-const MAX_SIZE = 44;
-const BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ';
-
-function readPrefs() {
-  try {
-    return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY)) };
-  } catch {
-    return DEFAULT_PREFS;
-  }
-}
-
-function arabicNumber(n) {
-  return String(n).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
-}
-
-export default function QuranSurah() {
+function QuranSurahReader() {
   const { surah } = useParams();
   const id = Number(surah);
   const valid = Number.isInteger(id) && id >= 1 && id <= 114;
   const { hash } = useLocation();
-  const targetAyah = Number(hash.slice(1)) || null;
+  const targetKey = valid ? keyFromHash(hash, id) : null;
 
   const [chapter, setChapter] = useState(null);
-  const [verses, setVerses] = useState([]);
-  const [nextPage, setNextPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [prefs, setPrefs] = useState(readPrefs);
+  const [prefs, setPrefs] = useQuranPrefs();
+  const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses('chapter', valid ? id : null, {
+    untilKey: targetKey
+  });
 
   const [audioUrl, setAudioUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const audioRef = useRef(null);
 
-  const verseRefs = useRef({});
-  const sentinelRef = useRef(null);
-  const scrolledToTarget = useRef(false);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
-    } catch {
-      // Ignore: storage unavailable.
-    }
-  }, [prefs]);
-
-  // Reset everything when moving to another surah.
   useEffect(() => {
     setChapter(null);
-    setVerses([]);
-    setNextPage(1);
-    setError(false);
     setAudioUrl(null);
     setPlaying(false);
     setAudioError(false);
-    scrolledToTarget.current = false;
-    if (valid) fetchChapter(id).then(setChapter).catch(() => setError(true));
-    window.scrollTo(0, 0);
+    if (valid) fetchChapter(id).then(setChapter).catch(() => {});
+    if (!hash) window.scrollTo(0, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, valid]);
 
-  // Guards against a slow response for the previous surah landing after a switch.
-  const currentId = useRef(id);
-  currentId.current = id;
-
-  async function loadMore() {
-    if (!valid || loading || !nextPage) return;
-    const requestedId = id;
-    setLoading(true);
-    setError(false);
-    try {
-      const { verses: more, nextPage: next } = await fetchVerses(requestedId, nextPage);
-      if (currentId.current !== requestedId) return;
-      setVerses((v) => (more[0] && v.some((x) => x.n === more[0].n) ? v : [...v, ...more]));
-      setNextPage(next);
-    } catch {
-      if (currentId.current === requestedId) setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // First page, and keep loading until a linked ayah (#n) is on the page.
-  useEffect(() => {
-    if (!valid || loading || error || !nextPage) return;
-    const lastLoaded = verses.length ? verses[verses.length - 1].n : 0;
-    if (verses.length === 0 || (targetAyah && lastLoaded < targetAyah)) loadMore();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, verses.length, nextPage, loading, error, targetAyah]);
-
-  useEffect(() => {
-    if (!targetAyah || scrolledToTarget.current) return;
-    const el = verseRefs.current[targetAyah];
-    if (el) {
-      scrolledToTarget.current = true;
-      setTimeout(() => el.scrollIntoView({ block: 'start' }), 50);
-    }
-  }, [targetAyah, verses]);
-
-  // Infinite scroll: load the next 50 ayat when the end comes into view.
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || !nextPage) return;
-    const observer = new IntersectionObserver((entries) => entries[0].isIntersecting && loadMore(), {
-      rootMargin: '600px'
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextPage, loading, verses.length]);
-
-  // Remember the ayah at the top of the screen as the last-read position.
-  useEffect(() => {
-    if (!chapter || !verses.length) return;
-    let timer;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting).map((e) => Number(e.target.dataset.ayah));
-        if (!visible.length) return;
-        clearTimeout(timer);
-        timer = setTimeout(
-          () => saveLastRead({ surah: id, ayah: Math.min(...visible), name: chapter.name_simple }),
-          800
-        );
-      },
-      { rootMargin: '-120px 0px -60% 0px' }
-    );
-    Object.values(verseRefs.current).forEach((el) => el && observer.observe(el));
-    return () => {
-      clearTimeout(timer);
-      observer.disconnect();
-    };
-  }, [chapter, verses, id]);
+  const onTopVerse = useCallback(
+    (v) =>
+      chapter &&
+      saveLastRead({ kind: 'chapter', number: id, key: v.key, label: `${chapter.name_simple}, ayat ${v.n}` }),
+    [chapter, id]
+  );
 
   async function togglePlay() {
     const audio = audioRef.current;
@@ -160,8 +62,6 @@ export default function QuranSurah() {
     }
   }
 
-  const arabicStyle = useMemo(() => ({ fontSize: prefs.size }), [prefs.size]);
-
   if (!valid) {
     return (
       <div className="page">
@@ -178,7 +78,7 @@ export default function QuranSurah() {
   return (
     <div className="page quran-surah">
       <Link to="/quran" className="quran-back">
-        <ChevronLeft size={16} /> All surah
+        <ChevronLeft size={16} /> Al-Quran
       </Link>
 
       <div className="card quran-head">
@@ -192,7 +92,8 @@ export default function QuranSurah() {
             </h1>
             <p className="page-subtitle">
               {chapter.translated_name.name} · {chapter.verses_count} ayat ·{' '}
-              {chapter.revelation_place === 'makkah' ? 'Makkiyah' : 'Madaniyah'}
+              {chapter.revelation_place === 'makkah' ? 'Makkiyah' : 'Madaniyah'} · Muka surat {chapter.pages[0]}
+              {chapter.pages[1] !== chapter.pages[0] ? `–${chapter.pages[1]}` : ''}
             </p>
           </>
         ) : (
@@ -203,35 +104,7 @@ export default function QuranSurah() {
           <button type="button" className="btn btn-primary btn-sm" onClick={togglePlay}>
             {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Listen'}
           </button>
-          <button
-            type="button"
-            className={`chip${prefs.translation ? ' on' : ''}`}
-            aria-pressed={prefs.translation}
-            onClick={() => setPrefs((p) => ({ ...p, translation: !p.translation }))}
-          >
-            Terjemahan
-          </button>
-          <span className="mathurat-size" aria-label="Arabic text size">
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={() => setPrefs((p) => ({ ...p, size: Math.max(MIN_SIZE, p.size - 2) }))}
-              disabled={prefs.size <= MIN_SIZE}
-              aria-label="Smaller Arabic text"
-            >
-              <Minus size={14} />
-            </button>
-            <span className="mathurat-size-label">أ</span>
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={() => setPrefs((p) => ({ ...p, size: Math.min(MAX_SIZE, p.size + 2) }))}
-              disabled={prefs.size >= MAX_SIZE}
-              aria-label="Larger Arabic text"
-            >
-              <Plus size={14} />
-            </button>
-          </span>
+          <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />
         </div>
         <audio
           ref={audioRef}
@@ -251,23 +124,13 @@ export default function QuranSurah() {
         </p>
       )}
 
-      <div className="quran-verses">
-        {verses.map((v) => (
-          <article
-            key={v.n}
-            id={String(v.n)}
-            data-ayah={v.n}
-            ref={(el) => (verseRefs.current[v.n] = el)}
-            className={`quran-verse${targetAyah === v.n ? ' target' : ''}`}
-          >
-            <div className="quran-verse-key">{v.key}</div>
-            <p className="mathurat-arabic quran-arabic" dir="rtl" lang="ar" style={arabicStyle}>
-              {v.ar} <span className="ayah-mark">﴿{arabicNumber(v.n)}﴾</span>
-            </p>
-            {prefs.translation && <p className="quran-translation">{v.ms}</p>}
-          </article>
-        ))}
-      </div>
+      <QuranVerses
+        verses={verses}
+        translation={prefs.translation}
+        size={prefs.size}
+        targetKey={targetKey}
+        onTopVerse={onTopVerse}
+      />
 
       {error ? (
         <div className="card empty-state" style={{ marginTop: 12 }}>
@@ -276,7 +139,7 @@ export default function QuranSurah() {
             Try again
           </button>
         </div>
-      ) : nextPage ? (
+      ) : hasMore ? (
         <div ref={sentinelRef} className="quran-more">
           <div className="spinner" />
         </div>
@@ -304,4 +167,10 @@ export default function QuranSurah() {
       </p>
     </div>
   );
+}
+
+// Remount per surah so loading state never carries over between surahs.
+export default function QuranSurah() {
+  const { surah } = useParams();
+  return <QuranSurahReader key={surah} />;
 }
