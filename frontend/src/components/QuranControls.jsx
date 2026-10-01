@@ -2,15 +2,12 @@ import { useEffect, useState } from 'react';
 import { BookOpen, List, Minus, Plus } from 'lucide-react';
 
 const PREFS_KEY = 'quran_prefs';
-// Mushaf ("reading") vs ayat-by-ayat ("verses") view, remembered per kind of
-// reader: pages open in mushaf view by default, surah and juzuk in ayat view.
-const DEFAULT_PREFS = { translation: true, size: 28, pageMode: 'reading', chapterMode: 'verses', juzMode: 'verses' };
+const DEFAULT_PREFS = { translation: true, size: 28 };
 
-export function modeKey(kind) {
-  return `${kind}Mode`;
-}
+// Every surah, juzuk and page opens in Membaca (mushaf) view; switching to
+// "Ayat demi Ayat" applies to that visit only.
+export const DEFAULT_MODE = 'reading';
 
-// Same labels and order as Quran.com: "Ayat demi Ayat" (verse by verse) then "Membaca" (mushaf).
 export function QuranModeSwitch({ reading, onChange }) {
   return (
     <div className="range-toggle segmented quran-mode">

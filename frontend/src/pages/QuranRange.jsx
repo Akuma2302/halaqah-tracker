@@ -6,7 +6,7 @@ import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses from '../components/QuranVerses';
 import MushafPage from '../components/MushafPage';
 import MushafPages from '../components/MushafPages';
-import { modeKey, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
+import { DEFAULT_MODE, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
 
 // Reader for a whole juzuk (/quran/juz/:number) or a single mushaf page
@@ -21,9 +21,9 @@ function QuranRangeReader({ kind }) {
   const targetKey = keyFromHash(hash);
 
   const [prefs, setPrefs] = useQuranPrefs();
-  // Mushaf ("Membaca") or ayat-by-ayat view, remembered separately for pages and juzuk.
-  const reading = prefs[modeKey(kind)] === 'reading';
-  const setMode = (mode) => setPrefs((p) => ({ ...p, [modeKey(kind)]: mode }));
+  // Opens in Membaca (mushaf); "Ayat demi Ayat" applies to this visit only.
+  const [mode, setMode] = useState(DEFAULT_MODE);
+  const reading = mode === 'reading';
   const juzStart = useStartPage(targetKey, reading && kind === 'juz');
   const [chapters, setChapters] = useState([]);
   const [juzs, setJuzs] = useState([]);

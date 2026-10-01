@@ -5,7 +5,7 @@ import { fetchChapter, fetchChapterAudio, fetchChapters, keyFromHash, saveLastRe
 import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses, { BISMILLAH } from '../components/QuranVerses';
 import MushafPages from '../components/MushafPages';
-import { modeKey, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
+import { DEFAULT_MODE, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
 
 function QuranSurahReader() {
@@ -20,8 +20,8 @@ function QuranSurahReader() {
   const [chapters, setChapters] = useState([]);
   const chaptersById = useMemo(() => Object.fromEntries(chapters.map((c) => [c.id, c])), [chapters]);
   const [prefs, setPrefs] = useQuranPrefs();
-  const reading = prefs[modeKey('chapter')] === 'reading';
-  const setMode = (mode) => setPrefs((p) => ({ ...p, [modeKey('chapter')]: mode }));
+  const [mode, setMode] = useState(DEFAULT_MODE);
+  const reading = mode === 'reading';
   const start = useStartPage(targetKey, reading);
   const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses('chapter', valid && !reading ? id : null, {
     untilKey: targetKey
