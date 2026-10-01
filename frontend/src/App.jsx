@@ -16,6 +16,14 @@ import Notifications from './pages/Notifications';
 
 // Loaded on demand: the Mathurat text is the largest chunk of the app.
 const Mathurat = lazy(() => import('./pages/Mathurat'));
+const QuranIndex = lazy(() => import('./pages/QuranIndex'));
+const QuranSurah = lazy(() => import('./pages/QuranSurah'));
+
+const pageFallback = (
+  <div className="page">
+    <div className="spinner" />
+  </div>
+);
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -43,8 +51,24 @@ export default function App() {
           <Route
             path="/mathurat"
             element={
-              <Suspense fallback={<div className="page"><div className="spinner" /></div>}>
+              <Suspense fallback={pageFallback}>
                 <Mathurat />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/quran"
+            element={
+              <Suspense fallback={pageFallback}>
+                <QuranIndex />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/quran/:surah"
+            element={
+              <Suspense fallback={pageFallback}>
+                <QuranSurah />
               </Suspense>
             }
           />
