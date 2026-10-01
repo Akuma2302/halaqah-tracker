@@ -79,6 +79,44 @@ export async function fetchPageWords(page) {
   return { verses, words };
 }
 
+// Word-by-word meanings for a mushaf page, loaded on the first tap. Quran.com
+// has no Malay word-by-word set, so Indonesian (closest to Malay) is the main
+// meaning with English alongside. Keyed by "surah:ayah:position".
+export async function fetchPageWordMeanings(page) {
+  const load = (lang) =>
+    get(
+      `/verses/by_page/${page}?words=true&word_fields=text_uthmani&language=${lang}` +
+        `&word_translation_language=${lang}&per_page=50`
+    );
+  const [id, en] = await Promise.all([load('id'), load('en')]);
+  const english = new Map(en.verses.flatMap((v) => v.words.map((w) => [`${v.verse_key}:${w.position}`, w.translation?.text])));
+  return new Map(
+    id.verses.flatMap((v) =>
+      v.words
+        .filter((w) => w.char_type_name === 'word')
+        .map((w) => {
+          const id = `${v.verse_key}:${w.position}`;
+          return [
+            id,
+            {
+              arabic: w.text_uthmani,
+              transliteration: w.transliteration?.text || '',
+              meaning: w.translation?.text || '',
+              english: english.get(id) || '',
+              audio: w.audio_url ? `https://audio.qurancdn.com/${w.audio_url}` : null
+            }
+          ];
+        })
+    )
+  );
+}
+
+// Malay translation (Basmeih) of one verse, for tapping an ayah marker.
+export async function fetchVerseTranslation(key) {
+  const { verse } = await get(`/verses/by_key/${key}?language=ms&translations=${TRANSLATION_ID}`);
+  return (verse.translations?.[0]?.text || '').replace(/<[^>]+>/g, '');
+}
+
 // King Fahd Complex QCF v2 fonts: one font per mushaf page, served (CORS-enabled)
 // by the Quran Foundation CDN. Loaded once per page and cached by the browser.
 const fontLoads = new Map();

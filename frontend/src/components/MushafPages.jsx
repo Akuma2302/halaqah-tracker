@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronUp } from 'lucide-react';
 import MushafPage from './MushafPage';
+import MushafWordPanel from './MushafWordPanel';
 
 const BATCH = 2; // pages added each time the end of the list comes into view
 
@@ -14,6 +15,10 @@ export default function MushafPages({ from, to, startPage, chaptersById, focusSu
   const pageVerses = useRef({});
   const pageRefs = useRef({});
   const sentinelRef = useRef(null);
+  const [selection, setSelection] = useState(null);
+  const closePanel = useCallback(() => setSelection(null), []);
+  // Tapping the selected word again closes the panel.
+  const selectWord = useCallback((w) => setSelection((cur) => (cur?.id === w.id ? null : w)), []);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -80,7 +85,14 @@ export default function MushafPages({ from, to, startPage, chaptersById, focusSu
           <div className="quran-page-marker">
             <span>Muka surat {p}</span>
           </div>
-          <MushafPage page={p} chaptersById={chaptersById} focusSurah={focusSurah} onLoaded={onLoaded(p)} />
+          <MushafPage
+            page={p}
+            chaptersById={chaptersById}
+            focusSurah={focusSurah}
+            onLoaded={onLoaded(p)}
+            onSelectWord={selectWord}
+            selectedId={selection?.id}
+          />
         </section>
       ))}
       {range[1] < to && (
@@ -88,6 +100,7 @@ export default function MushafPages({ from, to, startPage, chaptersById, focusSu
           <div className="spinner" />
         </div>
       )}
+      <MushafWordPanel selection={selection} chaptersById={chaptersById} onClose={closePanel} />
     </div>
   );
 }

@@ -1338,6 +1338,121 @@ a {
   color: var(--gold);
 }
 
+.mushaf-word,
+.mushaf-end {
+  cursor: pointer;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.mushaf-word:hover {
+  color: var(--primary-dark);
+}
+
+.mushaf-word.selected,
+.mushaf-end.selected {
+  background: var(--gold-tint);
+  color: var(--gold-ink);
+}
+
+/* Meaning panel for a tapped word / ayah marker: floats above the bottom nav */
+.word-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 25;
+  width: min(520px, calc(100vw - 24px));
+  max-height: 45vh;
+  overflow-y: auto;
+  padding: 12px 14px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  animation: sheet-up 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (max-width: 720px) {
+  .word-panel {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
+
+.word-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.word-panel-head .icon-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.word-panel-ref {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.word-panel-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.word-panel-arabic {
+  flex-shrink: 0;
+  font-family: 'Amiri Quran', 'Amiri', serif;
+  font-size: 34px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.word-panel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.word-panel-translit {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.word-panel-meaning {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.word-panel-muted {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.word-panel-play {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.word-panel-verse {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.word-panel-note {
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  opacity: 0.8;
+}
+
 /* Words/headings of a neighbouring surah when reading a single surah */
 .mushaf-line .dim,
 .mushaf-title.dim,

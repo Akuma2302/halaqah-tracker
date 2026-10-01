@@ -6,6 +6,7 @@ import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses from '../components/QuranVerses';
 import MushafPage from '../components/MushafPage';
 import MushafPages from '../components/MushafPages';
+import MushafWordPanel from '../components/MushafWordPanel';
 import { DEFAULT_MODE, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
 
@@ -28,6 +29,9 @@ function QuranRangeReader({ kind }) {
   const [chapters, setChapters] = useState([]);
   const [juzs, setJuzs] = useState([]);
   const [mushafVerses, setMushafVerses] = useState([]);
+  const [selection, setSelection] = useState(null);
+  const closePanel = useCallback(() => setSelection(null), []);
+  const selectWord = useCallback((w) => setSelection((cur) => (cur?.id === w.id ? null : w)), []);
   const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses(kind, valid && !reading ? number : null, {
     untilKey: targetKey,
     loadAll: kind === 'page'
@@ -147,7 +151,16 @@ function QuranRangeReader({ kind }) {
       {kind === 'page' && pager('top')}
 
       {reading && kind === 'page' ? (
-        <MushafPage page={number} chaptersById={chaptersById} onLoaded={onMushafLoaded} />
+        <>
+          <MushafPage
+            page={number}
+            chaptersById={chaptersById}
+            onLoaded={onMushafLoaded}
+            onSelectWord={selectWord}
+            selectedId={selection?.id}
+          />
+          <MushafWordPanel selection={selection} chaptersById={chaptersById} onClose={closePanel} />
+        </>
       ) : reading ? (
         juzStart.ready ? (
           <MushafPages

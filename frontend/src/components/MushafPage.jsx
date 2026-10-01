@@ -38,7 +38,9 @@ function buildLines(words, verses) {
 
 // focusSurah: when reading a single surah, words of other surahs that share
 // its first/last page are faded.
-export default function MushafPage({ page, chaptersById = {}, onLoaded, focusSurah = null }) {
+// onSelectWord / selectedId: tapping a word or ayah marker reports it to the
+// parent, which shows its meaning (see MushafWordPanel).
+export default function MushafPage({ page, chaptersById = {}, onLoaded, focusSurah = null, onSelectWord, selectedId }) {
   const [data, setData] = useState(null);
   const [fontReady, setFontReady] = useState(false);
   const [error, setError] = useState(false);
@@ -139,8 +141,19 @@ export default function MushafPage({ page, chaptersById = {}, onLoaded, focusSur
             {l.words.map((w) => (
               <span
                 key={w.id}
-                className={`${w.end ? 'mushaf-end' : 'mushaf-word'}${focusSurah && w.surah !== focusSurah ? ' dim' : ''}`}
+                className={`${w.end ? 'mushaf-end' : 'mushaf-word'}${focusSurah && w.surah !== focusSurah ? ' dim' : ''}${
+                  selectedId === w.id ? ' selected' : ''
+                }`}
                 data-key={w.key}
+                role={onSelectWord ? 'button' : undefined}
+                tabIndex={onSelectWord ? 0 : undefined}
+                aria-label={onSelectWord ? (w.end ? `Ayat ${w.key}` : `Word ${w.id}`) : undefined}
+                onClick={onSelectWord ? () => onSelectWord({ id: w.id, key: w.key, page, end: w.end }) : undefined}
+                onKeyDown={
+                  onSelectWord
+                    ? (e) => (e.key === 'Enter' || e.key === ' ') && onSelectWord({ id: w.id, key: w.key, page, end: w.end })
+                    : undefined
+                }
               >
                 {w.glyph}
               </span>
