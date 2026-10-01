@@ -1,13 +1,24 @@
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
-import { Pencil, Check, ArrowRight } from 'lucide-react';
+import { Check, ChevronRight, Flame, MapPin, NotebookText } from 'lucide-react';
 import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
 import MutabaahRing from '../components/MutabaahRing';
-import ProgressRing from '../components/ProgressRing';
+import ProfileSheet from '../components/ProfileSheet';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
+import { currentStreak, hijriDate } from '../features/mutabaah/streak';
 import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
+
+const SETUP_DISMISSED_KEY = 'mutabaah_setup_dismissed';
+
+function readSetupDismissed() {
+  try {
+    return localStorage.getItem(SETUP_DISMISSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function cellColor(entry) {
   if (!entry) return 'var(--border)';
@@ -21,22 +32,25 @@ function cellColor(entry) {
 }
 
 export default function Dashboard() {
-  const { user, updateProfile } = useAuth();
+  const { user } = useAuth();
   const [today, setToday] = useState(null);
   const [range, setRange] = useState('week');
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [nameDraft, setNameDraft] = useState('');
-  const [kampusDraft, setKampusDraft] = useState('');
+  // Last 30 days, used only for the streak (independent of the trend toggle).
+  const [history, setHistory] = useState([]);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [setupDismissed, setSetupDismissed] = useState(readSetupDismissed);
   const [academicSummary, setAcademicSummary] = useState(null);
 
   const todayStr = dayjs().format('YYYY-MM-DD');
 
   useEffect(() => {
-    setNameDraft(user?.name || '');
-    setKampusDraft(user?.kampus || '');
-  }, [user]);
+    client
+      .get('/mutabaah/summary?range=month')
+      .then((res) => setHistory(res.data))
+      .catch(() => setHistory([]));
+  }, []);
 
   useEffect(() => {
     client.get(`/mutabaah/${todayStr}`).then((res) => setToday(res.data)).catch(() => {});
@@ -76,62 +90,77 @@ export default function Dashboard() {
     try {
       const res = await client.put(`/mutabaah/${todayStr}`, { [key]: next[key] });
       setToday(res.data);
-      setSummary((rows) => [...rows.filter((r) => r.date !== todayStr), { ...res.data, date: todayStr }]);
+      const patch = (rows) => [...rows.filter((r) => r.date !== todayStr), { ...res.data, date: todayStr }];
+      setSummary(patch);
+      setHistory(patch);
     } catch {
       setToday(previous);
     }
   }
 
-  async function saveProfile() {
-    await updateProfile({ name: nameDraft.trim() || user?.name, kampus: kampusDraft });
-    setEditingProfile(false);
+  function dismissSetup() {
+    setSetupDismissed(true);
+    try {
+      localStorage.setItem(SETUP_DISMISSED_KEY, '1');
+    } catch {
+      // Ignore: it just shows again next visit.
+    }
   }
+
+  const streak = currentStreak(history);
+  const hijri = hijriDate();
+  const showSetup = !user?.kampus && !setupDismissed;
+  const hours = academicSummary?.hours ?? 0;
+  const hoursPercent = Math.min(100, academicSummary?.percent || 0);
 
   return (
     <div className="page">
-      <div className="page-header">
-        <div>
-          {editingProfile ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 260 }}>
-              <input
-                className="input"
-                style={{ padding: '6px 10px' }}
-                placeholder="Your name"
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && saveProfile()}
-                autoFocus
-              />
-              <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  className="input"
-                  style={{ width: 200, padding: '4px 8px' }}
-                  placeholder="Your kampus"
-                  value={kampusDraft}
-                  onChange={(e) => setKampusDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && saveProfile()}
-                />
-                <button className="icon-btn" onClick={saveProfile} aria-label="Save profile">
-                  <Check size={14} />
-                </button>
-              </span>
-            </div>
+      <div className="page-header greeting">
+        <div style={{ minWidth: 0 }}>
+          <h1 className="page-title">Assalamualaikum, {user?.name?.split(' ')[0]}</h1>
+          <p className="page-subtitle">
+            {dayjs().format('dddd, D MMM')}
+            {hijri && (
+              <>
+                <span className="greeting-sep"> · </span>
+                <span className="greeting-hijri">{hijri}</span>
+              </>
+            )}
+          </p>
+        </div>
+        <div className={`streak-chip${streak > 0 ? ' active' : ''}`} title="Days in a row with at least one amal ticked">
+          <Flame size={16} />
+          {streak > 0 ? (
+            <span>
+              <strong>{streak >= 30 ? '30+' : streak}</strong> day{streak === 1 ? '' : 's'}
+            </span>
           ) : (
-            <>
-              <h1 className="page-title">Assalamualaikum, {user?.name?.split(' ')[0]}</h1>
-              <p className="page-subtitle">
-                <span
-                  style={{ display: 'inline-flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}
-                  onClick={() => setEditingProfile(true)}
-                >
-                  {user?.kampus || 'Add your name & kampus'}
-                  <Pencil size={12} />
-                </span>
-              </p>
-            </>
+            <span>Start a streak</span>
           )}
         </div>
       </div>
+
+      {showSetup && (
+        <div className="card setup-card">
+          <span className="setup-icon">
+            <MapPin size={18} />
+          </span>
+          <div className="setup-body">
+            <div className="setup-title">Add your kampus</div>
+            <p className="setup-text">So your halaqah knows where you're studying.</p>
+          </div>
+          <div className="setup-actions">
+            <button className="btn btn-primary btn-sm" onClick={() => setProfileOpen(true)}>
+              Add
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={dismissSetup}>
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ProfileSheet open={profileOpen} onClose={() => setProfileOpen(false)} title="Set up your profile" />
 
       <div className="card ring-card">
         <MutabaahRing entry={today} />
@@ -156,25 +185,30 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card ring-card" style={{ marginTop: 14 }}>
-        <ProgressRing
-          percent={academicSummary?.percent || 0}
-          size={140}
-          primaryText={`${academicSummary?.hours ?? 0}h`}
-          secondaryText={`of ${WEEKLY_TARGET_HOURS}h this week`}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span className="section-label" style={{ marginBottom: 0 }}>
-            Academic Journal
+      <Link to="/academic-journal" className="card hours-card">
+        <span className="hours-icon">
+          <NotebookText size={18} />
+        </span>
+        <span className="hours-body">
+          <span className="hours-head">
+            <span className="hours-title">Study hours this week</span>
+            <span className="hours-value">
+              <strong>{hours}h</strong> / {WEEKLY_TARGET_HOURS}h
+            </span>
           </span>
-          <p className="page-subtitle" style={{ margin: 0 }}>
-            Study hours logged this week toward your target.
-          </p>
-          <Link to="/academic-journal" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>
-            Open Academic Journal <ArrowRight size={14} />
-          </Link>
-        </div>
-      </div>
+          <span
+            className="hours-bar"
+            role="progressbar"
+            aria-valuenow={hoursPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Weekly study hours progress"
+          >
+            <span className="hours-bar-fill" style={{ width: `${hoursPercent}%` }} />
+          </span>
+        </span>
+        <ChevronRight size={18} className="hours-chevron" />
+      </Link>
 
       <div className="card" style={{ marginTop: 14 }}>
         <div

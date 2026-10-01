@@ -408,6 +408,82 @@ a {
   font-size: 14.5px;
 }
 
+.user-menu {
+  position: relative;
+}
+
+.user-chip-btn {
+  padding: 3px 10px 3px 3px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.user-chip-btn:hover,
+.user-chip-btn[aria-expanded='true'] {
+  background: var(--primary-tint);
+}
+
+.user-menu-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 25;
+  min-width: 220px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  animation: fade-in 0.12s ease;
+}
+
+.user-menu-head {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-menu-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.user-menu-sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-menu-item:hover {
+  background: var(--primary-tint);
+}
+
+.user-menu-item.danger {
+  color: var(--danger);
+}
+
 .top-bar-brand {
   display: none;
   align-items: center;
@@ -1111,6 +1187,184 @@ a {
 
 .quick-check.done .quick-check-label {
   color: var(--primary-dark);
+}
+
+.greeting {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.greeting .page-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.streak-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.streak-chip.active {
+  background: var(--gold-tint);
+  border-color: transparent;
+  color: var(--gold-ink);
+}
+
+.streak-chip.active svg {
+  color: var(--gold);
+}
+
+.streak-chip strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.setup-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  background: var(--gold-tint);
+  border-color: transparent;
+}
+
+.setup-icon,
+.hours-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setup-icon {
+  background: var(--surface);
+  color: var(--gold);
+}
+
+.setup-body {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.setup-title {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.setup-text {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.setup-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.hours-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.hours-card:hover {
+  border-color: var(--primary);
+}
+
+.hours-icon {
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+.hours-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hours-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hours-title {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.hours-value {
+  font-size: 13px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.hours-value strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.hours-bar {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.hours-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.hours-chevron {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 480px) {
+  .greeting-hijri {
+    display: block;
+  }
+  .greeting-sep {
+    display: none;
+  }
+  .setup-actions {
+    margin-left: 50px;
+  }
+  .greeting .page-title {
+    font-size: 21px;
+  }
+  .user-chip-btn {
+    padding: 3px;
+  }
 }
 
 @keyframes check-pop {
