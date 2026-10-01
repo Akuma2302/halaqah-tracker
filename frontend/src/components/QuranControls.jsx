@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Languages, Minus, Plus } from 'lucide-react';
+import { BookOpen, List, Minus, Plus } from 'lucide-react';
 
 const PREFS_KEY = 'quran_prefs';
 // Mushaf ("reading") vs ayat-by-ayat ("verses") view, remembered per kind of
@@ -10,14 +10,15 @@ export function modeKey(kind) {
   return `${kind}Mode`;
 }
 
+// Same labels and order as Quran.com: "Ayat demi Ayat" (verse by verse) then "Membaca" (mushaf).
 export function QuranModeSwitch({ reading, onChange }) {
   return (
     <div className="range-toggle segmented quran-mode">
+      <button className={reading ? '' : 'active'} onClick={() => onChange('verses')}>
+        <List size={14} /> Ayat demi Ayat
+      </button>
       <button className={reading ? 'active' : ''} onClick={() => onChange('reading')}>
         <BookOpen size={14} /> Membaca
-      </button>
-      <button className={reading ? '' : 'active'} onClick={() => onChange('verses')}>
-        <Languages size={14} /> Terjemahan
       </button>
     </div>
   );
