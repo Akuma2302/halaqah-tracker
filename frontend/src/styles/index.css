@@ -657,6 +657,323 @@ a {
   }
 }
 
+/* ---------- al-mathurat reader ---------- */
+
+.mathurat-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mathurat-waktu {
+  margin-bottom: 0;
+  min-width: 220px;
+}
+
+.mathurat-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip.on {
+  background: var(--primary-tint);
+  border-color: transparent;
+  color: var(--primary-dark);
+}
+
+.mathurat-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.mathurat-size .icon-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.mathurat-size .icon-btn:disabled {
+  opacity: 0.4;
+}
+
+.mathurat-size-label {
+  font-family: 'Amiri Quran', serif;
+  font-size: 18px;
+  color: var(--ink-soft);
+  width: 18px;
+  text-align: center;
+}
+
+.mathurat-progress {
+  position: sticky;
+  top: 61px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 -4px 14px;
+  padding: 10px 4px;
+  background: var(--paper);
+}
+
+.mathurat-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.mathurat-progress-head strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.mathurat-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mathurat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mathurat-card {
+  scroll-margin-top: 130px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.mathurat-card.done {
+  padding: 10px 16px;
+  background: var(--primary-tint);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.mathurat-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mathurat-num {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--primary-tint);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mathurat-card.done .mathurat-num {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.mathurat-title {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+.mathurat-card.done .mathurat-title {
+  color: var(--primary-dark);
+}
+
+.mathurat-ref {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.mathurat-repeat {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--gold-tint);
+  color: var(--gold-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mathurat-undo {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mathurat-arabic {
+  margin: 16px 0 4px;
+  font-family: 'Amiri Quran', 'Amiri', serif;
+  line-height: 2.1;
+  text-align: right;
+  color: var(--ink);
+  word-spacing: 2px;
+}
+
+.ayah-mark {
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+.mathurat-rumi {
+  margin-top: 12px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  font-style: italic;
+  color: var(--ink);
+}
+
+.mathurat-meaning {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.mathurat-ayah-n {
+  font-size: 11px;
+  color: var(--gold-ink);
+}
+
+.mathurat-count {
+  margin-top: 14px;
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.mathurat-count:hover {
+  background: var(--primary-tint);
+}
+
+.mathurat-count:active {
+  transform: scale(0.98);
+}
+
+.mathurat-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.mathurat-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--primary);
+}
+
+.mathurat-dots span.on {
+  background: var(--primary);
+}
+
+.mathurat-finish {
+  margin-top: 16px;
+}
+
+.mathurat-finish.complete {
+  background: var(--primary-tint);
+  border-color: transparent;
+}
+
+.mathurat-finish-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.mathurat-source {
+  margin-top: 14px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.checklist-read {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .mathurat-progress {
+    top: 53px;
+  }
+  .mathurat-waktu {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
 /* ---------- mutabaah reminders ---------- */
 
 .reminder-head {

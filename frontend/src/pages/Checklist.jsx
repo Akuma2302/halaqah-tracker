@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { ChevronLeft, ChevronRight, Check, Calendar, Copy, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BookMarked, ChevronLeft, ChevronRight, Check, Calendar, Copy, X } from 'lucide-react';
 import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
 import { MUTABAAH_FIELDS, MUTABAAH_PERIODS, currentPeriodKey, PAGES_PER_JUZ } from '../features/mutabaah/mutabaahFields';
@@ -272,6 +273,15 @@ export default function Checklist() {
                       <div className="item-name">{f.label}</div>
                       <div className="item-time">{f.time}</div>
                     </div>
+                    {(f.key === 'mathuratPagi' || f.key === 'mathuratPetang') && (
+                      <Link
+                        className="checklist-read"
+                        to={`/mathurat?w=${f.key === 'mathuratPagi' ? 'pagi' : 'petang'}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <BookMarked size={13} /> Read
+                      </Link>
+                    )}
                     {f.key === 'tilawah' && (
                       <TilawahStepper pages={entry.tilawahPages || 0} onChange={setTilawahPages} />
                     )}

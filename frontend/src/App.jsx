@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Login from './components/Login';
@@ -12,6 +13,9 @@ import StudyGroupRoom from './pages/StudyGroupRoom';
 import AcademicJournal from './pages/AcademicJournal';
 import SubjectList from './pages/SubjectList';
 import Notifications from './pages/Notifications';
+
+// Loaded on demand: the Mathurat text is the largest chunk of the app.
+const Mathurat = lazy(() => import('./pages/Mathurat'));
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -36,7 +40,15 @@ export default function App() {
           <Route path="/study-groups/:id" element={<StudyGroupRoom />} />
           <Route path="/academic-journal" element={<AcademicJournal />} />
           <Route path="/subject-list" element={<SubjectList />} />
-          {/* Compilation is hidden until verified Mathurat/Zikir/Doa text is added; see pages/Compilation.jsx */}
+          <Route
+            path="/mathurat"
+            element={
+              <Suspense fallback={<div className="page"><div className="spinner" /></div>}>
+                <Mathurat />
+              </Suspense>
+            }
+          />
+          <Route path="/compilation" element={<Navigate to="/mathurat" replace />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
