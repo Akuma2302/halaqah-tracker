@@ -66,6 +66,22 @@ export default function Dashboard() {
   );
   const entryByDate = Object.fromEntries(summary.map((e) => [e.date, e]));
 
+  // Same optimistic toggle as the Mutabaah page, so today's items can be ticked
+  // straight from the dashboard. Also patches today's cell in the trend strip.
+  async function toggle(key) {
+    if (!today) return;
+    const previous = today;
+    const next = { ...today, [key]: !today[key] };
+    setToday(next);
+    try {
+      const res = await client.put(`/mutabaah/${todayStr}`, { [key]: next[key] });
+      setToday(res.data);
+      setSummary((rows) => [...rows.filter((r) => r.date !== todayStr), { ...res.data, date: todayStr }]);
+    } catch {
+      setToday(previous);
+    }
+  }
+
   async function saveProfile() {
     await updateProfile({ name: nameDraft.trim() || user?.name, kampus: kampusDraft });
     setEditingProfile(false);
@@ -119,12 +135,23 @@ export default function Dashboard() {
 
       <div className="card ring-card">
         <MutabaahRing entry={today} />
-        <div className="ring-legend">
+        <div className="quick-checks">
+          <span className="section-label" style={{ marginBottom: 2 }}>
+            Tap to mark today
+          </span>
           {MUTABAAH_FIELDS.map((f) => (
-            <div key={f.key} className={`ring-legend-item${today?.[f.key] ? ' done' : ''}`}>
-              <span className="dot" />
-              {f.label}
-            </div>
+            <button
+              key={f.key}
+              type="button"
+              className={`quick-check${today?.[f.key] ? ' done' : ''}`}
+              onClick={() => toggle(f.key)}
+              disabled={!today}
+              aria-pressed={!!today?.[f.key]}
+            >
+              <span className="quick-check-box">{today?.[f.key] && <Check size={13} strokeWidth={3} />}</span>
+              <span className="quick-check-label">{f.label}</span>
+              <span className="quick-check-time">{f.time}</span>
+            </button>
           ))}
         </div>
       </div>

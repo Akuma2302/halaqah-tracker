@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Login from './components/Login';
+import BootScreen from './components/BootScreen';
 import SideNav from './layout/SideNav';
+import BottomNav from './layout/BottomNav';
 import TopBar from './layout/TopBar';
 import Dashboard from './pages/Dashboard';
 import Checklist from './pages/Checklist';
@@ -16,11 +18,7 @@ export default function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="center-screen">
-        <div className="spinner" />
-      </div>
-    );
+    return <BootScreen />;
   }
 
   if (!user) {
@@ -44,6 +42,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
+      <BottomNav />
     </div>
   );
 }

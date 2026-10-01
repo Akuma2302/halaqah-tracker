@@ -5,9 +5,25 @@ import { setupPushNotifications } from '../services/push';
 
 export const AuthContext = createContext(null);
 
+// The last /auth/me result, so a returning user sees the app instantly instead
+// of a blank spinner while the Render free-tier backend cold-starts (~20-60s).
+const USER_CACHE_KEY = 'mutabaah_user';
+
+function readCachedUser() {
+  if (!getToken()) return null;
+  try {
+    return JSON.parse(localStorage.getItem(USER_CACHE_KEY));
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(readCachedUser);
+  const [loading, setLoading] = useState(() => !!getToken() && !readCachedUser());
+  // False until the backend has answered once — lets the UI say "waking up the
+  // server" rather than looking frozen.
+  const [serverReady, setServerReady] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   // Tracks whether real Web Push is confirmed working for this device, so the
   // in-tab fallback notification (below) only fires when push ISN'T live yet
@@ -25,9 +41,25 @@ export function AuthProvider({ children }) {
     client
       .get('/auth/me')
       .then((res) => setUser(res.data))
-      .catch(() => setToken(null))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        // Only an explicit auth rejection means the session is gone. A network
+        // error or timeout while the server wakes up shouldn't log anyone out.
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+          setToken(null);
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        setServerReady(true);
+        setLoading(false);
+      });
   }, []);
+
+  useEffect(() => {
+    if (user) localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_CACHE_KEY);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -84,6 +116,7 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = useCallback(async (credential) => {
     const res = await client.post('/auth/google', { credential });
+    setServerReady(true);
     setToken(res.data.token);
     setUser(res.data.user);
     return res.data.user;
@@ -105,7 +138,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithGoogle, updateProfile, logout, unreadCount, setUnreadCount }}>
+    <AuthContext.Provider
+      value={{ user, loading, serverReady, loginWithGoogle, updateProfile, logout, unreadCount, setUnreadCount }}
+    >
       {children}
     </AuthContext.Provider>
   );
