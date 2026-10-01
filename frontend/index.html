@@ -7,6 +7,19 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0f6e56" />
+    <!-- Apply the saved (or system) theme before first paint to avoid a light flash. -->
+    <script>
+      (function () {
+        var theme;
+        try {
+          theme = localStorage.getItem('mutabaah_theme');
+        } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
     <!-- Required for push notifications to work at all on iOS: the site must
          be added to the home screen (running as a standalone PWA), which is
          what these tags enable/hint at. Regular Safari tabs cannot receive

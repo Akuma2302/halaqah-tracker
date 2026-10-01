@@ -1,10 +1,13 @@
-import { BookOpen, LogOut } from 'lucide-react';
+import { BookOpen, LogOut, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useDelayedFlag } from '../hooks/useDelayedFlag';
+import { useTheme } from '../hooks/useTheme';
 
 export default function TopBar() {
   const { user, logout, serverReady } = useAuth();
   const waking = useDelayedFlag(!serverReady);
+  const { theme, toggleTheme } = useTheme();
+  const nextLabel = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
 
   return (
     <header className="top-bar">
@@ -23,6 +26,9 @@ export default function TopBar() {
         )}
 
         <div className="user-chip">
+          <button className="icon-btn" onClick={toggleTheme} title={nextLabel} aria-label={nextLabel}>
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           {user?.avatarUrl ? <img className="avatar" src={user.avatarUrl} alt={user.name} /> : <div className="avatar" />}
           <span className="name">{user?.name}</span>
           <button className="icon-btn" onClick={logout} title="Log out" aria-label="Log out">

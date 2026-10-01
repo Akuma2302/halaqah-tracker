@@ -387,7 +387,7 @@ export default function StudyGroups() {
                         zIndex: 5,
                         width: 200,
                         padding: 10,
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+                        boxShadow: 'var(--shadow-md)'
                       }}
                     >
                       <span className="section-label" style={{ marginBottom: 6 }}>

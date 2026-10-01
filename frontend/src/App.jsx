@@ -11,7 +11,6 @@ import StudyGroups from './pages/StudyGroups';
 import StudyGroupRoom from './pages/StudyGroupRoom';
 import AcademicJournal from './pages/AcademicJournal';
 import SubjectList from './pages/SubjectList';
-import Compilation from './pages/Compilation';
 import Notifications from './pages/Notifications';
 
 export default function App() {
@@ -37,7 +36,7 @@ export default function App() {
           <Route path="/study-groups/:id" element={<StudyGroupRoom />} />
           <Route path="/academic-journal" element={<AcademicJournal />} />
           <Route path="/subject-list" element={<SubjectList />} />
-          <Route path="/compilation" element={<Compilation />} />
+          {/* Compilation is hidden until verified Mathurat/Zikir/Doa text is added; see pages/Compilation.jsx */}
           <Route path="/notifications" element={<Notifications />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

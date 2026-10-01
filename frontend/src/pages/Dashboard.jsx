@@ -14,9 +14,9 @@ function cellColor(entry) {
   const count = MUTABAAH_FIELDS.filter((f) => entry[f.key]).length;
   const ratio = count / MUTABAAH_FIELDS.length;
   if (ratio === 0) return 'var(--border)';
-  if (ratio < 0.3) return '#cfe6dd';
-  if (ratio < 0.6) return '#8fc2ae';
-  if (ratio < 0.9) return '#4d9483';
+  if (ratio < 0.3) return 'var(--heat-1)';
+  if (ratio < 0.6) return 'var(--heat-2)';
+  if (ratio < 0.9) return 'var(--heat-3)';
   return 'var(--primary)';
 }
 
@@ -212,7 +212,7 @@ export default function Dashboard() {
                 <div
                   key={d}
                   className="day-cell"
-                  style={{ background: cellColor(entry), color: ratio > 0.6 ? 'white' : 'var(--ink-soft)' }}
+                  style={{ background: cellColor(entry), color: ratio > 0.6 ? 'var(--on-primary)' : 'var(--ink-soft)' }}
                   title={`${dayjs(d).format('D MMM')} — ${count}/${MUTABAAH_FIELDS.length}`}
                 >
                   {range === 'week' ? dayjs(d).format('dd')[0] : ''}

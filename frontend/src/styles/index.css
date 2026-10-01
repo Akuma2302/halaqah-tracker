@@ -1,16 +1,32 @@
+/* Theme is set on <html data-theme> by the inline script in index.html
+   (saved choice, else the system setting) so there's no light flash. */
 :root {
+  color-scheme: light;
+
   --ink: #16302b;
-  --ink-soft: #4c6864;
-  --paper: #f5f8f6;
+  --ink-soft: #55706b;
+  --paper: #f2f1eb;
   --surface: #ffffff;
   --primary: #1f5d50;
+  /* Emphasis green for text/icons on light backgrounds and tints */
   --primary-dark: #153f37;
+  --primary-hover: #153f37;
+  --primary-deep: #153f37;
   --primary-tint: #e4f1ec;
+  --on-primary: #ffffff;
   --gold: #c98a3b;
   --gold-tint: #fbf0df;
-  --border: #dfe7e3;
+  --gold-ink: var(--gold-ink);
+  --gold-border: #d9b478;
+  --border: #e4e5de;
   --danger: #b5482f;
   --danger-tint: #fbeae5;
+  --overlay: rgba(22, 48, 43, 0.32);
+
+  /* Mutabaah trend heat scale, low to high (top step is --primary) */
+  --heat-1: #cfe6dd;
+  --heat-2: #8fc2ae;
+  --heat-3: #4d9483;
 
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -19,8 +35,38 @@
   --font-display: 'Sora', sans-serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
 
-  --shadow-sm: 0 1px 2px rgba(22, 48, 43, 0.06);
-  --shadow-md: 0 8px 24px rgba(22, 48, 43, 0.09);
+  --shadow-sm: 0 1px 2px rgba(22, 48, 43, 0.05), 0 2px 8px rgba(22, 48, 43, 0.05);
+  --shadow-md: 0 8px 24px rgba(22, 48, 43, 0.1);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --ink: #e4eeea;
+  --ink-soft: #94aba5;
+  --paper: #0f1716;
+  --surface: #172221;
+  --primary: #2e8a73;
+  --primary-dark: #8fd3bd;
+  --primary-hover: #36a085;
+  --primary-deep: #1a5446;
+  --primary-tint: #1d3530;
+  --on-primary: #ffffff;
+  --gold: #d9a05a;
+  --gold-tint: #33291a;
+  --gold-ink: #f0c58a;
+  --gold-border: #7a5a2c;
+  --border: #26332f;
+  --danger: #e0765c;
+  --danger-tint: #3a211b;
+  --overlay: rgba(0, 0, 0, 0.55);
+
+  --heat-1: #1f4038;
+  --heat-2: #2a6556;
+  --heat-3: #2f7b67;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -147,7 +193,7 @@ a {
 
 .side-nav-link.active {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .side-nav-icon-wrap {
@@ -174,7 +220,7 @@ a {
   padding: 0 3px;
   border-radius: 999px;
   background: var(--danger, #d64545);
-  color: white;
+  color: var(--on-primary);
   font-size: 9px;
   font-weight: 700;
   line-height: 1;
@@ -217,11 +263,11 @@ a {
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  background: linear-gradient(135deg, var(--primary), var(--primary-deep));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-primary);
   font-size: 14px;
   font-weight: 700;
   flex-shrink: 0;
@@ -308,7 +354,7 @@ a {
 
 .tab-link.active {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .tab-link .dot {
@@ -327,7 +373,7 @@ a {
   padding: 0 4px;
   border-radius: 999px;
   background: var(--danger, #d64545);
-  color: white;
+  color: var(--on-primary);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
@@ -389,7 +435,7 @@ a {
   padding: 5px 10px;
   border-radius: 999px;
   background: var(--gold-tint);
-  color: #8a5a1c;
+  color: var(--gold-ink);
   font-size: 12px;
   font-weight: 600;
 }
@@ -418,7 +464,7 @@ a {
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: rgba(22, 48, 43, 0.32);
+  background: var(--overlay);
   display: flex;
   align-items: flex-end;
   animation: fade-in 0.15s ease;
@@ -483,7 +529,7 @@ a {
   position: fixed;
   inset: 0;
   z-index: 30;
-  background: rgba(22, 48, 43, 0.32);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -564,7 +610,7 @@ a {
     background: var(--surface);
     border-top: 1px solid var(--border);
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-    box-shadow: 0 -4px 16px rgba(22, 48, 43, 0.05);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
   }
   .bottom-nav-link {
     flex: 1;
@@ -715,11 +761,11 @@ a {
 
 .btn-primary {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-dark);
+  background: var(--primary-hover);
 }
 
 .btn-ghost {
@@ -820,7 +866,7 @@ a {
 
 .badge-gold {
   background: var(--gold-tint);
-  color: #8a5a20;
+  color: var(--gold-ink);
 }
 
 .badge-muted {
@@ -842,11 +888,11 @@ a {
 }
 
 .section-label {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
+  display: block;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
   margin-bottom: 10px;
 }
 
@@ -1036,7 +1082,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--on-primary);
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
@@ -1094,7 +1140,7 @@ a {
 
 .range-toggle button.active {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .day-strip {
@@ -1206,7 +1252,7 @@ a {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: white;
+  color: var(--on-primary);
   transition: all 0.15s ease;
   background: var(--surface);
 }
@@ -1236,11 +1282,11 @@ a {
   padding: 8px 14px;
   border-radius: var(--radius-sm);
   background: var(--gold-tint);
-  border: 1px dashed #d9b478;
+  border: 1px dashed var(--gold-border);
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #8a5a20;
+  color: var(--gold-ink);
   cursor: pointer;
 }
 
@@ -1321,8 +1367,8 @@ a {
   height: 42px;
   flex-shrink: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--primary-deep));
+  color: var(--on-primary);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 18px;
