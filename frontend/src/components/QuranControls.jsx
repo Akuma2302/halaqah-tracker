@@ -1,8 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Minus, Plus } from 'lucide-react';
+import { BookOpen, Languages, Minus, Plus } from 'lucide-react';
 
 const PREFS_KEY = 'quran_prefs';
-const DEFAULT_PREFS = { translation: true, size: 28 };
+// Mushaf ("reading") vs ayat-by-ayat ("verses") view, remembered per kind of
+// reader: pages open in mushaf view by default, surah and juzuk in ayat view.
+const DEFAULT_PREFS = { translation: true, size: 28, pageMode: 'reading', chapterMode: 'verses', juzMode: 'verses' };
+
+export function modeKey(kind) {
+  return `${kind}Mode`;
+}
+
+export function QuranModeSwitch({ reading, onChange }) {
+  return (
+    <div className="range-toggle segmented quran-mode">
+      <button className={reading ? 'active' : ''} onClick={() => onChange('reading')}>
+        <BookOpen size={14} /> Membaca
+      </button>
+      <button className={reading ? '' : 'active'} onClick={() => onChange('verses')}>
+        <Languages size={14} /> Terjemahan
+      </button>
+    </div>
+  );
+}
 const MIN_SIZE = 20;
 const MAX_SIZE = 44;
 

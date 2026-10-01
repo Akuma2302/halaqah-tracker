@@ -70,6 +70,7 @@ export async function fetchPageWords(page) {
     v.words.map((w) => ({
       id: `${v.verse_key}:${w.position}`,
       key: v.verse_key,
+      surah: Number(v.verse_key.split(':')[0]),
       line: w.line_number,
       glyph: w.code_v2,
       end: w.char_type_name === 'end'
@@ -101,6 +102,19 @@ export function loadMushafFont(page) {
     fontLoads.set(page, load);
   }
   return fontLoads.get(page);
+}
+
+// Mushaf pages of a juzuk in the Madani 604-page mushaf: juzuk 1 is pages
+// 1-21, then every juzuk is 20 pages (juzuk 2 = 22-41 ... juzuk 30 = 582-604).
+export function juzPages(n) {
+  if (n === 1) return [1, 21];
+  const start = 20 * (n - 1) + 2;
+  return [start, n === TOTAL_JUZ ? TOTAL_PAGES : start + 19];
+}
+
+// Which mushaf page a verse ("2:255") is on.
+export async function fetchVersePage(key) {
+  return (await get(`/verses/by_key/${key}`)).verse.page_number;
 }
 
 export function fetchVerses(chapterId, batch = 1) {

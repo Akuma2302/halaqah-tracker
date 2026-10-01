@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { BookOpen, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
-import { fetchChapter, fetchChapterAudio, keyFromHash, saveLastRead } from '../services/quranApi';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+import { fetchChapter, fetchChapterAudio, fetchChapters, keyFromHash, saveLastRead } from '../services/quranApi';
 import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses, { BISMILLAH } from '../components/QuranVerses';
-import { QuranDisplayControls, useQuranPrefs } from '../components/QuranControls';
+import MushafPages from '../components/MushafPages';
+import { modeKey, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
+import { useStartPage } from '../hooks/useStartPage';
 
 function QuranSurahReader() {
   const { surah } = useParams();
@@ -14,8 +16,14 @@ function QuranSurahReader() {
   const targetKey = valid ? keyFromHash(hash, id) : null;
 
   const [chapter, setChapter] = useState(null);
+  // All surah names, for headings of neighbouring surahs sharing a mushaf page.
+  const [chapters, setChapters] = useState([]);
+  const chaptersById = useMemo(() => Object.fromEntries(chapters.map((c) => [c.id, c])), [chapters]);
   const [prefs, setPrefs] = useQuranPrefs();
-  const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses('chapter', valid ? id : null, {
+  const reading = prefs[modeKey('chapter')] === 'reading';
+  const setMode = (mode) => setPrefs((p) => ({ ...p, [modeKey('chapter')]: mode }));
+  const start = useStartPage(targetKey, reading);
+  const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses('chapter', valid && !reading ? id : null, {
     untilKey: targetKey
   });
 
@@ -30,9 +38,26 @@ function QuranSurahReader() {
     setPlaying(false);
     setAudioError(false);
     if (valid) fetchChapter(id).then(setChapter).catch(() => {});
+    fetchChapters().then(setChapters).catch(() => {});
     if (!hash) window.scrollTo(0, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, valid]);
+
+  // Mushaf view: the page on screen is the reading position (first ayah of
+  // this surah on that page).
+  const onPageInView = useCallback(
+    (page, pageVerses) => {
+      const first = pageVerses.find((v) => v.surah === id);
+      if (!chapter || !first) return;
+      saveLastRead({
+        kind: 'chapter',
+        number: id,
+        key: first.key,
+        label: `${chapter.name_simple}, ayat ${first.n} (muka surat ${page})`
+      });
+    },
+    [chapter, id]
+  );
 
   const onTopVerse = useCallback(
     (v) =>
@@ -61,6 +86,23 @@ function QuranSurahReader() {
       setAudioError(true);
     }
   }
+
+  const surahPager = (
+    <nav className="quran-pager">
+      {id > 1 ? (
+        <Link to={`/quran/${id - 1}`} className="btn btn-ghost">
+          <ChevronLeft size={15} /> Previous surah
+        </Link>
+      ) : (
+        <span />
+      )}
+      {id < 114 && (
+        <Link to={`/quran/${id + 1}`} className="btn btn-primary">
+          Next surah <ChevronRight size={15} />
+        </Link>
+      )}
+    </nav>
+  );
 
   if (!valid) {
     return (
@@ -104,13 +146,9 @@ function QuranSurahReader() {
           <button type="button" className="btn btn-primary btn-sm" onClick={togglePlay}>
             {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Listen'}
           </button>
-          {chapter && (
-            <Link to={`/quran/page/${chapter.pages[0]}`} className="chip quran-mushaf-link">
-              <BookOpen size={13} /> Membaca
-            </Link>
-          )}
-          <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />
+          {!reading && <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />}
         </div>
+        <QuranModeSwitch reading={reading} onChange={setMode} />
         <audio
           ref={audioRef}
           preload="none"
@@ -123,21 +161,41 @@ function QuranSurahReader() {
         {playing && <p className="quran-reciter">Recitation: Mishary Rashid al-Afasy</p>}
       </div>
 
-      {chapter?.bismillah_pre && (
-        <p className="quran-bismillah" lang="ar" dir="rtl">
-          {BISMILLAH}
-        </p>
+      {reading ? (
+        chapter && start.ready ? (
+          <MushafPages
+            from={chapter.pages[0]}
+            to={chapter.pages[1]}
+            startPage={start.page}
+            chaptersById={chaptersById}
+            focusSurah={chapter.id}
+            onPageInView={onPageInView}
+          />
+        ) : (
+          <div className="mushaf mushaf-loading">
+            <div className="spinner" />
+          </div>
+        )
+      ) : (
+        <>
+          {chapter?.bismillah_pre && (
+            <p className="quran-bismillah" lang="ar" dir="rtl">
+              {BISMILLAH}
+            </p>
+          )}
+          <QuranVerses
+            verses={verses}
+            translation={prefs.translation}
+            size={prefs.size}
+            targetKey={targetKey}
+            onTopVerse={onTopVerse}
+          />
+        </>
       )}
 
-      <QuranVerses
-        verses={verses}
-        translation={prefs.translation}
-        size={prefs.size}
-        targetKey={targetKey}
-        onTopVerse={onTopVerse}
-      />
-
-      {error ? (
+      {reading ? (
+        chapter && surahPager
+      ) : error ? (
         <div className="card empty-state" style={{ marginTop: 12 }}>
           <h3>Couldn't load the ayat</h3>
           <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={loadMore}>
@@ -149,26 +207,13 @@ function QuranSurahReader() {
           <div className="spinner" />
         </div>
       ) : (
-        verses.length > 0 && (
-          <nav className="quran-pager">
-            {id > 1 ? (
-              <Link to={`/quran/${id - 1}`} className="btn btn-ghost">
-                <ChevronLeft size={15} /> Previous surah
-              </Link>
-            ) : (
-              <span />
-            )}
-            {id < 114 && (
-              <Link to={`/quran/${id + 1}`} className="btn btn-primary">
-                Next surah <ChevronRight size={15} />
-              </Link>
-            )}
-          </nav>
-        )
+        verses.length > 0 && surahPager
       )}
 
       <p className="mathurat-source">
-        Text, Malay translation (Abdullah Muhammad Basmeih) and audio from the Quran.com API (Quran Foundation).
+        {reading
+          ? 'Mushaf text: King Fahd Complex QCF fonts; audio via the Quran.com API (Quran Foundation).'
+          : 'Text, Malay translation (Abdullah Muhammad Basmeih) and audio from the Quran.com API (Quran Foundation).'}
       </p>
     </div>
   );

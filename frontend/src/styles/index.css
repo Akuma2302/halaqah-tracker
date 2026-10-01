@@ -1338,6 +1338,25 @@ a {
   color: var(--gold);
 }
 
+/* Words/headings of a neighbouring surah when reading a single surah */
+.mushaf-line .dim,
+.mushaf-title.dim,
+.mushaf-bismillah.dim {
+  opacity: 0.3;
+}
+
+.mushaf-pages .quran-page-marker {
+  margin-top: 22px;
+}
+
+.mushaf-pages .mushaf {
+  margin-top: 6px;
+}
+
+.mushaf-earlier {
+  margin-top: 12px;
+}
+
 .mushaf-title {
   margin: 4px 0;
   padding: 4px 0;

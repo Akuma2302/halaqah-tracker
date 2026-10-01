@@ -31,12 +31,14 @@ function buildLines(words, verses) {
     const gap = next.firstLine - line; // empty lines left before that surah begins
     const hasBismillahLine = next.firstLine - 2 >= 1 && !byLine.has(next.firstLine - 2) && !byLine.has(next.firstLine - 1);
     if (gap === 2 || !hasBismillahLine) lines.push({ type: 'title', line, surah: next.surah });
-    else lines.push({ type: 'bismillah', line });
+    else lines.push({ type: 'bismillah', line, surah: next.surah });
   }
   return lines;
 }
 
-export default function MushafPage({ page, chaptersById = {}, onLoaded }) {
+// focusSurah: when reading a single surah, words of other surahs that share
+// its first/last page are faded.
+export default function MushafPage({ page, chaptersById = {}, onLoaded, focusSurah = null }) {
   const [data, setData] = useState(null);
   const [fontReady, setFontReady] = useState(false);
   const [error, setError] = useState(false);
@@ -135,19 +137,33 @@ export default function MushafPage({ page, chaptersById = {}, onLoaded }) {
             style={{ fontFamily: family, fontSize }}
           >
             {l.words.map((w) => (
-              <span key={w.id} className={w.end ? 'mushaf-end' : 'mushaf-word'} data-key={w.key}>
+              <span
+                key={w.id}
+                className={`${w.end ? 'mushaf-end' : 'mushaf-word'}${focusSurah && w.surah !== focusSurah ? ' dim' : ''}`}
+                data-key={w.key}
+              >
                 {w.glyph}
               </span>
             ))}
           </div>
         ) : l.type === 'title' ? (
-          <div key={l.line} className="mushaf-title" style={{ fontSize: fontSize * 0.8 }}>
+          <div
+            key={l.line}
+            className={`mushaf-title${focusSurah && l.surah !== focusSurah ? ' dim' : ''}`}
+            style={{ fontSize: fontSize * 0.8 }}
+          >
             <span lang="ar" dir="rtl">
               سُورَةُ {chaptersById[l.surah]?.name_arabic || ''}
             </span>
           </div>
         ) : (
-          <div key={l.line} className="mushaf-bismillah" lang="ar" dir="rtl" style={{ fontSize: fontSize * 0.85 }}>
+          <div
+            key={l.line}
+            className={`mushaf-bismillah${focusSurah && l.surah !== focusSurah ? ' dim' : ''}`}
+            lang="ar"
+            dir="rtl"
+            style={{ fontSize: fontSize * 0.85 }}
+          >
             {BISMILLAH}
           </div>
         )

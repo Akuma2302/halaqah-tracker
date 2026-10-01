@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { BookOpen, ChevronLeft, ChevronRight, Languages } from 'lucide-react';
-import { fetchChapters, fetchJuzs, keyFromHash, saveLastRead, TOTAL_JUZ, TOTAL_PAGES } from '../services/quranApi';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { fetchChapters, fetchJuzs, juzPages, keyFromHash, saveLastRead, TOTAL_JUZ, TOTAL_PAGES } from '../services/quranApi';
 import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses from '../components/QuranVerses';
 import MushafPage from '../components/MushafPage';
-import { QuranDisplayControls, useQuranPrefs } from '../components/QuranControls';
+import MushafPages from '../components/MushafPages';
+import { modeKey, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
+import { useStartPage } from '../hooks/useStartPage';
 
 // Reader for a whole juzuk (/quran/juz/:number) or a single mushaf page
 // (/quran/page/:number). Both can cross surah boundaries, so verses are shown
@@ -19,8 +21,10 @@ function QuranRangeReader({ kind }) {
   const targetKey = keyFromHash(hash);
 
   const [prefs, setPrefs] = useQuranPrefs();
-  // Pages open in mushaf ("Membaca") view unless the reader chose ayat-by-ayat.
-  const reading = kind === 'page' && prefs.pageMode !== 'verses';
+  // Mushaf ("Membaca") or ayat-by-ayat view, remembered separately for pages and juzuk.
+  const reading = prefs[modeKey(kind)] === 'reading';
+  const setMode = (mode) => setPrefs((p) => ({ ...p, [modeKey(kind)]: mode }));
+  const juzStart = useStartPage(targetKey, reading && kind === 'juz');
   const [chapters, setChapters] = useState([]);
   const [juzs, setJuzs] = useState([]);
   const [mushafVerses, setMushafVerses] = useState([]);
@@ -67,15 +71,26 @@ function QuranRangeReader({ kind }) {
     }
   }
 
-  // In mushaf view there's no scrolling per ayah: opening the page counts as
-  // reading it. Saved once surah names are loaded, so the label reads well.
+  // Single page in mushaf view: opening the page counts as reading it. Saved
+  // once surah names are loaded, so the label reads well.
   const onMushafLoaded = useCallback(({ verses: pageVerses }) => setMushafVerses(pageVerses), []);
   useEffect(() => {
     const first = mushafVerses[0];
     const name = first && chaptersById[first.surah]?.name_simple;
-    if (!reading || !name) return;
+    if (kind !== 'page' || !reading || !name) return;
     saveLastRead({ kind, number, key: first.key, label: `${name}, ayat ${first.n} (${unit} ${number})` });
   }, [reading, mushafVerses, chaptersById, kind, number, unit]);
+
+  // Juzuk in mushaf view: the page on screen is the reading position.
+  const onPageInView = useCallback(
+    (page, pageVerses) => {
+      const first = pageVerses[0];
+      if (!first) return;
+      const name = chaptersById[first.surah]?.name_simple || `Surah ${first.surah}`;
+      saveLastRead({ kind, number, key: first.key, label: `${name}, ayat ${first.n} (Juzuk ${number}, muka surat ${page})` });
+    },
+    [kind, number, chaptersById]
+  );
 
   const pager = (where) => (
     <nav className={`quran-pager${where === 'top' ? ' top' : ''}`}>
@@ -121,22 +136,7 @@ function QuranRangeReader({ kind }) {
           {unit} {number}
         </h1>
         <p className="page-subtitle">{subtitle || ' '}</p>
-        {kind === 'page' && (
-          <div className="range-toggle segmented quran-mode">
-            <button
-              className={reading ? 'active' : ''}
-              onClick={() => setPrefs((p) => ({ ...p, pageMode: 'reading' }))}
-            >
-              <BookOpen size={14} /> Membaca
-            </button>
-            <button
-              className={reading ? '' : 'active'}
-              onClick={() => setPrefs((p) => ({ ...p, pageMode: 'verses' }))}
-            >
-              <Languages size={14} /> Terjemahan
-            </button>
-          </div>
-        )}
+        <QuranModeSwitch reading={reading} onChange={setMode} />
         {!reading && (
           <div className="quran-tools">
             <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />
@@ -146,8 +146,22 @@ function QuranRangeReader({ kind }) {
 
       {kind === 'page' && pager('top')}
 
-      {reading ? (
+      {reading && kind === 'page' ? (
         <MushafPage page={number} chaptersById={chaptersById} onLoaded={onMushafLoaded} />
+      ) : reading ? (
+        juzStart.ready ? (
+          <MushafPages
+            from={juzPages(number)[0]}
+            to={juzPages(number)[1]}
+            startPage={juzStart.page}
+            chaptersById={chaptersById}
+            onPageInView={onPageInView}
+          />
+        ) : (
+          <div className="mushaf mushaf-loading">
+            <div className="spinner" />
+          </div>
+        )
       ) : (
       <QuranVerses
         verses={verses}
