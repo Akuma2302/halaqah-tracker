@@ -7,7 +7,7 @@ import QuranVerses from '../components/QuranVerses';
 import MushafPage from '../components/MushafPage';
 import MushafPages from '../components/MushafPages';
 import MushafWordPanel from '../components/MushafWordPanel';
-import { DEFAULT_MODE, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
+import { QuranDisplayControls, QuranModeSwitch, useQuranPrefs, useReaderMode } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
 
 // Reader for a whole juzuk (/quran/juz/:number) or a single mushaf page
@@ -22,9 +22,9 @@ function QuranRangeReader({ kind }) {
   const targetKey = keyFromHash(hash);
 
   const [prefs, setPrefs] = useQuranPrefs();
-  // Opens in Membaca (mushaf); "Ayat demi Ayat" applies to this visit only.
-  const [mode, setMode] = useState(DEFAULT_MODE);
-  const reading = mode === 'reading';
+  // Opens in Membaca (mushaf); "Ayat demi Ayat" applies to this visit only,
+  // and switching keeps the reader's place.
+  const { reading, switchMode, trackKey } = useReaderMode();
   const juzStart = useStartPage(targetKey, reading && kind === 'juz');
   const [chapters, setChapters] = useState([]);
   const [juzs, setJuzs] = useState([]);
@@ -52,14 +52,16 @@ function QuranRangeReader({ kind }) {
   const path = (n) => `/quran/${kind}/${n}`;
 
   const onTopVerse = useCallback(
-    (v) =>
+    (v) => {
+      trackKey(v.key);
       saveLastRead({
         kind,
         number,
         key: v.key,
         label: `${chaptersById[v.surah]?.name_simple || `Surah ${v.surah}`}, ayat ${v.n} (${unit} ${number})`
-      }),
-    [kind, number, chaptersById, unit]
+      });
+    },
+    [kind, number, chaptersById, unit, trackKey]
   );
 
   // Subtitle: where this juzuk starts, or which surah(s) and juzuk a page covers.
@@ -80,20 +82,22 @@ function QuranRangeReader({ kind }) {
   const onMushafLoaded = useCallback(({ verses: pageVerses }) => setMushafVerses(pageVerses), []);
   useEffect(() => {
     const first = mushafVerses[0];
+    if (kind === 'page' && reading && first) trackKey(first.key);
     const name = first && chaptersById[first.surah]?.name_simple;
     if (kind !== 'page' || !reading || !name) return;
     saveLastRead({ kind, number, key: first.key, label: `${name}, ayat ${first.n} (${unit} ${number})` });
-  }, [reading, mushafVerses, chaptersById, kind, number, unit]);
+  }, [reading, mushafVerses, chaptersById, kind, number, unit, trackKey]);
 
   // Juzuk in mushaf view: the page on screen is the reading position.
   const onPageInView = useCallback(
     (page, pageVerses) => {
       const first = pageVerses[0];
       if (!first) return;
+      trackKey(first.key);
       const name = chaptersById[first.surah]?.name_simple || `Surah ${first.surah}`;
       saveLastRead({ kind, number, key: first.key, label: `${name}, ayat ${first.n} (Juzuk ${number}, muka surat ${page})` });
     },
-    [kind, number, chaptersById]
+    [kind, number, chaptersById, trackKey]
   );
 
   const pager = (where) => (
@@ -140,7 +144,7 @@ function QuranRangeReader({ kind }) {
           {unit} {number}
         </h1>
         <p className="page-subtitle">{subtitle || ' '}</p>
-        <QuranModeSwitch reading={reading} onChange={setMode} />
+        <QuranModeSwitch reading={reading} onChange={switchMode} />
         {!reading && (
           <div className="quran-tools">
             <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />

@@ -5,7 +5,7 @@ import { fetchChapter, fetchChapterAudio, fetchChapters, keyFromHash, saveLastRe
 import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses, { BISMILLAH } from '../components/QuranVerses';
 import MushafPages from '../components/MushafPages';
-import { DEFAULT_MODE, QuranDisplayControls, QuranModeSwitch, useQuranPrefs } from '../components/QuranControls';
+import { QuranDisplayControls, QuranModeSwitch, useQuranPrefs, useReaderMode } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
 
 function QuranSurahReader() {
@@ -20,8 +20,7 @@ function QuranSurahReader() {
   const [chapters, setChapters] = useState([]);
   const chaptersById = useMemo(() => Object.fromEntries(chapters.map((c) => [c.id, c])), [chapters]);
   const [prefs, setPrefs] = useQuranPrefs();
-  const [mode, setMode] = useState(DEFAULT_MODE);
-  const reading = mode === 'reading';
+  const { reading, switchMode, trackKey } = useReaderMode();
   const start = useStartPage(targetKey, reading);
   const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses('chapter', valid && !reading ? id : null, {
     untilKey: targetKey
@@ -49,6 +48,7 @@ function QuranSurahReader() {
     (page, pageVerses) => {
       const first = pageVerses.find((v) => v.surah === id);
       if (!chapter || !first) return;
+      trackKey(first.key);
       saveLastRead({
         kind: 'chapter',
         number: id,
@@ -56,14 +56,15 @@ function QuranSurahReader() {
         label: `${chapter.name_simple}, ayat ${first.n} (muka surat ${page})`
       });
     },
-    [chapter, id]
+    [chapter, id, trackKey]
   );
 
   const onTopVerse = useCallback(
-    (v) =>
-      chapter &&
-      saveLastRead({ kind: 'chapter', number: id, key: v.key, label: `${chapter.name_simple}, ayat ${v.n}` }),
-    [chapter, id]
+    (v) => {
+      trackKey(v.key);
+      if (chapter) saveLastRead({ kind: 'chapter', number: id, key: v.key, label: `${chapter.name_simple}, ayat ${v.n}` });
+    },
+    [chapter, id, trackKey]
   );
 
   async function togglePlay() {
@@ -142,13 +143,13 @@ function QuranSurahReader() {
           <div className="spinner" style={{ margin: '12px auto' }} />
         )}
 
+        <QuranModeSwitch reading={reading} onChange={switchMode} />
         <div className="quran-tools">
           <button type="button" className="btn btn-primary btn-sm" onClick={togglePlay}>
             {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Listen'}
           </button>
           {!reading && <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />}
         </div>
-        <QuranModeSwitch reading={reading} onChange={setMode} />
         <audio
           ref={audioRef}
           preload="none"

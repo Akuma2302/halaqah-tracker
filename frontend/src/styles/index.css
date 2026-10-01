@@ -1800,9 +1800,15 @@ a {
    viewport width — a 14px input font-size makes iOS Safari auto-zoom the
    whole page on focus, which is what made date fields feel janky on mobile. */
 @media (pointer: coarse) {
+  /* iOS Safari zooms the page when focusing any field under 16px. Cover every
+     form control (search boxes, chat, inline inputs, dates, selects), not just
+     .input/.textarea, without disabling pinch-zoom. */
+  input,
+  select,
+  textarea,
   .input,
   .textarea {
-    font-size: 16px;
+    font-size: max(16px, 1em) !important;
   }
 }
 
