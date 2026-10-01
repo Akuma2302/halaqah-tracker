@@ -5,6 +5,7 @@ import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
 import { MUTABAAH_FIELDS, MUTABAAH_PERIODS, currentPeriodKey, PAGES_PER_JUZ } from '../features/mutabaah/mutabaahFields';
 import TilawahStepper from '../components/TilawahStepper';
+import { updateAppBadge } from '../features/mutabaah/appBadge';
 
 // Labels used specifically for the "Copy" summary text, per the requested
 // format — a couple of these differ from the on-screen checklist labels
@@ -47,6 +48,10 @@ export default function Checklist() {
 
   const isToday = date === dayjs().format('YYYY-MM-DD');
   const nowPeriod = isToday ? currentPeriodKey(dayjs().hour()) : null;
+
+  useEffect(() => {
+    if (isToday) updateAppBadge(entry);
+  }, [isToday, entry]);
 
   async function toggle(key) {
     const previous = entry;

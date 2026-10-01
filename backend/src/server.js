@@ -29,6 +29,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/content', require('./routes/content'));
 app.use('/api/academic', require('./routes/academic'));
 app.use('/api/push', require('./routes/push'));
+app.use('/api/widget', require('./routes/widget'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

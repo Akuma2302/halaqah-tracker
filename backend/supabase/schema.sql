@@ -307,6 +307,9 @@ alter table subject_assessments add column if not exists due_date date;
 alter table subject_assessments add column if not exists progress_percentage numeric not null default 0;
 alter table subject_assessments add column if not exists is_done boolean not null default false;
 
+-- Secret for the read-only home-screen widget URL (/api/widget/:token). Null = off.
+alter table users add column if not exists widget_token text unique;
+
 -- Pages of Quran read that day, alongside the tilawah tick (604 = whole mushaf).
 alter table mutabaah_entries add column if not exists tilawah_pages integer not null default 0
   check (tilawah_pages between 0 and 604);

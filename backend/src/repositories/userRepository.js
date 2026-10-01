@@ -40,4 +40,10 @@ async function findByIds(ids) {
   return data;
 }
 
-module.exports = { findByGoogleId, findById, create, update, findByIds };
+async function findByWidgetToken(token) {
+  const { data, error } = await supabase.from('users').select('*').eq('widget_token', token).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+module.exports = { findByGoogleId, findById, create, update, findByIds, findByWidgetToken };

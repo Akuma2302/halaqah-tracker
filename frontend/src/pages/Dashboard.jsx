@@ -8,6 +8,7 @@ import MutabaahRing from '../components/MutabaahRing';
 import ProfileSheet from '../components/ProfileSheet';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 import { currentStreak, hijriDate } from '../features/mutabaah/streak';
+import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 
 const SETUP_DISMISSED_KEY = 'mutabaah_setup_dismissed';
@@ -44,6 +45,8 @@ export default function Dashboard() {
   const [academicSummary, setAcademicSummary] = useState(null);
 
   const todayStr = dayjs().format('YYYY-MM-DD');
+
+  useEffect(() => updateAppBadge(today), [today]);
 
   useEffect(() => {
     client
