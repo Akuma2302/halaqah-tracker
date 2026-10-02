@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
+import { useToast } from '../hooks/useToast';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
 
@@ -93,8 +94,7 @@ export default function AcademicJournal() {
   const [formError, setFormError] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  const [toast, setToast] = useState('');
-  const toastTimer = useRef(null);
+  const [toast, showToast] = useToast();
 
   // Per-subject "folder" of files.
   const [openFilesFor, setOpenFilesFor] = useState(null);
@@ -131,14 +131,6 @@ export default function AcademicJournal() {
     loadWeek(week);
     setExportOpen(false);
   }, [week]);
-
-  useEffect(() => () => clearTimeout(toastTimer.current), []);
-
-  function showToast(message) {
-    setToast(message);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), 2200);
-  }
 
   // ---------- weekly summary (for the selected week) ----------
   const studySessions = weekData?.studySessions || [];
@@ -860,11 +852,7 @@ export default function AcademicJournal() {
         )}
       </Sheet>
 
-      {toast && (
-        <div className="toast" role="status">
-          {toast}
-        </div>
-      )}
+      {toast}
     </div>
   );
 }
