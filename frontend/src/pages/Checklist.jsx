@@ -4,7 +4,14 @@ import { Link } from 'react-router-dom';
 import { BookMarked, ChevronLeft, ChevronRight, Check, Calendar, Copy, X } from 'lucide-react';
 import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
-import { MUTABAAH_FIELDS, MUTABAAH_PERIODS, currentPeriodKey, PAGES_PER_JUZ } from '../features/mutabaah/mutabaahFields';
+import {
+  MUTABAAH_FIELDS,
+  MUTABAAH_PERIODS,
+  currentPeriodKey,
+  PAGES_PER_JUZ,
+  tilawahPagesPatch,
+  tilawahTogglePatch
+} from '../features/mutabaah/mutabaahFields';
 import TilawahStepper from '../components/TilawahStepper';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 
@@ -56,13 +63,9 @@ export default function Checklist() {
 
   async function toggle(key) {
     const previous = entry;
-    const next = { ...entry, [key]: !entry[key] };
-    const body = { [key]: next[key] };
-    // Unticking Tilawah clears its page count too, so the two never disagree.
-    if (key === 'tilawah' && !next.tilawah && entry.tilawahPages) {
-      next.tilawahPages = 0;
-      body.tilawahPages = 0;
-    }
+    // Tilawah's tick and page count move together (done = 20 pages / 1 juz).
+    const body = key === 'tilawah' ? tilawahTogglePatch(entry) : { [key]: !entry[key] };
+    const next = { ...entry, ...body };
     cancelPendingPages();
     setEntry(next);
     try {
@@ -91,10 +94,9 @@ export default function Checklist() {
   }
 
   function setTilawahPages(pages) {
-    const next = { ...entry, tilawahPages: pages, tilawah: pages > 0 ? true : entry.tilawah };
-    setEntry(next);
+    const body = tilawahPagesPatch(pages);
+    setEntry({ ...entry, ...body });
     cancelPendingPages();
-    const body = { tilawahPages: pages, tilawah: next.tilawah };
     pendingPages.current = {
       date,
       body,

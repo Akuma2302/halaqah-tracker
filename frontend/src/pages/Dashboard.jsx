@@ -6,7 +6,7 @@ import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
 import MutabaahRing from '../components/MutabaahRing';
 import ProfileSheet from '../components/ProfileSheet';
-import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
+import { MUTABAAH_FIELDS, tilawahTogglePatch } from '../features/mutabaah/mutabaahFields';
 import { currentStreak, hijriDate } from '../features/mutabaah/streak';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
@@ -88,13 +88,9 @@ export default function Dashboard() {
   async function toggle(key) {
     if (!today) return;
     const previous = today;
-    const next = { ...today, [key]: !today[key] };
-    const body = { [key]: next[key] };
-    // Matches the Mutabaah page: unticking Tilawah clears its page count.
-    if (key === 'tilawah' && !next.tilawah && today.tilawahPages) {
-      next.tilawahPages = 0;
-      body.tilawahPages = 0;
-    }
+    // Same rule as the Mutabaah page: Tilawah is done at 20 pages (1 juz).
+    const body = key === 'tilawah' ? tilawahTogglePatch(today) : { [key]: !today[key] };
+    const next = { ...today, ...body };
     setToday(next);
     try {
       const res = await client.put(`/mutabaah/${todayStr}`, body);

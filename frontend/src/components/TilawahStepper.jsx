@@ -48,7 +48,9 @@ export default function TilawahStepper({ pages, onChange, disabled }) {
           <span className="tilawah-goal-fill" style={{ width: `${juzPercent}%` }} />
         </span>
         <span className="tilawah-goal-text">
-          {pages >= PAGES_PER_JUZ ? `${(pages / PAGES_PER_JUZ).toFixed(1).replace(/\.0$/, '')} juz` : `${pages}/${PAGES_PER_JUZ} for 1 juz`}
+          {pages >= PAGES_PER_JUZ
+            ? `${(pages / PAGES_PER_JUZ).toFixed(1).replace(/\.0$/, '')} juz ✓`
+            : `${PAGES_PER_JUZ - pages} more page${PAGES_PER_JUZ - pages === 1 ? '' : 's'} to complete 1 juz`}
         </span>
       </div>
     </div>

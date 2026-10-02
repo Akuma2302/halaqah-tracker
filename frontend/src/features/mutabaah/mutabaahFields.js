@@ -13,6 +13,20 @@ export const MUTABAAH_FIELDS = [
 export const PAGES_PER_JUZ = 20;
 export const MAX_TILAWAH_PAGES = 604;
 
+// Tilawah counts as done at 1 juz (20 pages). The tick and the page count are
+// kept in step: these return the fields to change (and send to the API).
+export function tilawahPagesPatch(pages) {
+  return { tilawahPages: pages, tilawah: pages >= PAGES_PER_JUZ };
+}
+
+// Tapping the Tilawah item: ticking it means a juz was read (pages raised to
+// 20 if lower); unticking clears the pages.
+export function tilawahTogglePatch(entry) {
+  return entry?.tilawah
+    ? { tilawah: false, tilawahPages: 0 }
+    : { tilawah: true, tilawahPages: Math.max(entry?.tilawahPages || 0, PAGES_PER_JUZ) };
+}
+
 // Display order for the grouped checklist. `from`/`to` are local hours used to
 // highlight the period that's happening now (anytime is never "now").
 export const MUTABAAH_PERIODS = [
