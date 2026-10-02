@@ -668,9 +668,26 @@ a {
   margin-bottom: 14px;
 }
 
-.mathurat-waktu {
+/* One row of equal-height controls: the shared .segmented style adds a bottom
+   margin (which lifted the switch above the chips), so cancel it here. */
+.mathurat-toolbar .range-toggle.mathurat-waktu {
   margin-bottom: 0;
   min-width: 220px;
+  height: 36px;
+}
+
+.mathurat-toolbar .chip,
+.mathurat-toolbar .mathurat-size .icon-btn {
+  height: 36px;
+}
+
+.mathurat-toolbar .chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mathurat-toolbar .mathurat-size .icon-btn {
+  width: 36px;
 }
 
 .mathurat-options {
@@ -968,7 +985,7 @@ a {
   .mathurat-progress {
     top: 53px;
   }
-  .mathurat-waktu {
+  .mathurat-toolbar .range-toggle.mathurat-waktu {
     min-width: 0;
     width: 100%;
   }
