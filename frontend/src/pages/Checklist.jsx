@@ -211,7 +211,7 @@ export default function Checklist() {
               {typeof periodData.zikirCount === 'number' && (
                 <div className="member-row">
                   <div style={{ flex: 1 }}>
-                    <div className="name">Zikir count</div>
+                    <div className="name">Istighfar count</div>
                   </div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>{periodData.zikirCount}x</span>
                 </div>

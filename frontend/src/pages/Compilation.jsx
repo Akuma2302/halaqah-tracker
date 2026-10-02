@@ -5,7 +5,7 @@ import client from '../services/apiClient';
 const CATEGORIES = [
   { key: 'mathurat_pagi', label: 'Mathurat Pagi' },
   { key: 'mathurat_petang', label: 'Mathurat Petang' },
-  { key: 'zikir', label: 'Zikir' },
+  { key: 'zikir', label: 'Istighfar' },
   { key: 'doa', label: 'Doa' }
 ];
 

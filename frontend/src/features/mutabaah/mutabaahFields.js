@@ -5,7 +5,7 @@ export const MUTABAAH_FIELDS = [
   { key: 'mathuratPetang', label: 'Mathurat Petang', time: 'Evening', period: 'evening' },
   { key: 'dhuha', label: 'Dhuha', time: 'Mid-morning', period: 'morning' },
   { key: 'tilawah', label: 'Tilawah', time: 'Anytime', period: 'anytime' },
-  { key: 'zikir', label: 'Zikir', time: 'Anytime', period: 'anytime' }
+  { key: 'zikir', label: 'Istighfar', time: 'Anytime', period: 'anytime' }
 ];
 
 // Tilawah pages: the daily target in the copy summary is 1 juz (~20 pages of

@@ -22,7 +22,7 @@ const LABELS = {
   mathuratPetang: 'Mathurat Petang',
   dhuha: 'Dhuha',
   tilawah: 'Tilawah',
-  zikir: 'Zikir'
+  zikir: 'Istighfar'
 };
 
 const SLOTS = [
