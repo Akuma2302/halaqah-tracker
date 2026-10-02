@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { Check, Minus, Plus, RotateCcw, Sun, Sunset } from 'lucide-react';
+import { BookOpen, Check, Minus, Plus, RotateCcw, Sparkles, Sun, Sunset } from 'lucide-react';
 import client from '../services/apiClient';
 import { MATHURAT_SECTIONS } from '../features/mathurat/mathuratData';
+import MathuratFadhilat from '../components/MathuratFadhilat';
 
 const PREFS_KEY = 'mathurat_prefs';
 const DEFAULT_PREFS = { arabic: true, rumi: true, meaning: false, size: 26 };
@@ -84,9 +85,33 @@ export default function Mathurat() {
   const total = MATHURAT_SECTIONS.length;
   const allDone = doneCount === total;
 
-  function setWaktu(next) {
-    setParams(next === defaultWaktu() ? {} : { w: next }, { replace: true });
+  // Bacaan (reader) or Fadhilat (virtues) tab, kept in the URL with the waktu.
+  const tab = params.get('tab') === 'fadhilat' ? 'fadhilat' : 'bacaan';
+
+  function updateParams({ w = waktu, t = tab }) {
+    const next = {};
+    if (w !== defaultWaktu()) next.w = w;
+    if (t === 'fadhilat') next.tab = t;
+    setParams(next, { replace: true });
   }
+
+  function setWaktu(next) {
+    updateParams({ w: next });
+  }
+
+  // From a virtue in the Fadhilat tab: open the reader at that section. The
+  // scroll waits until the reader has rendered again (see effect below).
+  const [pendingSection, setPendingSection] = useState(null);
+  function openSection(id) {
+    setPendingSection(id);
+    updateParams({ t: 'bacaan' });
+  }
+  useEffect(() => {
+    if (tab !== 'bacaan' || !pendingSection) return;
+    const el = sectionRefs.current[pendingSection];
+    setPendingSection(null);
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
+  }, [tab, pendingSection]);
 
   function togglePref(key) {
     setPrefs((p) => {
@@ -144,9 +169,28 @@ export default function Mathurat() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Al-Mathurat</h1>
-          <p className="page-subtitle">Sughra (ringkas) · 30 bacaan</p>
+          <p className="page-subtitle">Sughra (ringkas) · {MATHURAT_SECTIONS.length} bacaan</p>
         </div>
       </div>
+
+      <div className="mathurat-tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'bacaan'} className={tab === 'bacaan' ? 'active' : ''} onClick={() => updateParams({ t: 'bacaan' })}>
+          <BookOpen size={15} /> Bacaan
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'fadhilat'}
+          className={tab === 'fadhilat' ? 'active' : ''}
+          onClick={() => updateParams({ t: 'fadhilat' })}
+        >
+          <Sparkles size={15} /> Fadhilat
+        </button>
+      </div>
+
+      {tab === 'fadhilat' ? (
+        <MathuratFadhilat onOpenSection={openSection} />
+      ) : (
+      <>
 
       <div className="mathurat-toolbar">
         <div className="range-toggle segmented mathurat-waktu">
@@ -310,8 +354,10 @@ export default function Mathurat() {
 
       <p className="mathurat-source">
         Quran text and meaning: Tanzil (Uthmani) and Tafsir Pimpinan ar-Rahman (Abdullah Basmeih). Order and repeat
-        counts follow the Al-Mathurat Sughra guide on akuislam.com.
+        counts follow the Al-Mathurat Sughra guide on akuislam.com; 31–32 are nos. 48–49 of its Kubra list.
       </p>
+      </>
+      )}
     </div>
   );
 }

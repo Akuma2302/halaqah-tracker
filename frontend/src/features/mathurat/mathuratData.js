@@ -1,5 +1,6 @@
-// Al-Mathurat Sughra (ringkas). The 30-section order and repeat counts follow
-// the akuislam.com guide (al-mathurat-pagi-sughra-ringkas-rumi).
+// Al-Mathurat Sughra (ringkas). Sections 1-30 and their repeat counts follow
+// the akuislam.com guide (al-mathurat-pagi-sughra-ringkas-rumi); 31-32 are
+// nos. 48-49 of its Sughra/Kubra guide (Ali Imran 26-27, Doa Rabitah).
 // Sources:
 // - Quran passages: Uthmani Arabic and Malay meaning (Tafsir Pimpinan
 //   ar-Rahman, Abdullah Basmeih) from the Tanzil project via api.alquran.cloud.
@@ -476,5 +477,40 @@ export const MATHURAT_SECTIONS = [
     "ar": "اللّٰهُمَّ إِنَّا نَسْأَلُكَ لِسَانًا رَطْبًا بِذِكْرِكَ، وَقَلْبًا مُفْعَمًا بِشُكْرِكَ، وَبَدَنًا هَيِّنًا لَيِّنًا بِطَاعَتِكَ. اللّٰهُمَّ إِنَّا نَسْأَلُكَ إِيمَانًا كَامِلًا، وَنَسْأَلُكَ قَلْبًا خَاشِعًا، وَنَسْأَلُكَ عِلْمًا نَافِعًا، وَنَسْأَلُكَ يَقِينًا صَادِقًا، وَنَسْأَلُكَ دِينًا قَيِّمًا، وَنَسْأَلُكَ الْعَافِيَةَ مِنْ كُلِّ بَلِيَّةٍ، وَنَسْأَلُكَ تَمَامَ الْغِنَى عَنِ النَّاسِ، وَهَبْ لَنَا حَقِيقَةَ الْإِيمَانِ بِكَ حَتَّى لَا نَخَافَ وَلَا نَرْجُوَ غَيْرَكَ، وَلَا نَعْبُدَ شَيْئًا سِوَاكَ، وَاجْعَلْ يَدَكَ مَبْسُوطَةً عَلَيْنَا وَعَلَى أَهْلِنَا وَأَوْلَادِنَا وَمَنْ مَعَنَا بِرَحْمَتِكَ، وَلَا تَكِلْنَا إِلَى أَنْفُسِنَا طَرْفَةَ عَيْنٍ وَلَا أَقَلَّ مِنْ ذٰلِكَ، يَا نِعْمَ الْمُجِيبُ. وَصَلَّى اللّٰهُ عَلَى سَيِّدِنَا مُحَمَّدٍ النَّبِيِّ الْكَرِيمِ، وَعَلَى آلِهِ وَصَحْبِهِ أَجْمَعِينَ",
     "rumi": "Allahumma inna nas'aluka lisanan ratban bizikrik, wa qalbam muf'aman bisyukrik, wa badanan hayyinan layyinan bita'atik. Allahumma inna nas'aluka imanan kamila, wa nas'aluka qalban khasyi'a, wa nas'aluka 'ilman nafi'a, wa nas'aluka yaqinan sadiqa, wa nas'aluka dinan qayyima, wa nas'alukal-'afiyata min kulli baliyyah, wa nas'aluka tamamal-ghina 'anin-nas. Wa hab lana haqiqatal-imani bika hatta la nakhafa wa la narjuwa ghairak, wa la na'buda syai'an siwak. Waj'al yadaka mabsutatan 'alaina wa 'ala ahlina wa auladina wa man ma'ana birahmatik, wa la takilna ila anfusina tarfata 'ainin wa la aqalla min zalik, ya ni'mal-mujib. Wa sallallahu 'ala sayyidina Muhammadinin-nabiyyil-karim, wa 'ala alihi wa sahbihi ajma'in.",
     "ms": "Ya Allah, kami memohon kepada-Mu lidah yang sentiasa basah dengan zikir kepada-Mu, hati yang penuh dengan syukur kepada-Mu, dan tubuh yang mudah lagi lembut untuk mentaati-Mu. Ya Allah, kami memohon kepada-Mu iman yang sempurna, hati yang khusyuk, ilmu yang bermanfaat, keyakinan yang benar, agama yang lurus, kesejahteraan daripada segala bala, dan kecukupan yang sempurna sehingga tidak bergantung kepada manusia. Kurniakanlah kepada kami hakikat iman kepada-Mu sehingga kami tidak takut dan tidak berharap kepada selain-Mu, dan tidak menyembah sesuatu pun selain-Mu. Jadikanlah rahmat-Mu sentiasa terbentang ke atas kami, keluarga kami, anak-anak kami dan sesiapa yang bersama kami. Janganlah Engkau serahkan kami kepada diri kami sendiri walau sekelip mata, malah tidak juga kurang daripada itu, wahai sebaik-baik Yang Memperkenankan doa. Semoga Allah melimpahkan selawat ke atas penghulu kami Muhammad, Nabi yang mulia, serta ke atas keluarga dan sahabat baginda semuanya."
+  },
+  {
+    "id": 31,
+    "kind": "quran",
+    "title": "Pengakuan terhadap kekuasaan Allah",
+    "ref": "Surah Ali Imran 3:26–27 (Kubra no. 48)",
+    "repeat": 1,
+    "ayat": [
+      {
+        "n": 26,
+        "ar": "قُلِ ٱللَّهُمَّ مَٰلِكَ ٱلْمُلْكِ تُؤْتِى ٱلْمُلْكَ مَن تَشَآءُ وَتَنزِعُ ٱلْمُلْكَ مِمَّن تَشَآءُ وَتُعِزُّ مَن تَشَآءُ وَتُذِلُّ مَن تَشَآءُ ۖ بِيَدِكَ ٱلْخَيْرُ ۖ إِنَّكَ عَلَىٰ كُلِّ شَىْءٍۢ قَدِيرٌۭ",
+        "ms": "Katakanlah (wahai Muhammad): \"Wahai Tuhan yang mempunyai kuasa pemerintahan! Engkaulah yang memberi kuasa pemerintahan kepada sesiapa yang Engkau kehendaki, dan Engkaulah yang mencabut kuasa pemerintahan dari sesiapa yang Engkau kehendaki. Engkaulah juga yang memuliakan sesiapa yang Engkau kehendaki, dan Engkaulah yang menghina sesiapa yang Engkau kehendaki. Dalam kekuasaan Engkaulah sahaja adanya segala kebaikan. Sesungguhnya Engkau Maha Kuasa atas tiap-tiap sesuatu."
+      },
+      {
+        "n": 27,
+        "ar": "تُولِجُ ٱلَّيْلَ فِى ٱلنَّهَارِ وَتُولِجُ ٱلنَّهَارَ فِى ٱلَّيْلِ ۖ وَتُخْرِجُ ٱلْحَىَّ مِنَ ٱلْمَيِّتِ وَتُخْرِجُ ٱلْمَيِّتَ مِنَ ٱلْحَىِّ ۖ وَتَرْزُقُ مَن تَشَآءُ بِغَيْرِ حِسَابٍۢ",
+        "ms": "\"Engkaulah (wahai Tuhan) yang memasukkan waktu malam ke dalam waktu siang, dan Engkaulah yang memasukkan waktu siang ke dalam waktu malam. Engkaulah juga yang mengeluarkan sesuatu yang hidup dari benda yang mati, dan Engkaulah yang mengeluarkan benda yang mati dari sesuatu yang hidup. Engkau jualah yang memberi rezeki kepada sesiapa yang Engkau kehendaki, dengan tiada hitungan hisabnya\"."
+      }
+    ],
+    "rumi": "Qulillahumma malikal-mulki tu'til-mulka man tasya'u wa tanzi'ul-mulka mimman tasya', wa tu'izzu man tasya'u wa tuzillu man tasya', biyadikal-khair, innaka 'ala kulli syai'in qadir. Tulijul-laila fin-nahari wa tulijun-nahara fil-lail, wa tukhrijul-hayya minal-mayyiti wa tukhrijul-mayyita minal-hayy, wa tarzuqu man tasya'u bighairi hisab."
+  },
+  {
+    "id": 32,
+    "kind": "doa",
+    "title": "Doa Rabitah",
+    "ref": "Kubra no. 49",
+    "repeat": 1,
+    "ar": "اللّٰهُمَّ إِنَّ هٰذَا إِقْبَالُ نَهَارِكَ وَإِدْبَارُ لَيْلِكَ وَأَصْوَاتُ دُعَاتِكَ فَاغْفِرْ لِي. اللّٰهُمَّ إِنَّكَ تَعْلَمُ أَنَّ هٰذِهِ الْقُلُوبَ قَدِ اجْتَمَعَتْ عَلَى مَحَبَّتِكَ، وَالْتَقَتْ عَلَى طَاعَتِكَ، وَتَوَحَّدَتْ عَلَى دَعْوَتِكَ، وَتَعَاهَدَتْ عَلَى نُصْرَةِ شَرِيعَتِكَ، فَوَثِّقِ اللّٰهُمَّ رَابِطَتَهَا، وَأَدِمْ وُدَّهَا، وَاهْدِهَا سُبُلَهَا، وَامْلَأْهَا بِنُورِكَ الَّذِي لَا يَخْبُو، وَاشْرَحْ صُدُورَهَا بِفَيْضِ الْإِيمَانِ بِكَ، وَجَمِيلِ التَّوَكُّلِ عَلَيْكَ، وَأَحْيِهَا بِمَعْرِفَتِكَ، وَأَمِتْهَا عَلَى الشَّهَادَةِ فِي سَبِيلِكَ، إِنَّكَ نِعْمَ الْمَوْلَى وَنِعْمَ النَّصِيرُ. اللّٰهُمَّ آمِينَ. وَصَلِّ اللّٰهُمَّ عَلَى سَيِّدِنَا مُحَمَّدٍ وَعَلَى آلِهِ وَصَحْبِهِ وَسَلِّمْ تَسْلِيمًا كَثِيرًا",
+    "rumi": "Allahumma inna haza iqbalu naharika wa idbaru lailika wa aswatu du'atika faghfir li. Allahumma innaka ta'lamu anna hazihil-qulub qadijtama'at 'ala mahabbatik, waltaqat 'ala ta'atik, wa tawahhadat 'ala da'watik, wa ta'ahadat 'ala nusrati syari'atik. Fawassiqillahumma rabitataha, wa adim wuddaha, wahdiha subulaha, wamla'ha binurikal-lazi la yakhbu, wasyrah suduraha bifaidil-imani bik, wa jamilit-tawakkuli 'alaik, wa ahyiha bima'rifatik, wa amitha 'alasy-syahadati fi sabilik, innaka ni'mal-maula wa ni'man-nasir. Allahumma amin. Wa salli Allahumma 'ala sayyidina Muhammadin wa 'ala alihi wa sahbihi wa sallim tasliman kasira.",
+    "ms": "Ya Allah, inilah saat datangnya siang-Mu dan berlalunya malam-Mu, serta suara-suara mereka yang menyeru kepada-Mu, maka ampunilah aku. Ya Allah, Engkau mengetahui bahawa hati-hati ini telah berhimpun kerana kasih kepada-Mu, bertemu dalam ketaatan kepada-Mu, bersatu dalam menyeru ke jalan-Mu, dan berjanji untuk membela syariat-Mu. Maka teguhkanlah ikatannya ya Allah, kekalkanlah kasih sayangnya, tunjukkanlah jalan-jalannya, penuhilah ia dengan cahaya-Mu yang tidak pernah malap, lapangkanlah dadanya dengan limpahan iman kepada-Mu dan keindahan tawakal kepada-Mu, hidupkanlah ia dengan makrifat kepada-Mu, dan matikanlah ia sebagai syahid di jalan-Mu. Sesungguhnya Engkaulah sebaik-baik Pelindung dan sebaik-baik Penolong. Ya Allah, perkenankanlah. Dan limpahkanlah selawat dan salam yang banyak ke atas penghulu kami Muhammad, keluarga dan para sahabatnya.",
+    "petang": {
+      "ar": "اللّٰهُمَّ إِنَّ هٰذَا إِقْبَالُ لَيْلِكَ وَإِدْبَارُ نَهَارِكَ وَأَصْوَاتُ دُعَاتِكَ فَاغْفِرْ لِي. اللّٰهُمَّ إِنَّكَ تَعْلَمُ أَنَّ هٰذِهِ الْقُلُوبَ قَدِ اجْتَمَعَتْ عَلَى مَحَبَّتِكَ، وَالْتَقَتْ عَلَى طَاعَتِكَ، وَتَوَحَّدَتْ عَلَى دَعْوَتِكَ، وَتَعَاهَدَتْ عَلَى نُصْرَةِ شَرِيعَتِكَ، فَوَثِّقِ اللّٰهُمَّ رَابِطَتَهَا، وَأَدِمْ وُدَّهَا، وَاهْدِهَا سُبُلَهَا، وَامْلَأْهَا بِنُورِكَ الَّذِي لَا يَخْبُو، وَاشْرَحْ صُدُورَهَا بِفَيْضِ الْإِيمَانِ بِكَ، وَجَمِيلِ التَّوَكُّلِ عَلَيْكَ، وَأَحْيِهَا بِمَعْرِفَتِكَ، وَأَمِتْهَا عَلَى الشَّهَادَةِ فِي سَبِيلِكَ، إِنَّكَ نِعْمَ الْمَوْلَى وَنِعْمَ النَّصِيرُ. اللّٰهُمَّ آمِينَ. وَصَلِّ اللّٰهُمَّ عَلَى سَيِّدِنَا مُحَمَّدٍ وَعَلَى آلِهِ وَصَحْبِهِ وَسَلِّمْ تَسْلِيمًا كَثِيرًا",
+      "rumi": "Allahumma inna haza iqbalu lailika wa idbaru naharika wa aswatu du'atika faghfir li. Allahumma innaka ta'lamu anna hazihil-qulub qadijtama'at 'ala mahabbatik, waltaqat 'ala ta'atik, wa tawahhadat 'ala da'watik, wa ta'ahadat 'ala nusrati syari'atik. Fawassiqillahumma rabitataha, wa adim wuddaha, wahdiha subulaha, wamla'ha binurikal-lazi la yakhbu, wasyrah suduraha bifaidil-imani bik, wa jamilit-tawakkuli 'alaik, wa ahyiha bima'rifatik, wa amitha 'alasy-syahadati fi sabilik, innaka ni'mal-maula wa ni'man-nasir. Allahumma amin. Wa salli Allahumma 'ala sayyidina Muhammadin wa 'ala alihi wa sahbihi wa sallim tasliman kasira.",
+      "ms": "Ya Allah, inilah saat datangnya malam-Mu dan berlalunya siang-Mu, serta suara-suara mereka yang menyeru kepada-Mu, maka ampunilah aku. Ya Allah, Engkau mengetahui bahawa hati-hati ini telah berhimpun kerana kasih kepada-Mu, bertemu dalam ketaatan kepada-Mu, bersatu dalam menyeru ke jalan-Mu, dan berjanji untuk membela syariat-Mu. Maka teguhkanlah ikatannya ya Allah, kekalkanlah kasih sayangnya, tunjukkanlah jalan-jalannya, penuhilah ia dengan cahaya-Mu yang tidak pernah malap, lapangkanlah dadanya dengan limpahan iman kepada-Mu dan keindahan tawakal kepada-Mu, hidupkanlah ia dengan makrifat kepada-Mu, dan matikanlah ia sebagai syahid di jalan-Mu. Sesungguhnya Engkaulah sebaik-baik Pelindung dan sebaik-baik Penolong. Ya Allah, perkenankanlah. Dan limpahkanlah selawat dan salam yang banyak ke atas penghulu kami Muhammad, keluarga dan para sahabatnya."
+    }
   }
 ];

@@ -974,6 +974,130 @@ a {
   }
 }
 
+/* Bacaan | Fadhilat tabs on the Mathurat page */
+.mathurat-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mathurat-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.mathurat-tabs button.active {
+  color: var(--primary-dark);
+  border-bottom-color: var(--primary);
+}
+
+.fadhilat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fadhilat .card + .card {
+  margin-top: 0;
+}
+
+.fadhilat-intro p {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.fadhilat-ref {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-ink);
+}
+
+.fadhilat-heading {
+  margin: 10px 0 0;
+}
+
+.fadhilat-points {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.fadhilat-point {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.fadhilat-point-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fadhilat-point-title {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.fadhilat-point-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.fadhilat-point-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fadhilat-source {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.fadhilat-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fadhilat-adab ul {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
 /* ---------- al-quran ---------- */
 
 .quran-continue {
