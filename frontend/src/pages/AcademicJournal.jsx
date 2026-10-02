@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
   Trash2,
   Download,
-  BookOpen,
   ClipboardList,
   Users as UsersIcon,
   CheckCircle2,
@@ -12,15 +11,48 @@ import {
   FolderOpen,
   Upload,
   File as FileIcon,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  PenLine,
+  CalendarClock,
+  BookOpen,
+  Camera
 } from 'lucide-react';
 import client from '../services/apiClient';
-import ProgressRing from '../components/ProgressRing';
-import { ASSESSMENT_TYPES, STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
-import { generateWeekOptions, formatWeekLabel, getWeekStart, toDateKey, DAY_LABELS, dateForDayInWeek } from '../features/academic/weekUtils';
+import Sheet from '../components/Sheet';
+import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
+import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
 
-const weekOptions = generateWeekOptions(16);
+const MAX_WEEKS_BACK = 15; // the week picker used to offer this week + 15 previous weeks
 const currentWeekKey = toDateKey(getWeekStart());
+const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const HOUR_PRESETS = [1, 1.5, 2, 3];
+const QUESTION_PRESETS = [5, 10, 20];
+const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
+
+function shiftWeek(weekKey, weeks) {
+  const [y, m, d] = weekKey.split('-').map(Number);
+  return toDateKey(addDays(new Date(y, m - 1, d), weeks * 7));
+}
+
+function weeksBack(weekKey) {
+  const [y, m, d] = weekKey.split('-').map(Number);
+  const [cy, cm, cd] = currentWeekKey.split('-').map(Number);
+  return Math.round((new Date(cy, cm - 1, cd) - new Date(y, m - 1, d)) / (7 * 86400000));
+}
+
+// 0 = Sunday ... 6 = Saturday, for a "YYYY-MM-DD" date in the given week.
+function dayIndexInWeek(weekKey, dateKey) {
+  const [y, m, d] = weekKey.split('-').map(Number);
+  const [dy, dm, dd] = dateKey.split('-').map(Number);
+  return Math.round((new Date(dy, dm - 1, dd) - new Date(y, m - 1, d)) / 86400000);
+}
+
+function formatHours(h) {
+  return `${Math.round(h * 10) / 10}h`;
+}
 
 function formatFileSize(bytes) {
   if (!bytes) return '';
@@ -29,37 +61,48 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const emptyStudyForm = { day: '0', subjectId: '', categories: [], hours: '' };
+function subjectLabel(s) {
+  if (!s) return 'No subject';
+  return s.code ? `${s.name} (${s.code})` : s.name;
+}
+
+function todayIndexFor(weekKey) {
+  return weekKey === currentWeekKey ? new Date().getDay() : 1; // default to Monday for past weeks
+}
+
 const emptyQuestionForm = { subjectId: '', questionCount: '', isValidated: false };
 const emptyConsultForm = { subjectId: '', lecturerName: '', detail: '', date: '', venue: '', photoUrl: '' };
 
 export default function AcademicJournal() {
   const [overview, setOverview] = useState(null);
-  const [overviewLoading, setOverviewLoading] = useState(true);
   const [subjects, setSubjects] = useState([]);
 
   const [week, setWeek] = useState(currentWeekKey);
   const [weekData, setWeekData] = useState(null);
   const [weekLoading, setWeekLoading] = useState(true);
+  const [weekError, setWeekError] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  const [openSection, setOpenSection] = useState(null);
-  const [studyForm, setStudyForm] = useState(emptyStudyForm);
+  // Add-entry sheet: which form is open, its fields, and save state.
+  const [sheet, setSheet] = useState(null); // 'study' | 'question' | 'consult' | null
+  const [studyForm, setStudyForm] = useState(null);
   const [questionForm, setQuestionForm] = useState(emptyQuestionForm);
   const [consultForm, setConsultForm] = useState(emptyConsultForm);
   const [saving, setSaving] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
+  const [formError, setFormError] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  // Per-subject "folder" of files: which subject's panel is open, its files,
-  // and upload state — keyed by subject id so multiple subjects don't clash.
+  const [toast, setToast] = useState('');
+  const toastTimer = useRef(null);
+
+  // Per-subject "folder" of files.
   const [openFilesFor, setOpenFilesFor] = useState(null);
   const [filesBySubject, setFilesBySubject] = useState({});
   const [filesLoading, setFilesLoading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
 
   useEffect(() => {
-    setOverviewLoading(true);
     Promise.all([client.get('/academic/overview'), client.get('/academic/subjects')])
       .then(([ov, subs]) => {
         setOverview(ov.data);
@@ -68,82 +111,168 @@ export default function AcademicJournal() {
       .catch(() => {
         setOverview(null);
         setSubjects([]);
-      })
-      .finally(() => setOverviewLoading(false));
+      });
   }, []);
 
   function loadWeek(weekStart) {
     setWeekLoading(true);
+    setWeekError(false);
     client
       .get(`/academic/weeks/${weekStart}`)
       .then((res) => setWeekData(res.data))
-      .catch(() => setWeekData(null))
+      .catch(() => {
+        setWeekData(null);
+        setWeekError(true);
+      })
       .finally(() => setWeekLoading(false));
   }
 
   useEffect(() => {
     loadWeek(week);
+    setExportOpen(false);
   }, [week]);
 
-  const visibleSubjects = subjects; // full list, for form dropdowns (including hidden ones - still valid to log against)
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
 
-  function subjectLabel(s) {
-    if (!s) return '';
-    return s.code ? `${s.name} (${s.code})` : s.name;
+  function showToast(message) {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 2200);
   }
 
-  function openAdd(section) {
-    setOpenSection(section);
-    setJustSaved(false);
-    if (section === 'study') setStudyForm(emptyStudyForm);
-    if (section === 'question') setQuestionForm(emptyQuestionForm);
-    if (section === 'consult') setConsultForm(emptyConsultForm);
+  // ---------- weekly summary (for the selected week) ----------
+  const studySessions = weekData?.studySessions || [];
+  const questionPractice = weekData?.questionPractice || [];
+  const consultations = weekData?.consultations || [];
+  const totalHours = studySessions.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
+  const totalQuestions = questionPractice.reduce((sum, q) => sum + (Number(q.questionCount) || 0), 0);
+  const hoursByDay = useMemo(() => {
+    const days = Array(7).fill(0);
+    for (const s of studySessions) {
+      const i = dayIndexInWeek(week, s.date);
+      if (i >= 0 && i < 7) days[i] += Number(s.hours) || 0;
+    }
+    return days;
+  }, [studySessions, week]);
+  const maxDayHours = Math.max(...hoursByDay, 1);
+  const percent = Math.min(100, Math.round((totalHours / WEEKLY_TARGET_HOURS) * 100));
+  const validated = !!weekData?.mentorValidation?.isValidated;
+  const isCurrentWeek = week === currentWeekKey;
+  const todayIndex = isCurrentWeek ? new Date().getDay() : -1;
+
+  // ---------- add-entry sheet ----------
+  function openSheet(kind) {
+    setFormError('');
+    if (kind === 'study') setStudyForm({ day: todayIndexFor(week), subjectId: '', categories: [], hours: '' });
+    if (kind === 'question') setQuestionForm(emptyQuestionForm);
+    if (kind === 'consult') setConsultForm({ ...emptyConsultForm, date: isCurrentWeek ? toDateKey(new Date()) : '' });
+    setSheet(kind);
   }
 
-  function closeAdd() {
-    setOpenSection(null);
-    setJustSaved(false);
+  function closeSheet() {
+    if (!saving) setSheet(null);
   }
 
-  async function saveStudySession() {
-    if (!studyForm.hours) return;
+  async function submit(kind, addAnother) {
     setSaving(true);
+    setFormError('');
     try {
-      const date = dateForDayInWeek(week, Number(studyForm.day));
-      await client.post('/academic/weeks/study-sessions', {
-        subjectId: studyForm.subjectId || null,
-        date,
-        categories: studyForm.categories,
-        hours: Number(studyForm.hours)
-      });
+      if (kind === 'study') {
+        const hours = Number(studyForm.hours);
+        if (!(hours >= 1 && hours <= 24)) throw new Error('Enter between 1 and 24 hours.');
+        await client.post('/academic/weeks/study-sessions', {
+          subjectId: studyForm.subjectId || null,
+          date: dateForDayInWeek(week, studyForm.day),
+          categories: studyForm.categories,
+          hours
+        });
+      } else if (kind === 'question') {
+        const count = Number(questionForm.questionCount);
+        if (!Number.isInteger(count) || count < 1) throw new Error('Enter how many questions you did.');
+        await client.post('/academic/weeks/question-practice', {
+          subjectId: questionForm.subjectId || null,
+          weekStart: week,
+          questionCount: count,
+          isValidated: questionForm.isValidated
+        });
+      } else {
+        if (!consultForm.subjectId && !consultForm.lecturerName.trim()) throw new Error('Choose a subject or enter the lecturer.');
+        await client.post('/academic/weeks/consultations', { ...consultForm, weekStart: week });
+      }
       loadWeek(week);
-      setJustSaved(true);
-    } catch {
-      // best-effort
+      showToast('Saved');
+      if (addAnother) openSheet(kind);
+      else setSheet(null);
+    } catch (err) {
+      setFormError(err.response ? "Couldn't save. Check your connection and try again." : err.message);
     } finally {
       setSaving(false);
     }
   }
 
-  async function saveQuestionPractice() {
-    if (!questionForm.questionCount) return;
-    setSaving(true);
+  async function handleConsultPhoto(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    setFormError('');
+    const formData = new FormData();
+    formData.append('file', file);
     try {
-      await client.post('/academic/weeks/question-practice', {
-        subjectId: questionForm.subjectId || null,
-        weekStart: week,
-        questionCount: Number(questionForm.questionCount),
-        isValidated: questionForm.isValidated
-      });
-      loadWeek(week);
-      setJustSaved(true);
+      const res = await client.post('/academic/weeks/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setConsultForm((f) => ({ ...f, photoUrl: res.data.url }));
     } catch {
-      // best-effort
+      setFormError("Couldn't upload the photo. Try again.");
     } finally {
-      setSaving(false);
+      setUploadingPhoto(false);
+      e.target.value = '';
     }
   }
 
+  async function removeEntry(kind, id) {
+    if (!window.confirm('Delete this entry?')) return;
+    const path = { study: 'study-sessions', question: 'question-practice', consult: 'consultations' }[kind];
+    try {
+      await client.delete(`/academic/weeks/${path}/${id}`);
+      loadWeek(week);
+      showToast('Deleted');
+    } catch {
+      showToast("Couldn't delete. Try again.");
+    }
+  }
+
+  async function toggleMentorValidation() {
+    const nextValue = !validated;
+    setWeekData((prev) => ({ ...prev, mentorValidation: { ...prev.mentorValidation, isValidated: nextValue } }));
+    try {
+      const res = await client.put(`/academic/weeks/${week}/mentor-validation`, { isValidated: nextValue });
+      if (res.data) setWeekData((prev) => ({ ...prev, mentorValidation: res.data }));
+    } catch {
+      loadWeek(week);
+      showToast("Couldn't update. Try again.");
+    }
+  }
+
+  async function downloadReport(format) {
+    setExportOpen(false);
+    setDownloading(true);
+    try {
+      const res = await client.get(`/academic/weeks/${week}/report`, { params: { format }, responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `academic-report-${week}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showToast("Couldn't download the report. Try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  // ---------- subject files ----------
   function toggleSubjectFiles(subjectId) {
     if (openFilesFor === subjectId) {
       setOpenFilesFor(null);
@@ -171,8 +300,9 @@ export default function AcademicJournal() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setFilesBySubject((prev) => ({ ...prev, [subjectId]: [res.data, ...(prev[subjectId] || [])] }));
+      showToast('File added');
     } catch {
-      // best-effort
+      showToast("Couldn't upload the file. Try again.");
     } finally {
       setFileUploading(false);
       e.target.value = '';
@@ -180,592 +310,581 @@ export default function AcademicJournal() {
   }
 
   async function removeSubjectFile(subjectId, fileId) {
+    if (!window.confirm('Remove this file?')) return;
     setFilesBySubject((prev) => ({ ...prev, [subjectId]: prev[subjectId].filter((f) => f._id !== fileId) }));
     try {
       await client.delete(`/academic/subjects/${subjectId}/files/${fileId}`);
     } catch {
-      // best-effort - could refetch here if we want to be strict
+      showToast("Couldn't remove the file.");
     }
   }
 
-  async function handleConsultPhoto(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingPhoto(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await client.post('/academic/weeks/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setConsultForm((f) => ({ ...f, photoUrl: res.data.url }));
-    } catch {
-      // best-effort
-    } finally {
-      setUploadingPhoto(false);
-    }
-  }
-
-  async function saveConsultation() {
-    setSaving(true);
-    try {
-      await client.post('/academic/weeks/consultations', { ...consultForm, weekStart: week });
-      loadWeek(week);
-      setJustSaved(true);
-    } catch {
-      // best-effort
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function removeEntry(kind, id) {
-    const path = { study: 'study-sessions', question: 'question-practice', consult: 'consultations' }[kind];
-    try {
-      await client.delete(`/academic/weeks/${path}/${id}`);
-      loadWeek(week);
-    } catch {
-      // best-effort
-    }
-  }
-
-  async function toggleMentorValidation() {
-    const nextValue = !weekData?.mentorValidation?.isValidated;
-    setWeekData((prev) => ({ ...prev, mentorValidation: { ...prev.mentorValidation, isValidated: nextValue } }));
-    try {
-      await client.put(`/academic/weeks/${week}/mentor-validation`, { isValidated: nextValue });
-    } catch {
-      loadWeek(week);
-    }
-  }
-
-  async function downloadReport(format) {
-    setDownloading(true);
-    try {
-      const res = await client.get(`/academic/weeks/${week}/report`, {
-        params: { format },
-        responseType: 'blob'
-      });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `academic-report-${week}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      // best-effort
-    } finally {
-      setDownloading(false);
-    }
-  }
-
-  const summary = overview?.weeklySummary;
+  const subjectOptions = (
+    <>
+      <option value="">No subject</option>
+      {subjects.map((s) => (
+        <option key={s._id} value={s._id}>
+          {subjectLabel(s)}
+        </option>
+      ))}
+    </>
+  );
 
   return (
-    <div className="page">
+    <div className="page academic">
       <div className="page-header">
         <div>
           <h1 className="page-title">Academic Journal</h1>
-          <p className="page-subtitle">Track your study hours, subjects, and progress</p>
+          <p className="page-subtitle">Log your study week and track your progress</p>
         </div>
-        <Link to="/subject-list" className="btn btn-ghost">
-          <ClipboardList size={15} /> Subject List
+        <Link to="/subject-list" className="btn btn-ghost btn-sm">
+          <ClipboardList size={14} /> Subjects
         </Link>
       </div>
 
-      {overviewLoading ? (
-        <div className="spinner" />
+      {/* ---------- week bar ---------- */}
+      <div className="week-bar">
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => setWeek(shiftWeek(week, -1))}
+          disabled={weeksBack(week) >= MAX_WEEKS_BACK}
+          aria-label="Previous week"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="week-bar-label">
+          <span className="week-bar-range">{formatWeekLabel(week)}</span>
+          {isCurrentWeek ? (
+            <span className="badge badge-primary">This week</span>
+          ) : (
+            <button type="button" className="week-bar-today" onClick={() => setWeek(currentWeekKey)}>
+              Back to this week
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => setWeek(shiftWeek(week, 1))}
+          disabled={isCurrentWeek}
+          aria-label="Next week"
+        >
+          <ChevronRight size={16} />
+        </button>
+        <div className="export-menu">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setExportOpen((v) => !v)}
+            disabled={downloading}
+            aria-expanded={exportOpen}
+          >
+            <Download size={13} /> {downloading ? 'Preparing…' : 'Export'}
+          </button>
+          {exportOpen && (
+            <div className="export-pop" role="menu">
+              <button role="menuitem" onClick={() => downloadReport('pdf')}>
+                PDF report
+              </button>
+              <button role="menuitem" onClick={() => downloadReport('excel')}>
+                Excel (.xlsx)
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {weekLoading && !weekData ? (
+        <div className="spinner" style={{ margin: '24px auto' }} />
+      ) : weekError ? (
+        <div className="card empty-state">
+          <h3>Couldn't load this week</h3>
+          <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => loadWeek(week)}>
+            Try again
+          </button>
+        </div>
       ) : (
         <>
-          <div className="card ring-card">
-            <ProgressRing
-              percent={summary?.percent || 0}
-              primaryText={`${summary?.hours ?? 0}h`}
-              secondaryText={`of ${WEEKLY_TARGET_HOURS}h this week`}
-            />
+          {/* ---------- weekly summary ---------- */}
+          <div className={`card week-summary${weekLoading ? ' loading' : ''}`}>
+            <div className="week-summary-head">
+              <div>
+                <div className="week-summary-hours">
+                  <strong>{formatHours(totalHours)}</strong> / {WEEKLY_TARGET_HOURS}h
+                </div>
+                <div className="setup-text">study hours {isCurrentWeek ? 'this week' : 'that week'}</div>
+              </div>
+              <span className={`week-summary-pct${percent >= 100 ? ' done' : ''}`}>{percent}%</span>
+            </div>
+            <span className="hours-bar">
+              <span className="hours-bar-fill" style={{ width: `${percent}%` }} />
+            </span>
+
+            <div className="day-bars" aria-label="Hours per day">
+              {hoursByDay.map((h, i) => (
+                <div key={SHORT_DAYS[i]} className={`day-bar${i === todayIndex ? ' today' : ''}`} title={`${SHORT_DAYS[i]}: ${formatHours(h)}`}>
+                  <span className="day-bar-value">{h ? formatHours(h) : ''}</span>
+                  <span className="day-bar-track">
+                    <span className="day-bar-fill" style={{ height: `${(h / maxDayHours) * 100}%` }} />
+                  </span>
+                  <span className="day-bar-label">{SHORT_DAYS[i][0]}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="week-stats">
+              <span className="week-stat">
+                <Clock size={13} /> {studySessions.length} session{studySessions.length === 1 ? '' : 's'}
+              </span>
+              <span className="week-stat">
+                <PenLine size={13} /> {totalQuestions} question{totalQuestions === 1 ? '' : 's'}
+              </span>
+              <span className="week-stat">
+                <UsersIcon size={13} /> {consultations.length} consultation{consultations.length === 1 ? '' : 's'}
+              </span>
+              <span className={`week-stat${validated ? ' ok' : ''}`}>
+                <CheckCircle2 size={13} /> {validated ? 'Mentor validated' : 'Not validated'}
+              </span>
+            </div>
           </div>
 
-          <div className="grid-2" style={{ marginTop: 20 }}>
-            <div className="card">
-              <span className="section-label">Subject Currently Taking</span>
-              {overview?.subjects?.length ? (
-                overview.subjects.map((s) => (
-                  <div key={s._id}>
-                    <div className="member-row">
-                      <BookOpen size={16} style={{ color: 'var(--ink-soft)' }} />
-                      <div style={{ flex: 1 }}>
-                        <div className="name">{s.name}</div>
-                        <div className="kampus">{s.code || s.lecturerName || '—'}</div>
-                      </div>
-                      <button
-                        className="icon-btn"
-                        onClick={() => toggleSubjectFiles(s._id)}
-                        title="Files for this subject"
-                        aria-label={`Files for ${s.name}`}
-                      >
-                        <FolderOpen size={15} />
-                      </button>
-                    </div>
-
-                    {openFilesFor === s._id && (
-                      <div style={{ background: 'var(--paper)', borderRadius: 10, padding: 12, margin: '0 0 10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)' }}>
-                            {s.name} — Files
+          {/* ---------- study hours ---------- */}
+          <LogSection
+            icon={Clock}
+            title="Study hours"
+            subtitle="Notes, questions, projects, study groups"
+            onAdd={() => openSheet('study')}
+            empty={!studySessions.length}
+            emptyText="No study sessions logged for this week yet."
+          >
+            {[...studySessions]
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .map((s) => (
+                <div className="log-row" key={s._id}>
+                  <span className="log-day">{SHORT_DAYS[dayIndexInWeek(week, s.date)] || s.date}</span>
+                  <div className="log-body">
+                    <div className="log-title">{subjectLabel(s.subject)}</div>
+                    {s.categories?.length > 0 && (
+                      <div className="log-tags">
+                        {s.categories.map((c) => (
+                          <span key={c} className="log-tag">
+                            {CATEGORY_LABEL[c] || c}
                           </span>
-                          <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
-                            <Upload size={12} /> {fileUploading ? 'Uploading…' : 'Add file'}
-                            <input
-                              type="file"
-                              style={{ display: 'none' }}
-                              onChange={(e) => uploadSubjectFile(s._id, e)}
-                              disabled={fileUploading}
-                            />
-                          </label>
-                        </div>
-
-                        {filesLoading && !filesBySubject[s._id] ? (
-                          <div className="spinner" style={{ margin: '8px auto' }} />
-                        ) : !filesBySubject[s._id]?.length ? (
-                          <p style={{ fontSize: 12, color: 'var(--ink-soft)' }}>No files yet — add one above.</p>
-                        ) : (
-                          filesBySubject[s._id].map((f) => (
-                            <div
-                              key={f._id}
-                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderTop: '1px solid var(--border)' }}
-                            >
-                              <FileIcon size={13} style={{ color: 'var(--ink-soft)', flexShrink: 0 }} />
-                              <a
-                                href={f.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ flex: 1, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                              >
-                                {f.fileName}
-                              </a>
-                              <span style={{ fontSize: 11, color: 'var(--ink-soft)', flexShrink: 0 }}>{formatFileSize(f.fileSize)}</span>
-                              <button
-                                className="icon-btn"
-                                style={{ width: 22, height: 22, flexShrink: 0 }}
-                                onClick={() => removeSubjectFile(s._id, f._id)}
-                                aria-label={`Remove ${f.fileName}`}
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
-                          ))
-                        )}
+                        ))}
                       </div>
                     )}
                   </div>
-                ))
-              ) : (
-                <p className="page-subtitle">No subjects added yet. Add one from Subject List.</p>
-              )}
-            </div>
+                  <span className="log-amount">{formatHours(s.hours)}</span>
+                  <button className="icon-btn log-delete" onClick={() => removeEntry('study', s._id)} aria-label="Delete">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+          </LogSection>
 
-            <div className="card">
-              <span className="section-label">Assignment / Project Overview</span>
-              {overview?.assignments?.length ? (
-                overview.assignments.map((a) => (
-                  <div className="member-row" key={a._id}>
-                    <ClipboardList size={16} style={{ color: 'var(--ink-soft)' }} />
-                    <div>
-                      <div className="name">{a.title}</div>
-                      <div className="kampus">
-                        {subjectLabel(a.subject)} · Due {a.dueDate || 'no date'}
-                      </div>
-                    </div>
+          {/* ---------- practice questions ---------- */}
+          <LogSection
+            icon={PenLine}
+            title="Practice questions"
+            subtitle="Past year, tutorial, exercise"
+            onAdd={() => openSheet('question')}
+            empty={!questionPractice.length}
+            emptyText="No practice questions logged for this week yet."
+          >
+            {questionPractice.map((q) => (
+              <div className="log-row" key={q._id}>
+                <div className="log-body">
+                  <div className="log-title">{subjectLabel(q.subject)}</div>
+                  <div className={`log-meta${q.isValidated ? ' ok' : ''}`}>{q.isValidated ? 'Validated' : 'Not validated'}</div>
+                </div>
+                <span className="log-amount">{q.questionCount} Q</span>
+                <button className="icon-btn log-delete" onClick={() => removeEntry('question', q._id)} aria-label="Delete">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </LogSection>
+
+          {/* ---------- lecturer consultations ---------- */}
+          <LogSection
+            icon={UsersIcon}
+            title="Lecturer consultations"
+            subtitle="Questions asked, discussions"
+            onAdd={() => openSheet('consult')}
+            empty={!consultations.length}
+            emptyText="No consultations logged for this week yet."
+          >
+            {consultations.map((c) => (
+              <div className="log-row" key={c._id}>
+                {c.photoUrl ? <img src={c.photoUrl} alt="" className="log-photo" /> : <span className="log-photo placeholder"><UsersIcon size={15} /></span>}
+                <div className="log-body">
+                  <div className="log-title">
+                    {subjectLabel(c.subject)}
+                    {c.lecturerName ? ` · ${c.lecturerName}` : ''}
                   </div>
-                ))
-              ) : (
-                <p className="page-subtitle">Nothing due right now.</p>
-              )}
+                  <div className="log-meta">{[c.date, c.venue].filter(Boolean).join(' · ') || 'No date or venue'}</div>
+                  {c.detail && <div className="log-detail">{c.detail}</div>}
+                </div>
+                {c.photoUrl && (
+                  <a href={c.photoUrl} target="_blank" rel="noreferrer" className="icon-btn" aria-label="View photo">
+                    <Paperclip size={14} />
+                  </a>
+                )}
+                <button className="icon-btn log-delete" onClick={() => removeEntry('consult', c._id)} aria-label="Delete">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </LogSection>
+
+          {/* ---------- mentor validation ---------- */}
+          <div className="card mentor-card">
+            <span className={`mentor-icon${validated ? ' ok' : ''}`}>
+              <CheckCircle2 size={18} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="log-section-title">Validated by mentor</div>
+              <div className="setup-text">
+                {validated
+                  ? `Validated${weekData?.mentorValidation?.validatedDate ? ` on ${weekData.mentorValidation.validatedDate}` : ''}`
+                  : 'Turn on once your mentor has checked this week'}
+              </div>
             </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={validated}
+              aria-label="Validated by mentor"
+              className={`switch${validated ? ' on' : ''}`}
+              onClick={toggleMentorValidation}
+            >
+              <span className="switch-knob" />
+            </button>
           </div>
         </>
       )}
 
-      <div className="page-header" style={{ marginTop: 28 }}>
-        <div className="field" style={{ marginBottom: 0, minWidth: 220 }}>
-          <label>Week</label>
-          <select className="input" value={week} onChange={(e) => setWeek(e.target.value)}>
-            {weekOptions.map((w) => (
-              <option key={w.value} value={w.value}>
-                {w.label}
-              </option>
-            ))}
-          </select>
+      {/* ---------- assignments and subjects ---------- */}
+      <div className="grid-2 academic-ref">
+        <div className="card">
+          <div className="log-section-head">
+            <span className="log-section-icon">
+              <CalendarClock size={16} />
+            </span>
+            <div className="log-section-title">Upcoming assignments</div>
+          </div>
+          {overview?.assignments?.length ? (
+            overview.assignments.map((a) => (
+              <div className="log-row" key={a._id}>
+                <div className="log-body">
+                  <div className="log-title">{a.title}</div>
+                  <div className="log-meta">{subjectLabel(a.subject)}</div>
+                </div>
+                <span className="log-due">{a.dueDate ? `Due ${a.dueDate}` : 'No date'}</span>
+              </div>
+            ))
+          ) : (
+            <p className="log-empty">Nothing due right now.</p>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => downloadReport('pdf')} disabled={downloading}>
-            <Download size={13} /> PDF
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => downloadReport('excel')} disabled={downloading}>
-            <Download size={13} /> Excel
-          </button>
+
+        <div className="card">
+          <div className="log-section-head">
+            <span className="log-section-icon">
+              <BookOpen size={16} />
+            </span>
+            <div className="log-section-title">Subjects & files</div>
+          </div>
+          {overview?.subjects?.length ? (
+            overview.subjects.map((s) => (
+              <div key={s._id}>
+                <button type="button" className="subject-row" onClick={() => toggleSubjectFiles(s._id)} aria-expanded={openFilesFor === s._id}>
+                  <div className="log-body">
+                    <div className="log-title">{s.name}</div>
+                    <div className="log-meta">{s.code || s.lecturerName || '—'}</div>
+                  </div>
+                  <FolderOpen size={15} className="subject-row-icon" />
+                </button>
+
+                {openFilesFor === s._id && (
+                  <div className="subject-files">
+                    <div className="subject-files-head">
+                      <span>Files</span>
+                      <label className="btn btn-ghost btn-sm">
+                        <Upload size={12} /> {fileUploading ? 'Uploading…' : 'Add file'}
+                        <input type="file" hidden onChange={(e) => uploadSubjectFile(s._id, e)} disabled={fileUploading} />
+                      </label>
+                    </div>
+                    {filesLoading && !filesBySubject[s._id] ? (
+                      <div className="spinner" style={{ margin: '8px auto' }} />
+                    ) : !filesBySubject[s._id]?.length ? (
+                      <p className="log-empty">No files yet.</p>
+                    ) : (
+                      filesBySubject[s._id].map((f) => (
+                        <div key={f._id} className="subject-file">
+                          <FileIcon size={13} />
+                          <a href={f.fileUrl} target="_blank" rel="noreferrer">
+                            {f.fileName}
+                          </a>
+                          <span>{formatFileSize(f.fileSize)}</span>
+                          <button className="icon-btn" onClick={() => removeSubjectFile(s._id, f._id)} aria-label={`Remove ${f.fileName}`}>
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="log-empty">
+              No subjects yet. <Link to="/subject-list">Add one in Subjects</Link>.
+            </p>
+          )}
         </div>
       </div>
 
-      {weekLoading ? (
-        <div className="spinner" />
-      ) : (
-        <>
-          {/* ---------- Study Hour ---------- */}
-          <div className="card" style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="section-label">Study Hour</span>
-              {openSection !== 'study' && (
-                <button className="btn btn-ghost btn-sm" onClick={() => openAdd('study')}>
-                  <Plus size={13} /> Add New
-                </button>
-              )}
-            </div>
-
-            {openSection === 'study' &&
-              (justSaved ? (
-                <AddAnotherPrompt onYes={() => openAdd('study')} onNo={closeAdd} />
-              ) : (
-                <div style={{ marginTop: 10 }}>
-                  <div className="grid-2">
-                    <div className="field">
-                      <label>Day</label>
-                      <select className="input" value={studyForm.day} onChange={(e) => setStudyForm({ ...studyForm, day: e.target.value })}>
-                        {DAY_LABELS.map((d, i) => (
-                          <option key={d} value={i}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Subject</label>
-                      <select
-                        className="input"
-                        value={studyForm.subjectId}
-                        onChange={(e) => setStudyForm({ ...studyForm, subjectId: e.target.value })}
-                      >
-                        <option value="">Select subject</option>
-                        {visibleSubjects.map((s) => (
-                          <option key={s._id} value={s._id}>
-                            {subjectLabel(s)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="field">
-                    <label>Type</label>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                      {STUDY_CATEGORIES.map((c) => (
-                        <label key={c.value} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13 }}>
-                          <input
-                            type="checkbox"
-                            checked={studyForm.categories.includes(c.value)}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setStudyForm((f) => ({
-                                ...f,
-                                categories: checked ? [...f.categories, c.value] : f.categories.filter((x) => x !== c.value)
-                              }));
-                            }}
-                          />
-                          {c.label}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="field" style={{ maxWidth: 140 }}>
-                    <label>Study Hour</label>
-                    <input
-                      className="input"
-                      type="number"
-                      min="1"
-                      max="24"
-                      value={studyForm.hours}
-                      onChange={(e) => setStudyForm({ ...studyForm, hours: e.target.value })}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary" onClick={saveStudySession} disabled={saving}>
-                      {saving ? 'Saving…' : 'Save'}
-                    </button>
-                    <button className="btn btn-ghost" onClick={closeAdd}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-            {weekData?.studySessions?.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                {weekData.studySessions.map((s) => (
-                  <div className="member-row" key={s._id}>
-                    <div style={{ flex: 1 }}>
-                      <div className="name">
-                        {s.date} · {subjectLabel(s.subject)}
-                      </div>
-                      <div className="kampus">
-                        {s.hours}h · {s.categories.join(', ') || '—'}
-                      </div>
-                    </div>
-                    <button className="icon-btn" onClick={() => removeEntry('study', s._id)} aria-label="Delete">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+      {/* ---------- add-entry sheets ---------- */}
+      <Sheet
+        open={!!sheet}
+        onClose={closeSheet}
+        title={{ study: 'Log study hours', question: 'Log practice questions', consult: 'Log a consultation' }[sheet] || ''}
+      >
+        {sheet === 'study' && studyForm && (
+          <div className="entry-form">
+            <div className="field">
+              <label>Day</label>
+              <div className="chip-row">
+                {SHORT_DAYS.map((d, i) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`chip${studyForm.day === i ? ' on' : ''}`}
+                    onClick={() => setStudyForm((f) => ({ ...f, day: i }))}
+                    disabled={isCurrentWeek && i > new Date().getDay()}
+                  >
+                    {d}
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* ---------- Question Practice ---------- */}
-          <div className="card" style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="section-label">Do Question / Past Year / Tutorial / Exercise</span>
-              {openSection !== 'question' && (
-                <button className="btn btn-ghost btn-sm" onClick={() => openAdd('question')}>
-                  <Plus size={13} /> Add New
-                </button>
-              )}
             </div>
-
-            {openSection === 'question' &&
-              (justSaved ? (
-                <AddAnotherPrompt onYes={() => openAdd('question')} onNo={closeAdd} />
-              ) : (
-                <div style={{ marginTop: 10 }}>
-                  <div className="grid-2">
-                    <div className="field">
-                      <label>Subject</label>
-                      <select
-                        className="input"
-                        value={questionForm.subjectId}
-                        onChange={(e) => setQuestionForm({ ...questionForm, subjectId: e.target.value })}
-                      >
-                        <option value="">Select subject</option>
-                        {visibleSubjects.map((s) => (
-                          <option key={s._id} value={s._id}>
-                            {subjectLabel(s)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>How many questions</label>
-                      <input
-                        className="input"
-                        type="number"
-                        min="0"
-                        value={questionForm.questionCount}
-                        onChange={(e) => setQuestionForm({ ...questionForm, questionCount: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, marginBottom: 12 }}>
-                    <input
-                      type="checkbox"
-                      checked={questionForm.isValidated}
-                      onChange={(e) => setQuestionForm({ ...questionForm, isValidated: e.target.checked })}
-                    />
-                    Question validated
-                  </label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary" onClick={saveQuestionPractice} disabled={saving}>
-                      {saving ? 'Saving…' : 'Save'}
-                    </button>
-                    <button className="btn btn-ghost" onClick={closeAdd}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-            {weekData?.questionPractice?.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                {weekData.questionPractice.map((q) => (
-                  <div className="member-row" key={q._id}>
-                    <div style={{ flex: 1 }}>
-                      <div className="name">{subjectLabel(q.subject)}</div>
-                      <div className="kampus">
-                        {q.questionCount} questions · {q.isValidated ? 'Validated' : 'Not validated'}
-                      </div>
-                    </div>
-                    <button className="icon-btn" onClick={() => removeEntry('question', q._id)} aria-label="Delete">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* ---------- Lecturer Consultation ---------- */}
-          <div className="card" style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="section-label">Ask / Consult Lecturer</span>
-              {openSection !== 'consult' && (
-                <button className="btn btn-ghost btn-sm" onClick={() => openAdd('consult')}>
-                  <Plus size={13} /> Add New
-                </button>
-              )}
+            <div className="field">
+              <label>Subject</label>
+              <select className="input" value={studyForm.subjectId} onChange={(e) => setStudyForm((f) => ({ ...f, subjectId: e.target.value }))}>
+                {subjectOptions}
+              </select>
             </div>
-
-            {openSection === 'consult' &&
-              (justSaved ? (
-                <AddAnotherPrompt onYes={() => openAdd('consult')} onNo={closeAdd} />
-              ) : (
-                <div style={{ marginTop: 10 }}>
-                  <div className="grid-2">
-                    <div className="field">
-                      <label>Subject</label>
-                      <select
-                        className="input"
-                        value={consultForm.subjectId}
-                        onChange={(e) => {
-                          const subjectId = e.target.value;
-                          const subj = visibleSubjects.find((s) => s._id === subjectId);
-                          setConsultForm((f) => ({
-                            ...f,
-                            subjectId,
-                            lecturerName: subj?.lecturerName || f.lecturerName
-                          }));
-                        }}
-                      >
-                        <option value="">Select subject</option>
-                        {visibleSubjects.map((s) => (
-                          <option key={s._id} value={s._id}>
-                            {subjectLabel(s)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Lecturer</label>
-                      <input
-                        className="input"
-                        value={consultForm.lecturerName}
-                        onChange={(e) => setConsultForm({ ...consultForm, lecturerName: e.target.value })}
-                        placeholder="Auto-filled, editable"
-                      />
-                    </div>
-                  </div>
-                  <div className="field">
-                    <label>Detail</label>
-                    <textarea
-                      className="input"
-                      rows={3}
-                      value={consultForm.detail}
-                      onChange={(e) => setConsultForm({ ...consultForm, detail: e.target.value })}
-                      placeholder="What did you discuss?"
-                    />
-                  </div>
-                  <div className="grid-2">
-                    <div className="field">
-                      <label>Date</label>
-                      <input
-                        className="input"
-                        type="date"
-                        value={consultForm.date}
-                        onChange={(e) => setConsultForm({ ...consultForm, date: e.target.value })}
-                      />
-                    </div>
-                    <div className="field">
-                      <label>Venue</label>
-                      <input
-                        className="input"
-                        value={consultForm.venue}
-                        onChange={(e) => setConsultForm({ ...consultForm, venue: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="field">
-                    <label>Photo</label>
-                    <input type="file" accept="image/*" onChange={handleConsultPhoto} disabled={uploadingPhoto} />
-                    {consultForm.photoUrl && (
-                      <img src={consultForm.photoUrl} alt="Upload preview" style={{ maxWidth: 120, borderRadius: 8, marginTop: 8 }} />
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-primary" onClick={saveConsultation} disabled={saving || uploadingPhoto}>
-                      {saving ? 'Saving…' : 'Save'}
+            <div className="field">
+              <label>What did you do?</label>
+              <div className="chip-row">
+                {STUDY_CATEGORIES.map((c) => {
+                  const on = studyForm.categories.includes(c.value);
+                  return (
+                    <button
+                      key={c.value}
+                      type="button"
+                      className={`chip${on ? ' on' : ''}`}
+                      aria-pressed={on}
+                      onClick={() =>
+                        setStudyForm((f) => ({
+                          ...f,
+                          categories: on ? f.categories.filter((x) => x !== c.value) : [...f.categories, c.value]
+                        }))
+                      }
+                    >
+                      {c.label}
                     </button>
-                    <button className="btn btn-ghost" onClick={closeAdd}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-            {weekData?.consultations?.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                {weekData.consultations.map((c) => (
-                  <div className="member-row" key={c._id}>
-                    {c.photoUrl ? (
-                      <img src={c.photoUrl} alt="" className="avatar" />
-                    ) : (
-                      <UsersIcon size={16} style={{ color: 'var(--ink-soft)' }} />
-                    )}
-                    <div style={{ flex: 1 }}>
-                      <div className="name">
-                        {subjectLabel(c.subject)} · {c.lecturerName || '—'}
-                      </div>
-                      <div className="kampus">
-                        {c.date || '—'} · {c.venue || '—'}
-                        {c.detail ? ` · ${c.detail}` : ''}
-                      </div>
-                    </div>
-                    {c.photoUrl && (
-                      <a href={c.photoUrl} target="_blank" rel="noreferrer" className="icon-btn" aria-label="View photo">
-                        <Paperclip size={14} />
-                      </a>
-                    )}
-                    <button className="icon-btn" onClick={() => removeEntry('consult', c._id)} aria-label="Delete">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            )}
+            </div>
+            <div className="field">
+              <label>Hours</label>
+              <div className="chip-row">
+                {HOUR_PRESETS.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    className={`chip${Number(studyForm.hours) === h ? ' on' : ''}`}
+                    onClick={() => setStudyForm((f) => ({ ...f, hours: String(h) }))}
+                  >
+                    {h}h
+                  </button>
+                ))}
+                <input
+                  className="input chip-input"
+                  type="number"
+                  inputMode="decimal"
+                  min="1"
+                  max="24"
+                  step="0.5"
+                  placeholder="Other"
+                  value={HOUR_PRESETS.includes(Number(studyForm.hours)) ? '' : studyForm.hours}
+                  onChange={(e) => setStudyForm((f) => ({ ...f, hours: e.target.value }))}
+                  aria-label="Other number of hours"
+                />
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* ---------- Mentor Validation ---------- */}
-          <div className="card" style={{ marginTop: 16, marginBottom: 30 }}>
-            <span className="section-label">Validated by Mentor</span>
-            <label style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 8 }}>
-              <input type="checkbox" checked={!!weekData?.mentorValidation?.isValidated} onChange={toggleMentorValidation} />
+        {sheet === 'question' && (
+          <div className="entry-form">
+            <div className="field">
+              <label>Subject</label>
+              <select className="input" value={questionForm.subjectId} onChange={(e) => setQuestionForm((f) => ({ ...f, subjectId: e.target.value }))}>
+                {subjectOptions}
+              </select>
+            </div>
+            <div className="field">
+              <label>How many questions?</label>
+              <div className="chip-row">
+                {QUESTION_PRESETS.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={`chip${Number(questionForm.questionCount) === n ? ' on' : ''}`}
+                    onClick={() => setQuestionForm((f) => ({ ...f, questionCount: String(n) }))}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <input
+                  className="input chip-input"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  placeholder="Other"
+                  value={QUESTION_PRESETS.includes(Number(questionForm.questionCount)) ? '' : questionForm.questionCount}
+                  onChange={(e) => setQuestionForm((f) => ({ ...f, questionCount: e.target.value }))}
+                  aria-label="Other number of questions"
+                />
+              </div>
+            </div>
+            <label className="toggle-row">
               <span>
-                {weekData?.mentorValidation?.isValidated ? (
-                  <>
-                    <CheckCircle2 size={14} style={{ verticalAlign: -2, marginRight: 4, color: 'var(--primary)' }} />
-                    Validated on {weekData.mentorValidation.validatedDate}
-                  </>
-                ) : (
-                  'Not yet validated for this week'
-                )}
+                <span className="log-title">Answers checked</span>
+                <span className="setup-text">Validated by a lecturer, mentor or answer scheme</span>
               </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={questionForm.isValidated}
+                className={`switch${questionForm.isValidated ? ' on' : ''}`}
+                onClick={() => setQuestionForm((f) => ({ ...f, isValidated: !f.isValidated }))}
+              >
+                <span className="switch-knob" />
+              </button>
             </label>
           </div>
-        </>
+        )}
+
+        {sheet === 'consult' && (
+          <div className="entry-form">
+            <div className="field">
+              <label>Subject</label>
+              <select
+                className="input"
+                value={consultForm.subjectId}
+                onChange={(e) => {
+                  const subjectId = e.target.value;
+                  const subj = subjects.find((s) => s._id === subjectId);
+                  setConsultForm((f) => ({ ...f, subjectId, lecturerName: subj?.lecturerName || f.lecturerName }));
+                }}
+              >
+                {subjectOptions}
+              </select>
+            </div>
+            <div className="field">
+              <label>Lecturer</label>
+              <input
+                className="input"
+                value={consultForm.lecturerName}
+                onChange={(e) => setConsultForm((f) => ({ ...f, lecturerName: e.target.value }))}
+                placeholder="Filled from the subject, editable"
+              />
+            </div>
+            <div className="field">
+              <label>What did you discuss?</label>
+              <textarea
+                className="input"
+                rows={3}
+                value={consultForm.detail}
+                onChange={(e) => setConsultForm((f) => ({ ...f, detail: e.target.value }))}
+              />
+            </div>
+            <div className="grid-2">
+              <div className="field">
+                <label>Date</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={consultForm.date}
+                  min={week}
+                  max={dateForDayInWeek(week, 6)}
+                  onChange={(e) => setConsultForm((f) => ({ ...f, date: e.target.value }))}
+                />
+              </div>
+              <div className="field">
+                <label>Venue</label>
+                <input className="input" value={consultForm.venue} onChange={(e) => setConsultForm((f) => ({ ...f, venue: e.target.value }))} />
+              </div>
+            </div>
+            <div className="field">
+              <label>Photo (optional)</label>
+              <div className="photo-pick">
+                {consultForm.photoUrl && <img src={consultForm.photoUrl} alt="Consultation" />}
+                <label className="btn btn-ghost btn-sm">
+                  <Camera size={13} /> {uploadingPhoto ? 'Uploading…' : consultForm.photoUrl ? 'Change photo' : 'Add photo'}
+                  <input type="file" accept="image/*" hidden onChange={handleConsultPhoto} disabled={uploadingPhoto} />
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {sheet && (
+          <>
+            {formError && <p className="form-error">{formError}</p>}
+            <div className="entry-actions">
+              <button className="btn btn-ghost" onClick={() => submit(sheet, true)} disabled={saving || uploadingPhoto}>
+                Save & add another
+              </button>
+              <button className="btn btn-primary" onClick={() => submit(sheet, false)} disabled={saving || uploadingPhoto}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </>
+        )}
+      </Sheet>
+
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
       )}
     </div>
   );
 }
 
-function AddAnotherPrompt({ onYes, onNo }) {
+function LogSection({ icon: Icon, title, subtitle, onAdd, empty, emptyText, children }) {
   return (
-    <div className="empty-state" style={{ marginTop: 10 }}>
-      <h3>Done Update ✓</h3>
-      <p>Want to add another entry?</p>
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 12 }}>
-        <button className="btn btn-primary" onClick={onYes}>
-          Yes
-        </button>
-        <button className="btn btn-ghost" onClick={onNo}>
-          No
+    <div className="card log-section">
+      <div className="log-section-head">
+        <span className="log-section-icon">
+          <Icon size={16} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="log-section-title">{title}</div>
+          <div className="log-section-sub">{subtitle}</div>
+        </div>
+        <button type="button" className="btn btn-primary btn-sm" onClick={onAdd}>
+          <Plus size={14} /> Add
         </button>
       </div>
+      {empty ? <p className="log-empty">{emptyText}</p> : <div className="log-list">{children}</div>}
     </div>
   );
 }
