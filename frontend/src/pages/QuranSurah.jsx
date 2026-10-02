@@ -20,7 +20,7 @@ function QuranSurahReader() {
   const [chapters, setChapters] = useState([]);
   const chaptersById = useMemo(() => Object.fromEntries(chapters.map((c) => [c.id, c])), [chapters]);
   const [prefs, setPrefs] = useQuranPrefs();
-  const { reading, switchMode, trackKey } = useReaderMode();
+  const { reading, switchMode } = useReaderMode();
   const start = useStartPage(targetKey, reading);
   const { verses, error, hasMore, loadMore, sentinelRef } = useQuranVerses('chapter', valid && !reading ? id : null, {
     untilKey: targetKey
@@ -48,7 +48,6 @@ function QuranSurahReader() {
     (page, pageVerses) => {
       const first = pageVerses.find((v) => v.surah === id);
       if (!chapter || !first) return;
-      trackKey(first.key);
       saveLastRead({
         kind: 'chapter',
         number: id,
@@ -56,15 +55,14 @@ function QuranSurahReader() {
         label: `${chapter.name_simple}, ayat ${first.n} (muka surat ${page})`
       });
     },
-    [chapter, id, trackKey]
+    [chapter, id]
   );
 
   const onTopVerse = useCallback(
     (v) => {
-      trackKey(v.key);
       if (chapter) saveLastRead({ kind: 'chapter', number: id, key: v.key, label: `${chapter.name_simple}, ayat ${v.n}` });
     },
-    [chapter, id, trackKey]
+    [chapter, id]
   );
 
   async function togglePlay() {

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, List, Minus, Plus } from 'lucide-react';
 
 const PREFS_KEY = 'quran_prefs';
@@ -9,28 +9,25 @@ const DEFAULT_PREFS = { translation: true, size: 28 };
 // "Ayat demi Ayat" applies to that visit only.
 export const DEFAULT_MODE = 'reading';
 
-// View mode for a reader that keeps the reader's place when switching: the
-// reader reports the verse on screen via trackKey(), and switching writes it
-// to the URL hash so the other view opens at that verse (or its page).
+// View mode for a reader. The switch lives in the header, so the reader is at
+// the top whenever they tap it: switching must not scroll. Any #verse in the
+// URL (e.g. from "Continue reading") is cleared first so the new view doesn't
+// jump to it and pull the header off screen.
 export function useReaderMode() {
   const [mode, setMode] = useState(DEFAULT_MODE);
-  const currentKey = useRef(null);
   const navigate = useNavigate();
-
-  const trackKey = useCallback((key) => {
-    currentKey.current = key;
-  }, []);
+  const { hash } = useLocation();
 
   const switchMode = useCallback(
     (next) => {
       if (next === mode) return;
-      if (currentKey.current) navigate({ hash: `#${currentKey.current}` }, { replace: true });
+      if (hash) navigate({ hash: '' }, { replace: true });
       setMode(next);
     },
-    [mode, navigate]
+    [mode, hash, navigate]
   );
 
-  return { reading: mode === 'reading', switchMode, trackKey };
+  return { reading: mode === 'reading', switchMode };
 }
 
 export function QuranModeSwitch({ reading, onChange }) {
