@@ -210,9 +210,19 @@ function serializeSubjectFile(row) {
   return {
     _id: row.id,
     subjectId: row.subject_id,
+    folderId: row.folder_id || null,
     fileName: row.file_name,
     fileUrl: row.file_url,
     fileSize: row.file_size,
+    createdAt: row.created_at
+  };
+}
+
+function serializeSubjectFolder(row) {
+  return {
+    _id: row.id,
+    subjectId: row.subject_id,
+    name: row.name,
     createdAt: row.created_at
   };
 }
@@ -233,5 +243,6 @@ module.exports = {
   serializeConsultation,
   serializeMentorValidation,
   serializeFolder,
-  serializeSubjectFile
+  serializeSubjectFile,
+  serializeSubjectFolder
 };

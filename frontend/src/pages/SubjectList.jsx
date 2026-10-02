@@ -342,7 +342,7 @@ export default function SubjectList() {
           </div>
           <div className="field">
             <label>Credit hours</label>
-            <div className="chip-row">
+            <div className="chip-row credit-row">
               {CREDIT_PRESETS.map((c) => (
                 <button
                   key={c}

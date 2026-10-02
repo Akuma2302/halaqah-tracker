@@ -9,9 +9,6 @@ import {
   CheckCircle2,
   Paperclip,
   FolderOpen,
-  Upload,
-  File as FileIcon,
-  X,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -26,6 +23,7 @@ import { useToast } from '../hooks/useToast';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
 import { dueLabel, formatDueDate, upcomingDeadlines } from '../features/academic/deadlines';
+import SubjectFiles from '../features/academic/SubjectFiles';
 
 const MAX_WEEKS_BACK = 15; // the week picker used to offer this week + 15 previous weeks
 const currentWeekKey = toDateKey(getWeekStart());
@@ -55,13 +53,6 @@ function dayIndexInWeek(weekKey, dateKey) {
 
 function formatHours(h) {
   return `${Math.round(h * 10) / 10}h`;
-}
-
-function formatFileSize(bytes) {
-  if (!bytes) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function subjectLabel(s) {
@@ -98,11 +89,8 @@ export default function AcademicJournal() {
 
   const [toast, showToast] = useToast();
 
-  // Per-subject "folder" of files.
+  // Subject whose files are expanded in "Subjects & files".
   const [openFilesFor, setOpenFilesFor] = useState(null);
-  const [filesBySubject, setFilesBySubject] = useState({});
-  const [filesLoading, setFilesLoading] = useState(false);
-  const [fileUploading, setFileUploading] = useState(false);
 
   useEffect(() => {
     Promise.all([client.get('/academic/overview'), client.get('/academic/subjects')])
@@ -266,53 +254,6 @@ export default function AcademicJournal() {
       showToast("Couldn't download the report. Try again.");
     } finally {
       setDownloading(false);
-    }
-  }
-
-  // ---------- subject files ----------
-  function toggleSubjectFiles(subjectId) {
-    if (openFilesFor === subjectId) {
-      setOpenFilesFor(null);
-      return;
-    }
-    setOpenFilesFor(subjectId);
-    if (!filesBySubject[subjectId]) {
-      setFilesLoading(true);
-      client
-        .get(`/academic/subjects/${subjectId}/files`)
-        .then((res) => setFilesBySubject((prev) => ({ ...prev, [subjectId]: res.data })))
-        .catch(() => setFilesBySubject((prev) => ({ ...prev, [subjectId]: [] })))
-        .finally(() => setFilesLoading(false));
-    }
-  }
-
-  async function uploadSubjectFile(subjectId, e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await client.post(`/academic/subjects/${subjectId}/files`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setFilesBySubject((prev) => ({ ...prev, [subjectId]: [res.data, ...(prev[subjectId] || [])] }));
-      showToast('File added');
-    } catch {
-      showToast("Couldn't upload the file. Try again.");
-    } finally {
-      setFileUploading(false);
-      e.target.value = '';
-    }
-  }
-
-  async function removeSubjectFile(subjectId, fileId) {
-    if (!window.confirm('Remove this file?')) return;
-    setFilesBySubject((prev) => ({ ...prev, [subjectId]: prev[subjectId].filter((f) => f._id !== fileId) }));
-    try {
-      await client.delete(`/academic/subjects/${subjectId}/files/${fileId}`);
-    } catch {
-      showToast("Couldn't remove the file.");
     }
   }
 
@@ -625,7 +566,7 @@ export default function AcademicJournal() {
           {overview?.subjects?.length ? (
             overview.subjects.map((s) => (
               <div key={s._id}>
-                <button type="button" className="subject-row" onClick={() => toggleSubjectFiles(s._id)} aria-expanded={openFilesFor === s._id}>
+                <button type="button" className="subject-row" onClick={() => setOpenFilesFor((id) => (id === s._id ? null : s._id))} aria-expanded={openFilesFor === s._id}>
                   <div className="log-body">
                     <div className="log-title">{s.name}</div>
                     <div className="log-meta">{s.code || s.lecturerName || '—'}</div>
@@ -633,35 +574,7 @@ export default function AcademicJournal() {
                   <FolderOpen size={15} className="subject-row-icon" />
                 </button>
 
-                {openFilesFor === s._id && (
-                  <div className="subject-files">
-                    <div className="subject-files-head">
-                      <span>Files</span>
-                      <label className="btn btn-ghost btn-sm">
-                        <Upload size={12} /> {fileUploading ? 'Uploading…' : 'Add file'}
-                        <input type="file" hidden onChange={(e) => uploadSubjectFile(s._id, e)} disabled={fileUploading} />
-                      </label>
-                    </div>
-                    {filesLoading && !filesBySubject[s._id] ? (
-                      <div className="spinner" style={{ margin: '8px auto' }} />
-                    ) : !filesBySubject[s._id]?.length ? (
-                      <p className="log-empty">No files yet.</p>
-                    ) : (
-                      filesBySubject[s._id].map((f) => (
-                        <div key={f._id} className="subject-file">
-                          <FileIcon size={13} />
-                          <a href={f.fileUrl} target="_blank" rel="noreferrer">
-                            {f.fileName}
-                          </a>
-                          <span>{formatFileSize(f.fileSize)}</span>
-                          <button className="icon-btn" onClick={() => removeSubjectFile(s._id, f._id)} aria-label={`Remove ${f.fileName}`}>
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                {openFilesFor === s._id && <SubjectFiles subject={s} showToast={showToast} />}
               </div>
             ))
           ) : (

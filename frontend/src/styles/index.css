@@ -1907,14 +1907,206 @@ a {
   color: var(--primary-dark);
 }
 
-.assess-add {
+/* "+ Quiz / + Test / ..." add buttons: an even 3-column grid */
+.chip-row.assess-add {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   margin-top: 4px;
 }
 
 .assess-add .chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 6px;
+  border: 1px dashed color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: none;
+  white-space: nowrap;
+}
+
+.assess-add .chip svg {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.assess-add .chip:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+/* Credit-hour chips match the "Other" input (44px touch-target min-height) */
+.credit-row .chip {
+  min-width: 48px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+}
+
+.credit-row .chip-input {
+  height: 44px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- folders inside a subject's files ---------- */
+.subject-files-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.files-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.files-crumb span {
+  opacity: 0.5;
+}
+
+.files-crumb strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.folder-name-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--primary);
+}
+
+.folder-name-form .input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 4px 10px;
+}
+
+.folder-name-form .btn {
+  margin: 0;
+}
+
+.subject-folder {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.subject-folder-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.subject-folder-icon {
+  flex-shrink: 0;
+  color: var(--gold-ink);
+}
+
+.subject-folder-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subject-folder-count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.subject-folder .icon-btn {
+  width: 26px;
+  height: 26px;
+}
+
+.subject-folder svg:last-child {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+
+.move-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.move-file-name {
+  margin: 0 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.move-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.move-target svg {
+  color: var(--gold-ink);
+}
+
+.move-target span {
+  flex: 1;
+}
+
+.move-target em {
+  font-size: 12px;
+  font-style: normal;
+  color: var(--ink-soft);
+}
+
+.move-target.on {
+  border-color: var(--primary);
+  background: var(--primary-tint);
 }
 
 /* Bacaan | Fadhilat tabs on the Mathurat page */

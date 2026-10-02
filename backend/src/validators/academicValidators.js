@@ -62,7 +62,17 @@ const setMentorValidationSchema = z.object({
   validatedDate: z.string().nullish()
 });
 
+const subjectFolderSchema = z.object({
+  name: z.string().trim().min(1, 'Folder name is required').max(60, 'Folder name is too long')
+});
+
+const moveSubjectFileSchema = z.object({
+  folderId: z.string().uuid().nullable()
+});
+
 module.exports = {
+  subjectFolderSchema,
+  moveSubjectFileSchema,
   createSubjectSchema,
   updateSubjectSchema,
   createAssignmentSchema,

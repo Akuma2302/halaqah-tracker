@@ -330,3 +330,16 @@ alter table mutabaah_entries add column if not exists tilawah_pages integer not 
 
 alter table study_groups add column if not exists show_mutabaah_scoreboard boolean not null default true;
 alter table study_groups add column if not exists show_study_hours_scoreboard boolean not null default true;
+
+-- User-made folders inside a subject's files. Deleting a folder moves its
+-- files back to the top level (folder_id set null) rather than deleting them.
+create table if not exists subject_folders (
+  id uuid primary key default gen_random_uuid(),
+  subject_id uuid not null references subjects(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_subject_folders_subject on subject_folders(subject_id);
+alter table subject_folders enable row level security;
+alter table subject_files add column if not exists folder_id uuid references subject_folders(id) on delete set null;

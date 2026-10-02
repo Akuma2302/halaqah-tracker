@@ -18,7 +18,9 @@ const {
   createStudySessionSchema,
   createQuestionPracticeSchema,
   createConsultationSchema,
-  setMentorValidationSchema
+  setMentorValidationSchema,
+  subjectFolderSchema,
+  moveSubjectFileSchema
 } = require('../validators/academicValidators');
 
 router.use(requireAuth);
@@ -36,7 +38,12 @@ router.delete('/subjects/:id', asyncHandler(subjectController.remove));
 // Per-subject files ("folder" of files for that subject)
 router.get('/subjects/:id/files', asyncHandler(subjectFileController.list));
 router.post('/subjects/:id/files', upload.single('file'), asyncHandler(subjectFileController.upload));
+router.patch('/subjects/:id/files/:fileId', validate(moveSubjectFileSchema), asyncHandler(subjectFileController.move));
 router.delete('/subjects/:id/files/:fileId', asyncHandler(subjectFileController.remove));
+router.get('/subjects/:id/folders', asyncHandler(subjectFileController.listFolders));
+router.post('/subjects/:id/folders', validate(subjectFolderSchema), asyncHandler(subjectFileController.createFolder));
+router.put('/subjects/:id/folders/:folderId', validate(subjectFolderSchema), asyncHandler(subjectFileController.renameFolder));
+router.delete('/subjects/:id/folders/:folderId', asyncHandler(subjectFileController.removeFolder));
 
 // Assignments / projects overview
 router.get('/assignments', asyncHandler(assignmentController.list));
