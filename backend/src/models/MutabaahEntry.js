@@ -12,6 +12,7 @@
  * @property {boolean} tilawah
  * @property {boolean} zikir
  * @property {number} tilawah_pages  pages of Quran read that day, 0-604
+ * @property {number} zikir_count  zikir (istighfar) said that day, 0-10000
  */
 
 // API/frontend uses camelCase, the Postgres table uses snake_case. This map
@@ -37,4 +38,16 @@ const MUTABAAH_FIELDS = Object.values(FIELD_MAP); // snake_case DB column names
 const TILAWAH_PAGES_COLUMN = 'tilawah_pages';
 const MAX_TILAWAH_PAGES = 604;
 
-module.exports = { FIELD_MAP, CAMEL_FIELDS, MUTABAAH_FIELDS, TILAWAH_PAGES_COLUMN, MAX_TILAWAH_PAGES };
+// Same idea for zikir: a count alongside the tick (done at 100).
+const ZIKIR_COUNT_COLUMN = 'zikir_count';
+const MAX_ZIKIR_COUNT = 10000;
+
+module.exports = {
+  FIELD_MAP,
+  CAMEL_FIELDS,
+  MUTABAAH_FIELDS,
+  TILAWAH_PAGES_COLUMN,
+  MAX_TILAWAH_PAGES,
+  ZIKIR_COUNT_COLUMN,
+  MAX_ZIKIR_COUNT
+};

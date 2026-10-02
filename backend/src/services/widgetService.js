@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const userRepository = require('../repositories/userRepository');
 const mutabaahRepository = require('../repositories/mutabaahRepository');
-const { FIELD_MAP, CAMEL_FIELDS, TILAWAH_PAGES_COLUMN } = require('../models/MutabaahEntry');
+const { FIELD_MAP, CAMEL_FIELDS, TILAWAH_PAGES_COLUMN, ZIKIR_COUNT_COLUMN } = require('../models/MutabaahEntry');
 
 // Read-only "today's mutabaah score" for home-screen widget apps (Scriptable on
 // iOS, KWGT on Android). Those apps can't sign in with Google, so each user can
@@ -105,6 +105,7 @@ async function getWidgetData(token, tz) {
     summary: `${done}/${total} · ${percent}%`,
     items,
     tilawahPages: todayRow?.[TILAWAH_PAGES_COLUMN] || 0,
+    zikirCount: todayRow?.[ZIKIR_COUNT_COLUMN] || 0,
     streak: streakFrom(rowsByDate, today),
     generatedAt: new Date().toISOString()
   };

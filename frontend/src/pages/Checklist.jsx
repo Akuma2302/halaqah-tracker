@@ -9,10 +9,14 @@ import {
   MUTABAAH_PERIODS,
   currentPeriodKey,
   PAGES_PER_JUZ,
+  MAX_TILAWAH_PAGES,
+  ZIKIR_GOAL,
+  MAX_ZIKIR_COUNT,
   tilawahPagesPatch,
-  tilawahTogglePatch
+  zikirCountPatch,
+  togglePatch
 } from '../features/mutabaah/mutabaahFields';
-import TilawahStepper from '../components/TilawahStepper';
+import CountStepper from '../components/CountStepper';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 
 // Labels used specifically for the "Copy" summary text, per the requested
@@ -63,8 +67,8 @@ export default function Checklist() {
 
   async function toggle(key) {
     const previous = entry;
-    // Tilawah's tick and page count move together (done = 20 pages / 1 juz).
-    const body = key === 'tilawah' ? tilawahTogglePatch(entry) : { [key]: !entry[key] };
+    // Tilawah's and Zikir's tick and count move together (done = 20 pages / 100x).
+    const body = togglePatch(key, entry);
     const next = { ...entry, ...body };
     cancelPendingPages();
     setEntry(next);
@@ -76,8 +80,8 @@ export default function Checklist() {
     }
   }
 
-  // Page taps are applied instantly and saved once the user pauses, so tapping
-  // "+" ten times is one request rather than ten.
+  // Count taps (tilawah pages, zikir) are applied instantly and saved once the
+  // user pauses, so tapping "+" ten times is one request rather than ten.
   const pendingPages = useRef(null); // { date, body, timer }
 
   function cancelPendingPages() {
@@ -93,9 +97,10 @@ export default function Checklist() {
     return client.put(`/mutabaah/${pending.date}`, pending.body);
   }
 
-  function setTilawahPages(pages) {
-    const body = tilawahPagesPatch(pages);
-    setEntry({ ...entry, ...body });
+  function setCount(patch) {
+    // Merge with any unsaved change to the other counter so neither is lost.
+    const body = { ...(pendingPages.current?.body || {}), ...patch };
+    setEntry((cur) => ({ ...cur, ...patch }));
     cancelPendingPages();
     pendingPages.current = {
       date,
@@ -203,6 +208,14 @@ export default function Checklist() {
                   </span>
                 </div>
               ))}
+              {typeof periodData.zikirCount === 'number' && (
+                <div className="member-row">
+                  <div style={{ flex: 1 }}>
+                    <div className="name">Zikir count</div>
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>{periodData.zikirCount}x</span>
+                </div>
+              )}
               {/* Older backends don't send tilawahPages; hide the row rather than show 0 */}
               {typeof periodData.tilawahPages === 'number' && (
                 <div className="member-row">
@@ -285,7 +298,30 @@ export default function Checklist() {
                       </Link>
                     )}
                     {f.key === 'tilawah' && (
-                      <TilawahStepper pages={entry.tilawahPages || 0} onChange={setTilawahPages} />
+                      <CountStepper
+                        value={entry.tilawahPages || 0}
+                        onChange={(n) => setCount(tilawahPagesPatch(n))}
+                        max={MAX_TILAWAH_PAGES}
+                        goal={PAGES_PER_JUZ}
+                        unit="pages"
+                        label="page"
+                        goalText={(n) =>
+                          n >= PAGES_PER_JUZ
+                            ? `${(n / PAGES_PER_JUZ).toFixed(1).replace(/\.0$/, '')} juz ✓`
+                            : `${PAGES_PER_JUZ - n} more page${PAGES_PER_JUZ - n === 1 ? '' : 's'} to complete 1 juz`
+                        }
+                      />
+                    )}
+                    {f.key === 'zikir' && (
+                      <CountStepper
+                        value={entry.zikirCount || 0}
+                        onChange={(n) => setCount(zikirCountPatch(n))}
+                        max={MAX_ZIKIR_COUNT}
+                        goal={ZIKIR_GOAL}
+                        unit="times"
+                        label="count"
+                        goalText={(n) => (n >= ZIKIR_GOAL ? `${n}x ✓` : `${ZIKIR_GOAL - n} more to reach ${ZIKIR_GOAL}x`)}
+                      />
                     )}
                   </div>
                 ))}
@@ -294,7 +330,7 @@ export default function Checklist() {
           })}
           {pagesError && (
             <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 12 }}>
-              Couldn't save your Tilawah pages. Change the number again to retry.
+              Couldn't save your count. Change the number again to retry.
             </p>
           )}
         </div>

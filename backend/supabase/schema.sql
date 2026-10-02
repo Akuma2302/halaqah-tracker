@@ -328,6 +328,10 @@ alter table users add column if not exists widget_token text unique;
 alter table mutabaah_entries add column if not exists tilawah_pages integer not null default 0
   check (tilawah_pages between 0 and 604);
 
+-- Zikir (istighfar) said that day, alongside the zikir tick (done at 100).
+alter table mutabaah_entries add column if not exists zikir_count integer not null default 0
+  check (zikir_count between 0 and 10000);
+
 alter table study_groups add column if not exists show_mutabaah_scoreboard boolean not null default true;
 alter table study_groups add column if not exists show_study_hours_scoreboard boolean not null default true;
 

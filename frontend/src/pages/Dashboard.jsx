@@ -6,7 +6,7 @@ import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
 import MutabaahRing from '../components/MutabaahRing';
 import ProfileSheet from '../components/ProfileSheet';
-import { MUTABAAH_FIELDS, tilawahTogglePatch } from '../features/mutabaah/mutabaahFields';
+import { MUTABAAH_FIELDS, togglePatch } from '../features/mutabaah/mutabaahFields';
 import { currentStreak, hijriDate } from '../features/mutabaah/streak';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
@@ -88,8 +88,8 @@ export default function Dashboard() {
   async function toggle(key) {
     if (!today) return;
     const previous = today;
-    // Same rule as the Mutabaah page: Tilawah is done at 20 pages (1 juz).
-    const body = key === 'tilawah' ? tilawahTogglePatch(today) : { [key]: !today[key] };
+    // Same rule as the Mutabaah page: Tilawah is done at 20 pages, Zikir at 100.
+    const body = togglePatch(key, today);
     const next = { ...today, ...body };
     setToday(next);
     try {
@@ -187,7 +187,11 @@ export default function Dashboard() {
               <span className="quick-check-box">{today?.[f.key] && <Check size={13} strokeWidth={3} />}</span>
               <span className="quick-check-label">{f.label}</span>
               <span className="quick-check-time">
-                {f.key === 'tilawah' && today?.tilawahPages ? `${today.tilawahPages} pages` : f.time}
+                {f.key === 'tilawah' && today?.tilawahPages
+                  ? `${today.tilawahPages} pages`
+                  : f.key === 'zikir' && today?.zikirCount
+                    ? `${today.zikirCount}x`
+                    : f.time}
               </span>
             </button>
           ))}

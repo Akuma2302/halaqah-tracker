@@ -27,6 +27,27 @@ export function tilawahTogglePatch(entry) {
     : { tilawah: true, tilawahPages: Math.max(entry?.tilawahPages || 0, PAGES_PER_JUZ) };
 }
 
+// Zikir works the same way: done at 100 (istighfar 100x). Max matches the backend.
+export const ZIKIR_GOAL = 100;
+export const MAX_ZIKIR_COUNT = 10000;
+
+export function zikirCountPatch(count) {
+  return { zikirCount: count, zikir: count >= ZIKIR_GOAL };
+}
+
+export function zikirTogglePatch(entry) {
+  return entry?.zikir
+    ? { zikir: false, zikirCount: 0 }
+    : { zikir: true, zikirCount: Math.max(entry?.zikirCount || 0, ZIKIR_GOAL) };
+}
+
+// Tap patch for any item: tilawah/zikir keep their count in step with the tick.
+export function togglePatch(key, entry) {
+  if (key === 'tilawah') return tilawahTogglePatch(entry);
+  if (key === 'zikir') return zikirTogglePatch(entry);
+  return { [key]: !entry?.[key] };
+}
+
 // Display order for the grouped checklist. `from`/`to` are local hours used to
 // highlight the period that's happening now (anytime is never "now").
 export const MUTABAAH_PERIODS = [
