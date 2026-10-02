@@ -1313,9 +1313,41 @@ a {
 
 .log-due {
   flex-shrink: 0;
-  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.log-due-rel {
+  font-size: 11.5px;
   font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.log-due.soon .log-due-rel {
   color: var(--gold-ink);
+}
+
+.log-due.overdue,
+.log-due.overdue .log-due-rel {
+  color: var(--danger);
+}
+
+.log-weight {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.log-more {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  text-decoration: none;
 }
 
 .log-delete {

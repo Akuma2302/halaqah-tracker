@@ -25,6 +25,7 @@ import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
+import { dueLabel, formatDueDate, upcomingDeadlines } from '../features/academic/deadlines';
 
 const MAX_WEEKS_BACK = 15; // the week picker used to offer this week + 15 previous weeks
 const currentWeekKey = toDateKey(getWeekStart());
@@ -32,6 +33,7 @@ const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOUR_PRESETS = [1, 1.5, 2, 3];
 const QUESTION_PRESETS = [5, 10, 20];
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
+const MAX_DEADLINES = 5;
 
 function shiftWeek(weekKey, weeks) {
   const [y, m, d] = weekKey.split('-').map(Number);
@@ -151,6 +153,9 @@ export default function AcademicJournal() {
   const validated = !!weekData?.mentorValidation?.isValidated;
   const isCurrentWeek = week === currentWeekKey;
   const todayIndex = isCurrentWeek ? new Date().getDay() : -1;
+
+  // Assessment due dates set in Subjects, plus any standalone assignments.
+  const deadlines = useMemo(() => upcomingDeadlines(subjects, overview?.assignments || []), [subjects, overview]);
 
   // ---------- add-entry sheet ----------
   function openSheet(kind) {
@@ -564,20 +569,39 @@ export default function AcademicJournal() {
             <span className="log-section-icon">
               <CalendarClock size={16} />
             </span>
-            <div className="log-section-title">Upcoming assignments</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="log-section-title">Upcoming deadlines</div>
+              <div className="log-section-sub">From your subjects' assessments</div>
+            </div>
           </div>
-          {overview?.assignments?.length ? (
-            overview.assignments.map((a) => (
-              <div className="log-row" key={a._id}>
-                <div className="log-body">
-                  <div className="log-title">{a.title}</div>
-                  <div className="log-meta">{subjectLabel(a.subject)}</div>
-                </div>
-                <span className="log-due">{a.dueDate ? `Due ${a.dueDate}` : 'No date'}</span>
-              </div>
-            ))
+          {deadlines.length ? (
+            <>
+              {deadlines.slice(0, MAX_DEADLINES).map((d) => {
+                const due = d.dueDate ? dueLabel(d.dueDate) : null;
+                return (
+                  <div className="log-row" key={d.id}>
+                    <div className="log-body">
+                      <div className="log-title">
+                        {d.title}
+                        {d.weight ? <span className="log-weight"> · {d.weight}%</span> : null}
+                      </div>
+                      <div className="log-meta">{subjectLabel(d.subject)}</div>
+                    </div>
+                    <div className={`log-due${due?.overdue ? ' overdue' : due?.soon ? ' soon' : ''}`}>
+                      <span>{d.dueDate ? formatDueDate(d.dueDate) : 'No date'}</span>
+                      {due && <span className="log-due-rel">{due.text}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+              <Link to="/subject-list" className="log-more">
+                {deadlines.length > MAX_DEADLINES ? `View all ${deadlines.length} in Subjects` : 'Manage in Subjects'}
+              </Link>
+            </>
           ) : (
-            <p className="log-empty">Nothing due right now.</p>
+            <p className="log-empty">
+              No upcoming deadlines. Add due dates to your assessments in <Link to="/subject-list">Subjects</Link>.
+            </p>
           )}
         </div>
 

@@ -5,30 +5,11 @@ import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { ASSESSMENT_TYPES } from '../features/academic/constants';
+import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
 
-const TYPE_LABEL = Object.fromEntries(ASSESSMENT_TYPES.map((t) => [t.value, t.label]));
+const TYPE_LABEL = ASSESSMENT_LABEL;
 const CREDIT_PRESETS = [2, 3, 4];
 const emptyForm = { name: '', code: '', lecturerName: '', creditHour: '', assessments: [] };
-
-function toDateKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-// "today", "tomorrow", "in 4 days", "2 days overdue" for a YYYY-MM-DD date.
-function dueLabel(dateKey) {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  const today = new Date();
-  const days = Math.round((new Date(y, m - 1, d) - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
-  if (days === 0) return { text: 'due today', overdue: false, soon: true };
-  if (days === 1) return { text: 'due tomorrow', overdue: false, soon: true };
-  if (days > 1) return { text: `in ${days} days`, overdue: false, soon: days <= 7 };
-  return { text: `${-days} day${days === -1 ? '' : 's'} overdue`, overdue: true, soon: false };
-}
-
-function formatDate(dateKey) {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-}
 
 // Overall progress weighted by each assessment's percentage (done = 100%).
 function subjectProgress(assessments) {
@@ -300,7 +281,7 @@ export default function SubjectList() {
                     </div>
                     {due ? (
                       <div className={`subject-due${due.overdue ? ' overdue' : due.soon ? ' soon' : ''}`}>
-                        <CalendarClock size={13} /> Next: {TYPE_LABEL[upcoming.type] || upcoming.type} · {formatDate(upcoming.dueDate)} ({due.text})
+                        <CalendarClock size={13} /> Next: {TYPE_LABEL[upcoming.type] || upcoming.type} · {formatDueDate(upcoming.dueDate)} ({due.text})
                       </div>
                     ) : (
                       progress === 100 && (
