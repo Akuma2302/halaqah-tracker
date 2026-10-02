@@ -123,8 +123,10 @@ export default function Dashboard() {
       <div className="page-header greeting">
         <div style={{ minWidth: 0 }}>
           <h1 className="page-title">Assalamualaikum, {user?.name?.split(' ')[0]}</h1>
-          <p className="page-subtitle">
-            {dayjs().format('dddd, D MMM')}
+          <p className="page-subtitle greeting-date">
+            {/* Short weekday on phones so the date and Hijri date fit on one line */}
+            <span className="greeting-date-long">{dayjs().format('dddd, D MMM')}</span>
+            <span className="greeting-date-short">{dayjs().format('ddd, D MMM')}</span>
             {hijri && (
               <>
                 <span className="greeting-sep"> · </span>
