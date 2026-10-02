@@ -1167,25 +1167,49 @@ a {
 }
 
 .week-stats {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
 
 .week-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.week-stat-value {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.week-stat-label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: var(--paper);
-  font-size: 12.5px;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--ink-soft);
+  white-space: nowrap;
 }
 
 .week-stat.ok {
   background: var(--primary-tint);
+}
+
+.week-stat.ok .week-stat-value,
+.week-stat.ok .week-stat-label {
   color: var(--primary-dark);
 }
 

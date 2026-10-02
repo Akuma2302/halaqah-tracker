@@ -431,18 +431,28 @@ export default function AcademicJournal() {
             </div>
 
             <div className="week-stats">
-              <span className="week-stat">
-                <Clock size={13} /> {studySessions.length} session{studySessions.length === 1 ? '' : 's'}
-              </span>
-              <span className="week-stat">
-                <PenLine size={13} /> {totalQuestions} question{totalQuestions === 1 ? '' : 's'}
-              </span>
-              <span className="week-stat">
-                <UsersIcon size={13} /> {consultations.length} consultation{consultations.length === 1 ? '' : 's'}
-              </span>
-              <span className={`week-stat${validated ? ' ok' : ''}`}>
-                <CheckCircle2 size={13} /> {validated ? 'Mentor validated' : 'Not validated'}
-              </span>
+              <div className="week-stat">
+                <span className="week-stat-value">{studySessions.length}</span>
+                <span className="week-stat-label">
+                  <Clock size={12} /> Sessions
+                </span>
+              </div>
+              <div className="week-stat">
+                <span className="week-stat-value">{totalQuestions}</span>
+                <span className="week-stat-label">
+                  <PenLine size={12} /> Questions
+                </span>
+              </div>
+              <div className="week-stat">
+                <span className="week-stat-value">{consultations.length}</span>
+                <span className="week-stat-label">
+                  <UsersIcon size={12} /> Consults
+                </span>
+              </div>
+              <div className={`week-stat${validated ? ' ok' : ''}`} title={validated ? 'Validated by mentor' : 'Not validated by mentor yet'}>
+                <span className="week-stat-value">{validated ? <CheckCircle2 size={18} /> : '–'}</span>
+                <span className="week-stat-label">Mentor</span>
+              </div>
             </div>
           </div>
 
