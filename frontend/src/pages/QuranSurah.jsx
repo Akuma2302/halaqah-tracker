@@ -188,6 +188,7 @@ function QuranSurahReader() {
           )}
           <QuranVerses
             verses={verses}
+            chaptersById={chaptersById}
             translation={prefs.translation}
             size={prefs.size}
             targetKey={targetKey}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Volume2, X } from 'lucide-react';
+import { BookOpenText, Volume2, X } from 'lucide-react';
+import TafsirSheet from './TafsirSheet';
 import { fetchPageWordMeanings, fetchVerseTranslation } from '../services/quranApi';
 
 // Panel for a tapped word (meaning, transliteration, pronunciation) or a
@@ -10,6 +11,7 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState(false);
   const audioRef = useRef(null);
+  const [tafsirKey, setTafsirKey] = useState(null);
 
   useEffect(() => {
     if (!selection) return;
@@ -38,7 +40,7 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
     return () => window.removeEventListener('keydown', onKey);
   }, [selection, onClose]);
 
-  if (!selection) return null;
+  if (!selection) return <TafsirSheet verseKey={tafsirKey} chaptersById={chaptersById} onClose={() => setTafsirKey(null)} />;
 
   const [surah, ayah] = selection.key.split(':');
   const ref = `${chaptersById[surah]?.name_simple || `Surah ${surah}`} ${surah}:${ayah}`;
@@ -54,6 +56,16 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
     <div className="word-panel" role="dialog" aria-label={selection.end ? `Ayat ${ref}` : 'Word meaning'}>
       <div className="word-panel-head">
         <span className="word-panel-ref">{selection.end ? `Ayat ${ref}` : ref}</span>
+        <button
+          type="button"
+          className="quran-tafsir-btn"
+          onClick={() => {
+            setTafsirKey(selection.key);
+            onClose();
+          }}
+        >
+          <BookOpenText size={13} /> Tafsir
+        </button>
         <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
           <X size={15} />
         </button>

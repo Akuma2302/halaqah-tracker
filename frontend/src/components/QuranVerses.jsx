@@ -1,4 +1,6 @@
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { BookOpenText } from 'lucide-react';
+import TafsirSheet from './TafsirSheet';
 
 export const BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ';
 
@@ -24,6 +26,7 @@ export default function QuranVerses({
 }) {
   const refs = useRef({});
   const scrolledTo = useRef(null);
+  const [tafsirKey, setTafsirKey] = useState(null);
 
   useEffect(() => {
     if (!targetKey || scrolledTo.current === targetKey) return;
@@ -94,7 +97,12 @@ export default function QuranVerses({
               ref={(el) => (refs.current[v.key] = el)}
               className={`quran-verse${targetKey === v.key ? ' target' : ''}`}
             >
-              <div className="quran-verse-key">{v.key}</div>
+              <div className="quran-verse-head">
+                <span className="quran-verse-key">{v.key}</span>
+                <button type="button" className="quran-tafsir-btn" onClick={() => setTafsirKey(v.key)}>
+                  <BookOpenText size={13} /> Tafsir
+                </button>
+              </div>
               <p className="mathurat-arabic quran-arabic" dir="rtl" lang="ar" style={{ fontSize: size }}>
                 {v.ar} <span className="ayah-mark">﴿{arabicNumber(v.n)}﴾</span>
               </p>
@@ -103,6 +111,7 @@ export default function QuranVerses({
           </Fragment>
         );
       })}
+      <TafsirSheet verseKey={tafsirKey} chaptersById={chaptersById} onClose={() => setTafsirKey(null)} />
     </div>
   );
 }
