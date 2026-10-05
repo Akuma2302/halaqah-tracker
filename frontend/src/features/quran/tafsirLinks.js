@@ -1,5 +1,4 @@
-// Tafsir links for the Quran readers. Both open the source site in a new tab;
-// no tafsir text is stored in the app.
+// Outbound tafsir links for the Quran readers (opened in a new tab).
 //
 // Fi Zilalil Quran (Sayyid Qutb), Malay edition translated by Yusuf Zaky: one
 // scanned PDF per surah at tafsirzilal.wordpress.com. [path, size in MB], index = surah - 1.

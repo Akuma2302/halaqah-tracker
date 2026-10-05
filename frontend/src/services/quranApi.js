@@ -117,6 +117,14 @@ export async function fetchVerseTranslation(key) {
   return (verse.translations?.[0]?.text || '').replace(/<[^>]+>/g, '');
 }
 
+// Tafsir Ibn Kathir (Abridged, English) for one ayat, straight from the API.
+// Returns its HTML and the ayat it covers (one passage can explain several).
+export const TAFSIR_ID = 169;
+export async function fetchTafsir(key) {
+  const { tafsir } = await get(`/tafsirs/${TAFSIR_ID}/by_ayah/${key}`);
+  return { html: tafsir.text || '', keys: Object.keys(tafsir.verses || {}), name: tafsir.resource_name };
+}
+
 // King Fahd Complex QCF v2 fonts: one font per mushaf page, served (CORS-enabled)
 // by the Quran Foundation CDN. Loaded once per page and cached by the browser.
 const fontLoads = new Map();
