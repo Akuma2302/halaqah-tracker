@@ -2599,6 +2599,61 @@ a {
   gap: 10px;
 }
 
+.sheet .range-toggle.segmented.tafsir-tabs {
+  position: sticky;
+  top: -18px; /* covers the sheet's top padding so nothing scrolls above it */
+  z-index: 2;
+  margin: -8px 0 12px;
+  padding-top: 8px;
+  background: var(--surface);
+  box-shadow: 0 -12px 0 var(--surface), 0 6px 0 var(--surface);
+}
+
+/* Fi Zilal: scanned column strips, edge to edge in the sheet */
+.fizilal-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 -8px 12px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #fff;
+}
+
+.fizilal-strip {
+  position: relative;
+  width: 100%;
+  background: #fff;
+}
+
+.fizilal-strip img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Marks where the opened section starts */
+.fizilal-mark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  margin-top: -6px;
+  background: var(--gold);
+  border-radius: 2px;
+}
+
+/* Black-on-white scans are harsh in the dark theme: show them light-on-dark */
+:root[data-theme='dark'] .fizilal-pages,
+:root[data-theme='dark'] .fizilal-strip {
+  background: #121a19;
+}
+
+:root[data-theme='dark'] .fizilal-strip img {
+  filter: invert(1) brightness(0.92);
+  mix-blend-mode: screen;
+}
+
 .tafsir-note {
   margin: 2px 0 0;
   font-size: 12px;

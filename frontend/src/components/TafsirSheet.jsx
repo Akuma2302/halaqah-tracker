@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
 import Sheet from './Sheet';
 import { fetchTafsir } from '../services/quranApi';
-import { fiZilalLink } from '../features/quran/tafsirLinks';
+import FiZilalReader from './FiZilalReader';
 
 // The tafsir HTML is headings, paragraphs and Arabic snippets. Rebuild it as
 // React elements from a short whitelist instead of injecting the HTML.
@@ -38,13 +37,33 @@ function coversLabel(keys) {
   return `This passage explains ayat ${surah}:${first}–${keys[keys.length - 1].split(':')[1]} together.`;
 }
 
-// Tafsir of one ayat ("2:255"): Ibn Kathir (abridged, English) read in the
-// app via the Quran.com API, plus a link to that surah's Fi Zilal PDF (Malay).
+const TAB_KEY = 'tafsir_tab';
+
+function savedTab() {
+  try {
+    return localStorage.getItem(TAB_KEY) === 'kathir' ? 'kathir' : 'zilal';
+  } catch {
+    return 'zilal';
+  }
+}
+
+// Tafsir of one ayat ("2:255"), read in the app: Fi Zilalil Quran (Malay,
+// scanned pages) or Ibn Kathir (abridged, English, via the Quran.com API).
 export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
+  const [tab, setTab] = useState(savedTab);
   const [state, setState] = useState({ key: null, tafsir: null, error: false });
 
+  function chooseTab(next) {
+    setTab(next);
+    try {
+      localStorage.setItem(TAB_KEY, next);
+    } catch {
+      // private mode: the choice just isn't remembered
+    }
+  }
+
   useEffect(() => {
-    if (!verseKey) return;
+    if (!verseKey || tab !== 'kathir') return;
     let cancelled = false;
     setState({ key: verseKey, tafsir: null, error: false });
     fetchTafsir(verseKey)
@@ -53,10 +72,9 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
     return () => {
       cancelled = true;
     };
-  }, [verseKey]);
+  }, [verseKey, tab]);
 
   const [surah, ayat] = (verseKey || '').split(':').map(Number);
-  const zilal = verseKey ? fiZilalLink(surah) : null;
   const name = chaptersById[surah]?.name_simple || `Surah ${surah}`;
   const tafsir = state.key === verseKey ? state.tafsir : null;
   const body = tafsir ? new DOMParser().parseFromString(tafsir.html, 'text/html').body : null;
@@ -66,7 +84,18 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
     <Sheet open={!!verseKey} onClose={onClose} title={verseKey ? `Tafsir · ${name} ${surah}:${ayat}` : 'Tafsir'}>
       {verseKey && (
         <>
-          {state.error ? (
+          <div className="range-toggle segmented tafsir-tabs">
+            <button className={tab === 'zilal' ? 'active' : ''} onClick={() => chooseTab('zilal')}>
+              Fi Zilal (BM)
+            </button>
+            <button className={tab === 'kathir' ? 'active' : ''} onClick={() => chooseTab('kathir')}>
+              Ibn Kathir (EN)
+            </button>
+          </div>
+
+          {tab === 'zilal' ? (
+            <FiZilalReader key={verseKey} surah={surah} ayat={ayat} surahName={name} />
+          ) : state.error ? (
             <p className="log-empty">Couldn't load the tafsir. Check your connection and try again.</p>
           ) : !tafsir ? (
             <div className="spinner" style={{ margin: '18px auto', display: 'block' }} />
@@ -76,24 +105,9 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
             <>
               {coversLabel(tafsir.keys) && <p className="tafsir-covers">{coversLabel(tafsir.keys)}</p>}
               <div className="tafsir-text">{toElements(body)}</div>
+              <p className="tafsir-note">Tafsir Ibn Kathir (Abridged), English, from the Quran.com API (Quran Foundation).</p>
             </>
           )}
-
-          <div className="tafsir-foot">
-            <p className="tafsir-note">Tafsir Ibn Kathir (Abridged), English, from the Quran.com API (Quran Foundation).</p>
-            {zilal && (
-              <a className="tafsir-link" href={zilal.url} target="_blank" rel="noopener noreferrer">
-                <div>
-                  <div className="tafsir-link-title">Tafsir Fi Zilalil Quran</div>
-                  <div className="tafsir-link-meta">
-                    Bahasa Melayu · whole surah {name} · PDF {zilal.sizeMb} MB
-                  </div>
-                  {zilal.sizeMb >= 5 && <div className="tafsir-link-warn">Large file. Best opened on Wi-Fi.</div>}
-                </div>
-                <ExternalLink size={16} />
-              </a>
-            )}
-          </div>
         </>
       )}
     </Sheet>
