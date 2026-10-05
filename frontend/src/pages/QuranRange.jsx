@@ -7,6 +7,7 @@ import QuranVerses from '../components/QuranVerses';
 import MushafPage from '../components/MushafPage';
 import MushafPages from '../components/MushafPages';
 import MushafWordPanel from '../components/MushafWordPanel';
+import AyatSearch from '../components/AyatSearch';
 import { QuranDisplayControls, QuranModeSwitch, useQuranPrefs, useReaderMode } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
 
@@ -75,6 +76,17 @@ function QuranRangeReader({ kind }) {
     }
   }
 
+  // What "Go to ayat" can reach: the juzuk's surah ranges, or the ayat on this page.
+  const ayatRanges = useMemo(() => {
+    if (kind === 'juz') return juzs.find((j) => j.n === number)?.ranges || [];
+    const bySurah = new Map();
+    (reading ? mushafVerses : verses).forEach((v) => {
+      const r = bySurah.get(v.surah) || { surah: v.surah, from: v.n, to: v.n };
+      bySurah.set(v.surah, { ...r, from: Math.min(r.from, v.n), to: Math.max(r.to, v.n) });
+    });
+    return [...bySurah.values()];
+  }, [kind, number, juzs, reading, mushafVerses, verses]);
+
   // Single page in mushaf view: opening the page counts as reading it. Saved
   // once surah names are loaded, so the label reads well.
   const onMushafLoaded = useCallback(({ verses: pageVerses }) => setMushafVerses(pageVerses), []);
@@ -141,6 +153,7 @@ function QuranRangeReader({ kind }) {
         </h1>
         <p className="page-subtitle">{subtitle || ' '}</p>
         <QuranModeSwitch reading={reading} onChange={switchMode} />
+        <AyatSearch ranges={ayatRanges} chaptersById={chaptersById} />
         {!reading && (
           <div className="quran-tools">
             <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />

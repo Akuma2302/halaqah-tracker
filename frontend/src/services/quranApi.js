@@ -159,7 +159,8 @@ export function fetchVerses(chapterId, batch = 1) {
   return fetchVersesBy('chapter', chapterId, batch);
 }
 
-// The API lists every juzuk twice; keep one of each, with where it starts.
+// The API lists every juzuk twice; keep one of each, with where it starts
+// and which ayat of which surahs it covers.
 export async function fetchJuzs() {
   const { juzs } = await get('/juzs');
   const byNumber = new Map();
@@ -169,6 +170,10 @@ export async function fetchJuzs() {
     byNumber.set(j.juz_number, {
       n: j.juz_number,
       start: { surah: Number(firstSurah), ayah: Number(range.split('-')[0]) },
+      // Every surah in the juzuk with the ayat it covers there.
+      ranges: Object.entries(j.verse_mapping)
+        .map(([s, r]) => ({ surah: Number(s), from: Number(r.split('-')[0]), to: Number(r.split('-')[1]) }))
+        .sort((a, b) => a.surah - b.surah),
       versesCount: j.verses_count
     });
   }

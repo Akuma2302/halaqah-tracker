@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Pause, Play, Search } from 'lucide-react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { fetchChapter, fetchChapterAudio, fetchChapters, keyFromHash, saveLastRead } from '../services/quranApi';
 import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses, { BISMILLAH } from '../components/QuranVerses';
 import MushafPages from '../components/MushafPages';
+import AyatSearch from '../components/AyatSearch';
 import { QuranDisplayControls, QuranModeSwitch, useQuranPrefs, useReaderMode } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
 
@@ -26,21 +27,7 @@ function QuranSurahReader() {
     untilKey: targetKey
   });
 
-  const navigate = useNavigate();
-  const [ayatQuery, setAyatQuery] = useState('');
-  const ayatCount = chapter?.verses_count || 0;
-  const ayatNumber = Number(ayatQuery);
-  const ayatValid = Number.isInteger(ayatNumber) && ayatNumber >= 1 && ayatNumber <= ayatCount;
-
-  // Jump to an ayat: the #N hash is what both views already open at.
-  function goToAyat(e) {
-    e.preventDefault();
-    if (!ayatValid) return;
-    e.currentTarget.querySelector('input')?.blur();
-    navigate({ hash: `#${ayatNumber}` }, { replace: true });
-    // Same ayat as last time: the hash doesn't change, so scroll to it directly.
-    document.querySelector(`[data-key="${id}:${ayatNumber}"]`)?.scrollIntoView({ block: 'start' });
-  }
+  const ayatRanges = useMemo(() => (chapter ? [{ surah: id, from: 1, to: chapter.verses_count }] : []), [chapter, id]);
 
   const [audioUrl, setAudioUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
@@ -158,27 +145,7 @@ function QuranSurahReader() {
         )}
 
         <QuranModeSwitch reading={reading} onChange={switchMode} />
-        {ayatCount > 0 && (
-          <form className="ayat-search" onSubmit={goToAyat}>
-            <Search size={15} />
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={ayatCount}
-              placeholder={`Go to ayat (1–${ayatCount})`}
-              value={ayatQuery}
-              onChange={(e) => setAyatQuery(e.target.value)}
-              aria-label="Ayat number"
-            />
-            <button type="submit" className="btn btn-primary btn-sm" disabled={!ayatValid}>
-              Go
-            </button>
-          </form>
-        )}
-        {ayatQuery !== '' && !ayatValid && ayatCount > 0 && (
-          <p className="ayat-search-hint">This surah has ayat 1 to {ayatCount}.</p>
-        )}
+        <AyatSearch ranges={ayatRanges} />
         <div className="quran-tools">
           <button type="button" className="btn btn-primary btn-sm" onClick={togglePlay}>
             {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Listen'}

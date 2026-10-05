@@ -2381,6 +2381,29 @@ a {
   border-color: var(--primary);
 }
 
+.ayat-search input::placeholder {
+  font-size: 14px;
+}
+
+.ayat-search select {
+  max-width: 38%;
+  padding: 4px 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  outline: none;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.ayat-search select option {
+  background: var(--surface);
+  color: var(--ink);
+}
+
 .ayat-search input {
   flex: 1;
   min-width: 0;
