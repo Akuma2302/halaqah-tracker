@@ -1,6 +1,21 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpenText } from 'lucide-react';
 import TafsirSheet from './TafsirSheet';
+import MushafWordPanel from './MushafWordPanel';
+
+// An ayat's text as its words, in the word-by-word numbering used for
+// meanings ("2:255:3" is the third). Pause and stop marks stand alone in the
+// text but aren't words, so each is kept with the word before it.
+const ARABIC_LETTER = /[ء-يٱ-ۓۺ-ۿ]/;
+function ayatWords(text) {
+  const words = [];
+  text.split(' ').forEach((token) => {
+    if (!token) return;
+    if (ARABIC_LETTER.test(token) || !words.length) words.push(token);
+    else words[words.length - 1] += ` ${token}`;
+  });
+  return words;
+}
 
 export const BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ';
 
@@ -27,6 +42,10 @@ export default function QuranVerses({
   const refs = useRef({});
   const scrolledTo = useRef(null);
   const [tafsirKey, setTafsirKey] = useState(null);
+  // Tapped word, shown in the meaning panel; tapping it again closes the panel.
+  const [selection, setSelection] = useState(null);
+  const closePanel = useCallback(() => setSelection(null), []);
+  const selectWord = useCallback((w) => setSelection((cur) => (cur?.id === w.id ? null : w)), []);
 
   useEffect(() => {
     if (!targetKey || scrolledTo.current === targetKey) return;
@@ -104,7 +123,25 @@ export default function QuranVerses({
                 </button>
               </div>
               <p className="mathurat-arabic quran-arabic" dir="rtl" lang="ar" style={{ fontSize: size }}>
-                {v.ar} <span className="ayah-mark">﴿{arabicNumber(v.n)}﴾</span>
+                {ayatWords(v.ar).map((text, i) => {
+                  const id = `${v.key}:${i + 1}`;
+                  return (
+                    <Fragment key={id}>
+                      <span
+                        className={`quran-word${selection?.id === id ? ' selected' : ''}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => selectWord({ id, key: v.key, page: v.page, end: false })}
+                        onKeyDown={(e) =>
+                          (e.key === 'Enter' || e.key === ' ') && selectWord({ id, key: v.key, page: v.page, end: false })
+                        }
+                      >
+                        {text}
+                      </span>{' '}
+                    </Fragment>
+                  );
+                })}
+                <span className="ayah-mark">﴿{arabicNumber(v.n)}﴾</span>
               </p>
               {translation && <p className="quran-translation">{v.ms}</p>}
             </article>
@@ -112,6 +149,7 @@ export default function QuranVerses({
         );
       })}
       <TafsirSheet verseKey={tafsirKey} chaptersById={chaptersById} onClose={() => setTafsirKey(null)} />
+      <MushafWordPanel selection={selection} chaptersById={chaptersById} onClose={closePanel} />
     </div>
   );
 }

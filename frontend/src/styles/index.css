@@ -2488,6 +2488,29 @@ a {
   color: var(--ink-soft);
 }
 
+/* Words in Ayat demi Ayat are tappable for their meaning */
+.quran-word {
+  border-radius: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .quran-word:hover {
+    background: var(--primary-tint);
+  }
+}
+
+.quran-word.selected {
+  background: var(--gold-tint);
+  color: var(--gold-ink);
+}
+
+.quran-word:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .quran-verse-head {
   display: flex;
   align-items: center;
