@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Sheet from './Sheet';
-import { fetchPlainTafsir, fetchTafsir } from '../services/quranApi';
+import { ExternalLink } from 'lucide-react';
+import { fetchTafsir } from '../services/quranApi';
+import { ibnuKatsirLink } from '../features/quran/tafsirLinks';
 import FiZilalReader from './FiZilalReader';
 
 // The tafsir HTML is headings, paragraphs and Arabic snippets. Rebuild it as
@@ -39,13 +41,11 @@ function coversLabel(keys) {
 
 const TAB_KEY = 'tafsir_tab';
 
-// The tafsirs offered, in tab order. `plain` ones are plain-text Indonesian
-// editions (features: fetchPlainTafsir); the others have their own renderer.
+// The tafsirs offered, in tab order.
 const TABS = [
   { id: 'zilal', name: 'Fi Zilal', lang: 'Melayu' },
-  { id: 'saadi', name: "As-Sa'di", lang: 'Indonesia', plain: 'id-tafsir-as-saadi', credit: "Tafsir As-Sa'di (Syaikh Abdurrahman as-Sa'di), Bahasa Indonesia." },
-  { id: 'mukhtasar', name: 'Mukhtasar', lang: 'Indonesia', plain: 'indonesian-mokhtasar', credit: 'Al-Mukhtasar fi Tafsir al-Quran al-Karim (Markaz Tafsir), Bahasa Indonesia. A short explanation of each ayat.' },
-  { id: 'kathir', name: 'Ibn Kathir', lang: 'English', credit: 'Tafsir Ibn Kathir (Abridged), English, from the Quran.com API (Quran Foundation).' }
+  { id: 'katsir', name: 'Ibnu Katsir', lang: 'Indonesia' },
+  { id: 'kathir', name: 'Ibn Kathir', lang: 'English' }
 ];
 
 function savedTab() {
@@ -57,12 +57,11 @@ function savedTab() {
   }
 }
 
-// Tafsir of one ayat ("2:255"), read in the app: Fi Zilalil Quran (Malay,
-// scanned pages), As-Sa'di and Al-Mukhtasar (Indonesian) or Ibn Kathir
-// (abridged, English).
+// Tafsir of one ayat ("2:255"). Read in the app: Fi Zilalil Quran (Malay,
+// scanned pages) and Ibn Kathir (abridged, English, Quran.com API). The
+// Indonesian Tafsir Ibnu Katsir is a link out to its flipbook.
 export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
   const [tabId, setTabId] = useState(savedTab);
-  const tab = TABS.find((t) => t.id === tabId);
   const [state, setState] = useState({ key: null, tafsir: null, error: false });
 
   function chooseTab(next) {
@@ -77,10 +76,10 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
 
   const loadKey = `${tabId}/${verseKey}`;
   useEffect(() => {
-    if (!verseKey || tabId === 'zilal') return;
+    if (!verseKey || tabId !== 'kathir') return;
     let cancelled = false;
     setState({ key: loadKey, tafsir: null, error: false });
-    (tab.plain ? fetchPlainTafsir(tab.plain, verseKey) : fetchTafsir(verseKey))
+    fetchTafsir(verseKey)
       .then((tafsir) => !cancelled && setState({ key: loadKey, tafsir, error: false }))
       .catch(() => !cancelled && setState({ key: loadKey, tafsir: null, error: true }));
     return () => {
@@ -93,8 +92,8 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
   const name = chaptersById[surah]?.name_simple || `Surah ${surah}`;
   const tafsir = state.key === loadKey ? state.tafsir : null;
   const body = tafsir?.html ? new DOMParser().parseFromString(tafsir.html, 'text/html').body : null;
-  const paragraphs = tafsir?.text ? tafsir.text.split(/[\r\n]+/).map((p) => p.trim()).filter(Boolean) : [];
-  const empty = tafsir && !(body?.textContent.trim() || paragraphs.length);
+  const empty = tafsir && !body?.textContent.trim();
+  const katsir = verseKey ? ibnuKatsirLink(surah) : null;
 
   return (
     <Sheet
@@ -116,17 +115,37 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
         <>
           {tabId === 'zilal' ? (
             <FiZilalReader key={verseKey} surah={surah} ayat={ayat} surahName={name} />
+          ) : tabId === 'katsir' ? (
+            katsir ? (
+              <>
+                <a className="tafsir-link" href={katsir.url} target="_blank" rel="noopener noreferrer">
+                  <div>
+                    <div className="tafsir-link-title">Tafsir Ibnu Katsir · Jilid {katsir.volume}</div>
+                    <div className="tafsir-link-meta">
+                      Bahasa Indonesia · opens where {name} begins (page {katsir.page}) · fliphtml5.com
+                    </div>
+                  </div>
+                  <ExternalLink size={16} />
+                </a>
+                <p className="tafsir-note">
+                  This opens a scanned copy of the printed book (Pustaka Imam Asy-Syafi'i) on another website, at the
+                  start of the surah. Flip forward to reach ayat {ayat}.
+                </p>
+              </>
+            ) : (
+              <p className="log-empty">There is no Ibnu Katsir link for this surah yet.</p>
+            )
           ) : state.error && state.key === loadKey ? (
             <p className="log-empty">Couldn't load the tafsir. Check your connection and try again.</p>
           ) : !tafsir ? (
             <div className="spinner" style={{ margin: '18px auto', display: 'block' }} />
           ) : empty ? (
-            <p className="log-empty">{tab.name} has no separate commentary for this ayat.</p>
+            <p className="log-empty">Ibn Kathir has no separate commentary for this ayat.</p>
           ) : (
             <>
               {coversLabel(tafsir.keys || []) && <p className="tafsir-covers">{coversLabel(tafsir.keys)}</p>}
-              <div className="tafsir-text">{body ? toElements(body) : paragraphs.map((p, i) => <p key={i}>{p}</p>)}</div>
-              <p className="tafsir-note">{tab.credit}</p>
+              <div className="tafsir-text">{toElements(body)}</div>
+              <p className="tafsir-note">Tafsir Ibn Kathir (Abridged), English, from the Quran.com API (Quran Foundation).</p>
             </>
           )}
         </>
