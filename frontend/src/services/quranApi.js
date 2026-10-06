@@ -125,6 +125,23 @@ export async function fetchTafsir(key) {
   return { html: tafsir.text || '', keys: Object.keys(tafsir.verses || {}), name: tafsir.resource_name };
 }
 
+// Plain-text tafsir editions (e.g. Indonesian As-Sa'di, Al-Mukhtasar) from the
+// open tafsir_api collection on GitHub, one small JSON file per ayat.
+const TAFSIR_FILES = 'https://raw.githubusercontent.com/spa5k/tafsir_api/main/tafsir';
+const plainTafsirs = new Map();
+export function fetchPlainTafsir(slug, key) {
+  const path = `${slug}/${key.replace(':', '/')}.json`;
+  if (!plainTafsirs.has(path)) {
+    const promise = fetch(`${TAFSIR_FILES}/${path}`).then((res) => {
+      if (!res.ok) throw new Error(`Tafsir ${res.status}`);
+      return res.json();
+    });
+    plainTafsirs.set(path, promise.then((d) => ({ text: d.text || '' })));
+    promise.catch(() => plainTafsirs.delete(path));
+  }
+  return plainTafsirs.get(path);
+}
+
 // King Fahd Complex QCF v2 fonts: one font per mushaf page, served (CORS-enabled)
 // by the Quran Foundation CDN. Loaded once per page and cached by the browser.
 const fontLoads = new Map();

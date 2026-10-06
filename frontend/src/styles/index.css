@@ -2603,6 +2603,30 @@ a {
   margin-bottom: 12px;
 }
 
+/* Four tafsirs: name over language, so they fit a phone */
+.sheet .range-toggle.segmented.tafsir-tabs button {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0;
+  padding: 5px 2px;
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.tafsir-tabs button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tafsir-tabs button small {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
 /* Sheet whose title row and header stay put while the content scrolls */
 .sheet.sheet-fixed-head {
   display: flex;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Sheet from './Sheet';
-import { fetchTafsir } from '../services/quranApi';
+import { fetchPlainTafsir, fetchTafsir } from '../services/quranApi';
 import FiZilalReader from './FiZilalReader';
 
 // The tafsir HTML is headings, paragraphs and Arabic snippets. Rebuild it as
@@ -39,22 +39,34 @@ function coversLabel(keys) {
 
 const TAB_KEY = 'tafsir_tab';
 
+// The tafsirs offered, in tab order. `plain` ones are plain-text Indonesian
+// editions (features: fetchPlainTafsir); the others have their own renderer.
+const TABS = [
+  { id: 'zilal', name: 'Fi Zilal', lang: 'Melayu' },
+  { id: 'saadi', name: "As-Sa'di", lang: 'Indonesia', plain: 'id-tafsir-as-saadi', credit: "Tafsir As-Sa'di (Syaikh Abdurrahman as-Sa'di), Bahasa Indonesia." },
+  { id: 'mukhtasar', name: 'Mukhtasar', lang: 'Indonesia', plain: 'indonesian-mokhtasar', credit: 'Al-Mukhtasar fi Tafsir al-Quran al-Karim (Markaz Tafsir), Bahasa Indonesia. A short explanation of each ayat.' },
+  { id: 'kathir', name: 'Ibn Kathir', lang: 'English', credit: 'Tafsir Ibn Kathir (Abridged), English, from the Quran.com API (Quran Foundation).' }
+];
+
 function savedTab() {
   try {
-    return localStorage.getItem(TAB_KEY) === 'kathir' ? 'kathir' : 'zilal';
+    const saved = localStorage.getItem(TAB_KEY);
+    return TABS.some((t) => t.id === saved) ? saved : 'zilal';
   } catch {
     return 'zilal';
   }
 }
 
 // Tafsir of one ayat ("2:255"), read in the app: Fi Zilalil Quran (Malay,
-// scanned pages) or Ibn Kathir (abridged, English, via the Quran.com API).
+// scanned pages), As-Sa'di and Al-Mukhtasar (Indonesian) or Ibn Kathir
+// (abridged, English).
 export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
-  const [tab, setTab] = useState(savedTab);
+  const [tabId, setTabId] = useState(savedTab);
+  const tab = TABS.find((t) => t.id === tabId);
   const [state, setState] = useState({ key: null, tafsir: null, error: false });
 
   function chooseTab(next) {
-    setTab(next);
+    setTabId(next);
     document.querySelector('.sheet-body')?.scrollTo({ top: 0 }); // each tafsir starts from its own top
     try {
       localStorage.setItem(TAB_KEY, next);
@@ -63,23 +75,26 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
     }
   }
 
+  const loadKey = `${tabId}/${verseKey}`;
   useEffect(() => {
-    if (!verseKey || tab !== 'kathir') return;
+    if (!verseKey || tabId === 'zilal') return;
     let cancelled = false;
-    setState({ key: verseKey, tafsir: null, error: false });
-    fetchTafsir(verseKey)
-      .then((tafsir) => !cancelled && setState({ key: verseKey, tafsir, error: false }))
-      .catch(() => !cancelled && setState({ key: verseKey, tafsir: null, error: true }));
+    setState({ key: loadKey, tafsir: null, error: false });
+    (tab.plain ? fetchPlainTafsir(tab.plain, verseKey) : fetchTafsir(verseKey))
+      .then((tafsir) => !cancelled && setState({ key: loadKey, tafsir, error: false }))
+      .catch(() => !cancelled && setState({ key: loadKey, tafsir: null, error: true }));
     return () => {
       cancelled = true;
     };
-  }, [verseKey, tab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadKey]);
 
   const [surah, ayat] = (verseKey || '').split(':').map(Number);
   const name = chaptersById[surah]?.name_simple || `Surah ${surah}`;
-  const tafsir = state.key === verseKey ? state.tafsir : null;
-  const body = tafsir ? new DOMParser().parseFromString(tafsir.html, 'text/html').body : null;
-  const empty = body && !body.textContent.trim();
+  const tafsir = state.key === loadKey ? state.tafsir : null;
+  const body = tafsir?.html ? new DOMParser().parseFromString(tafsir.html, 'text/html').body : null;
+  const paragraphs = tafsir?.text ? tafsir.text.split(/[\r\n]+/).map((p) => p.trim()).filter(Boolean) : [];
+  const empty = tafsir && !(body?.textContent.trim() || paragraphs.length);
 
   return (
     <Sheet
@@ -88,30 +103,30 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
       title={verseKey ? `Tafsir · ${name} ${surah}:${ayat}` : 'Tafsir'}
       header={
         <div className="range-toggle segmented tafsir-tabs">
-          <button className={tab === 'zilal' ? 'active' : ''} onClick={() => chooseTab('zilal')}>
-            Fi Zilal (BM)
-          </button>
-          <button className={tab === 'kathir' ? 'active' : ''} onClick={() => chooseTab('kathir')}>
-            Ibn Kathir (EN)
-          </button>
+          {TABS.map((t) => (
+            <button key={t.id} className={tabId === t.id ? 'active' : ''} onClick={() => chooseTab(t.id)}>
+              <span>{t.name}</span>
+              <small>{t.lang}</small>
+            </button>
+          ))}
         </div>
       }
     >
       {verseKey && (
         <>
-          {tab === 'zilal' ? (
+          {tabId === 'zilal' ? (
             <FiZilalReader key={verseKey} surah={surah} ayat={ayat} surahName={name} />
-          ) : state.error ? (
+          ) : state.error && state.key === loadKey ? (
             <p className="log-empty">Couldn't load the tafsir. Check your connection and try again.</p>
           ) : !tafsir ? (
             <div className="spinner" style={{ margin: '18px auto', display: 'block' }} />
           ) : empty ? (
-            <p className="log-empty">Ibn Kathir has no separate commentary for this ayat.</p>
+            <p className="log-empty">{tab.name} has no separate commentary for this ayat.</p>
           ) : (
             <>
-              {coversLabel(tafsir.keys) && <p className="tafsir-covers">{coversLabel(tafsir.keys)}</p>}
-              <div className="tafsir-text">{toElements(body)}</div>
-              <p className="tafsir-note">Tafsir Ibn Kathir (Abridged), English, from the Quran.com API (Quran Foundation).</p>
+              {coversLabel(tafsir.keys || []) && <p className="tafsir-covers">{coversLabel(tafsir.keys)}</p>}
+              <div className="tafsir-text">{body ? toElements(body) : paragraphs.map((p, i) => <p key={i}>{p}</p>)}</div>
+              <p className="tafsir-note">{tab.credit}</p>
             </>
           )}
         </>
