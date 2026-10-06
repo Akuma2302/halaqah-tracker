@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 // Bottom sheet on mobile, centered dialog on wider screens.
-export default function Sheet({ open, onClose, title, children }) {
+// With `header`, the title row and that header stay put and only the content
+// below scrolls (for long reading sheets).
+export default function Sheet({ open, onClose, title, header, children }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -14,7 +16,13 @@ export default function Sheet({ open, onClose, title, children }) {
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`sheet${header ? ' sheet-fixed-head' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+      >
         <span className="more-handle" />
         <div className="sheet-head">
           <h2 className="sheet-title">{title}</h2>
@@ -22,7 +30,14 @@ export default function Sheet({ open, onClose, title, children }) {
             <X size={15} />
           </button>
         </div>
-        {children}
+        {header ? (
+          <>
+            {header}
+            <div className="sheet-body">{children}</div>
+          </>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

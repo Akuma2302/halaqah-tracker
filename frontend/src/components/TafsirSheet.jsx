@@ -55,6 +55,7 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
 
   function chooseTab(next) {
     setTab(next);
+    document.querySelector('.sheet-body')?.scrollTo({ top: 0 }); // each tafsir starts from its own top
     try {
       localStorage.setItem(TAB_KEY, next);
     } catch {
@@ -81,18 +82,23 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
   const empty = body && !body.textContent.trim();
 
   return (
-    <Sheet open={!!verseKey} onClose={onClose} title={verseKey ? `Tafsir · ${name} ${surah}:${ayat}` : 'Tafsir'}>
+    <Sheet
+      open={!!verseKey}
+      onClose={onClose}
+      title={verseKey ? `Tafsir · ${name} ${surah}:${ayat}` : 'Tafsir'}
+      header={
+        <div className="range-toggle segmented tafsir-tabs">
+          <button className={tab === 'zilal' ? 'active' : ''} onClick={() => chooseTab('zilal')}>
+            Fi Zilal (BM)
+          </button>
+          <button className={tab === 'kathir' ? 'active' : ''} onClick={() => chooseTab('kathir')}>
+            Ibn Kathir (EN)
+          </button>
+        </div>
+      }
+    >
       {verseKey && (
         <>
-          <div className="range-toggle segmented tafsir-tabs">
-            <button className={tab === 'zilal' ? 'active' : ''} onClick={() => chooseTab('zilal')}>
-              Fi Zilal (BM)
-            </button>
-            <button className={tab === 'kathir' ? 'active' : ''} onClick={() => chooseTab('kathir')}>
-              Ibn Kathir (EN)
-            </button>
-          </div>
-
           {tab === 'zilal' ? (
             <FiZilalReader key={verseKey} surah={surah} ayat={ayat} surahName={name} />
           ) : state.error ? (

@@ -2600,13 +2600,25 @@ a {
 }
 
 .sheet .range-toggle.segmented.tafsir-tabs {
-  position: sticky;
-  top: -18px; /* covers the sheet's top padding so nothing scrolls above it */
-  z-index: 2;
-  margin: -8px 0 12px;
-  padding-top: 8px;
-  background: var(--surface);
-  box-shadow: 0 -12px 0 var(--surface), 0 6px 0 var(--surface);
+  margin-bottom: 12px;
+}
+
+/* Sheet whose title row and header stay put while the content scrolls */
+.sheet.sheet-fixed-head {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sheet-fixed-head > * {
+  flex-shrink: 0;
+}
+
+.sheet-fixed-head > .sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Fi Zilal: scanned column strips, edge to edge in the sheet */

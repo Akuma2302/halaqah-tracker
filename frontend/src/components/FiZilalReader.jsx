@@ -27,10 +27,10 @@ export default function FiZilalReader({ surah, ayat, surahName }) {
   // ratio), so the position is right before the images have loaded.
   useEffect(() => {
     const el = target.current;
-    const scroller = el?.closest('.sheet');
+    const scroller = el?.closest('.sheet-body');
     if (!el || !scroller) return;
     const top = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-    scroller.scrollTo({ top: Math.max(0, top - 56) });
+    scroller.scrollTo({ top: Math.max(0, top - 10) });
   }, [entry, section?.strip, section?.y]);
 
   if (index === undefined) return <div className="spinner" style={{ margin: '18px auto', display: 'block' }} />;
