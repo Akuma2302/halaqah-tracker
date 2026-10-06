@@ -347,3 +347,19 @@ create table if not exists subject_folders (
 create index if not exists idx_subject_folders_subject on subject_folders(subject_id);
 alter table subject_folders enable row level security;
 alter table subject_files add column if not exists folder_id uuid references subject_folders(id) on delete set null;
+
+-- Quran bookmarks, synced across the user's devices. mark_id is the ayat key
+-- ("2:255"), or "<kind>/<number>" for a whole reader with no ayat known.
+create table if not exists quran_bookmarks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  mark_id text not null,
+  kind text not null check (kind in ('chapter', 'juz', 'page')),
+  number integer not null,
+  verse_key text,
+  label text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, mark_id)
+);
+create index if not exists idx_quran_bookmarks_user on quran_bookmarks(user_id);
+alter table quran_bookmarks enable row level security;
