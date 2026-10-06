@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { BookOpen, ChevronRight, Search } from 'lucide-react';
+import { Bookmark, BookOpen, ChevronRight, Search, X } from 'lucide-react';
 import { fetchChapters, fetchJuzs, lastReadPath, readLastRead, TOTAL_PAGES } from '../services/quranApi';
+import { bookmarkPath, removeBookmark, useBookmarks } from '../features/quran/bookmarks';
 
 const VIEWS = [
   ['surah', 'Surah'],
@@ -30,6 +31,7 @@ export default function QuranIndex() {
   const [query, setQuery] = useState('');
   const [pageInput, setPageInput] = useState('');
   const lastRead = useMemo(readLastRead, []);
+  const bookmarks = useBookmarks();
 
   function load() {
     setLoading(true);
@@ -87,6 +89,25 @@ export default function QuranIndex() {
           </span>
           <ChevronRight size={18} className="hours-chevron" />
         </Link>
+      )}
+
+      {bookmarks.length > 0 && (
+        <div className="card quran-bookmarks">
+          <div className="quran-bookmarks-title">
+            <Bookmark size={15} /> Bookmarks
+          </div>
+          {bookmarks.map((b) => (
+            <div key={b.id} className="quran-bookmark">
+              <Link to={bookmarkPath(b)} className="quran-bookmark-link">
+                <span>{b.label}</span>
+                <ChevronRight size={16} />
+              </Link>
+              <button className="icon-btn" onClick={() => removeBookmark(b.id)} aria-label={`Remove bookmark ${b.label}`}>
+                <X size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
       )}
 
       <div className="range-toggle segmented">

@@ -1,7 +1,8 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpenText } from 'lucide-react';
+import { Bookmark, BookmarkCheck, BookOpenText } from 'lucide-react';
 import TafsirSheet from './TafsirSheet';
 import MushafWordPanel from './MushafWordPanel';
+import { toggleBookmark, useBookmarks } from '../features/quran/bookmarks';
 
 // An ayat's text as its words, in the word-by-word numbering used for
 // meanings ("2:255:3" is the third). Pause and stop marks stand alone in the
@@ -42,6 +43,7 @@ export default function QuranVerses({
   const refs = useRef({});
   const scrolledTo = useRef(null);
   const [tafsirKey, setTafsirKey] = useState(null);
+  const bookmarked = new Set(useBookmarks().map((b) => b.id));
   // Tapped word, shown in the meaning panel; tapping it again closes the panel.
   const [selection, setSelection] = useState(null);
   const closePanel = useCallback(() => setSelection(null), []);
@@ -118,9 +120,28 @@ export default function QuranVerses({
             >
               <div className="quran-verse-head">
                 <span className="quran-verse-key">{v.key}</span>
-                <button type="button" className="quran-tafsir-btn" onClick={() => setTafsirKey(v.key)}>
-                  <BookOpenText size={13} /> Tafsir
-                </button>
+                <span className="quran-verse-actions">
+                  <button
+                    type="button"
+                    className={`quran-tafsir-btn quran-mark-btn${bookmarked.has(v.key) ? ' on' : ''}`}
+                    onClick={() =>
+                      toggleBookmark({
+                        kind: 'chapter',
+                        number: v.surah,
+                        key: v.key,
+                        label: `${chapter?.name_simple || `Surah ${v.surah}`} ${v.key} · muka surat ${v.page}`
+                      })
+                    }
+                    aria-pressed={bookmarked.has(v.key)}
+                    aria-label={bookmarked.has(v.key) ? `Remove bookmark from ayat ${v.key}` : `Bookmark ayat ${v.key}`}
+                    title={bookmarked.has(v.key) ? 'Remove bookmark' : 'Bookmark this ayat'}
+                  >
+                    {bookmarked.has(v.key) ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+                  </button>
+                  <button type="button" className="quran-tafsir-btn" onClick={() => setTafsirKey(v.key)}>
+                    <BookOpenText size={13} /> Tafsir
+                  </button>
+                </span>
               </div>
               <p className="mathurat-arabic quran-arabic" dir="rtl" lang="ar" style={{ fontSize: size }}>
                 {ayatWords(v.ar).map((text, i) => {

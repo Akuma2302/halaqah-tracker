@@ -13,6 +13,7 @@ import { useStartPage } from '../hooks/useStartPage';
 import { useAudioSpeed } from '../hooks/useAudioSpeed';
 import { useAyatPlayer } from '../hooks/useAyatPlayer';
 import SpeedButton from '../components/SpeedButton';
+import BookmarkButton from '../components/BookmarkButton';
 
 // Reader for a whole juzuk (/quran/juz/:number) or a single mushaf page
 // (/quran/page/:number). Both can cross surah boundaries, so verses are shown
@@ -176,6 +177,7 @@ function QuranRangeReader({ kind }) {
             {player.loading ? 'Loading…' : player.playing ? 'Pause' : playingKey ? 'Resume' : 'Listen'}
           </button>
           <SpeedButton speed={speed} onClick={nextSpeed} />
+          <BookmarkButton kind={kind} number={number} fallback={{ key: null, label: `${unit} ${number}` }} />
           {!reading && <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />}
         </div>
         {player.error && <p className="reminder-warn">Couldn't play the recitation. Check your connection.</p>}

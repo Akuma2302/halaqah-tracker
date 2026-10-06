@@ -10,6 +10,7 @@ import { QuranDisplayControls, QuranModeSwitch, useQuranPrefs, useReaderMode } f
 import { useStartPage } from '../hooks/useStartPage';
 import { useAudioSpeed } from '../hooks/useAudioSpeed';
 import SpeedButton from '../components/SpeedButton';
+import BookmarkButton from '../components/BookmarkButton';
 
 function QuranSurahReader() {
   const { surah } = useParams();
@@ -163,6 +164,13 @@ function QuranSurahReader() {
             {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Listen'}
           </button>
           <SpeedButton speed={speed} onClick={nextSpeed} />
+          {chapter && (
+            <BookmarkButton
+              kind="chapter"
+              number={id}
+              fallback={{ key: `${id}:1`, label: `${chapter.name_simple}, ayat 1` }}
+            />
+          )}
           {!reading && <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />}
         </div>
         <audio

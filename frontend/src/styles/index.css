@@ -2511,6 +2511,85 @@ a {
   outline-offset: 2px;
 }
 
+/* Bookmarks: icon on each ayat, button in the reader header, list on Al-Quran */
+.quran-verse-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quran-tafsir-btn.quran-mark-btn {
+  padding: 4px 8px;
+}
+
+.quran-tafsir-btn.quran-mark-btn.on,
+.quran-tools .quran-bookmark-btn.on {
+  border-color: var(--gold-border);
+  background: var(--gold-tint);
+  color: var(--gold-ink);
+}
+
+.word-panel-head .quran-mark-btn {
+  margin-left: auto;
+}
+
+.word-panel-head .quran-mark-btn + .quran-tafsir-btn {
+  margin-left: 0;
+}
+
+.quran-bookmarks {
+  margin-bottom: 14px;
+  padding: 12px 14px 6px;
+}
+
+.quran-bookmarks-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-ink);
+}
+
+.quran-bookmark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.quran-bookmark-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  color: var(--ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.quran-bookmark-link span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quran-bookmark-link svg {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+
+.quran-bookmark .icon-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
 .quran-verse-head {
   display: flex;
   align-items: center;

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { BookOpenText, Volume2, X } from 'lucide-react';
+import { Bookmark, BookmarkCheck, BookOpenText, Volume2, X } from 'lucide-react';
 import TafsirSheet from './TafsirSheet';
+import { toggleBookmark, useBookmarks } from '../features/quran/bookmarks';
 import { fetchPageWordMeanings, fetchVerseTranslation } from '../services/quranApi';
 
 // Panel for a tapped word (meaning, transliteration, pronunciation) or a
@@ -12,6 +13,7 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
   const [error, setError] = useState(false);
   const audioRef = useRef(null);
   const [tafsirKey, setTafsirKey] = useState(null);
+  const bookmarks = useBookmarks();
 
   useEffect(() => {
     if (!selection) return;
@@ -44,6 +46,7 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
 
   const [surah, ayah] = selection.key.split(':');
   const ref = `${chaptersById[surah]?.name_simple || `Surah ${surah}`} ${surah}:${ayah}`;
+  const isBookmarked = bookmarks.some((b) => b.id === selection.key);
 
   function play() {
     if (!detail?.audio) return;
@@ -56,6 +59,23 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
     <div className="word-panel" role="dialog" aria-label={selection.end ? `Ayat ${ref}` : 'Word meaning'}>
       <div className="word-panel-head">
         <span className="word-panel-ref">{selection.end ? `Ayat ${ref}` : ref}</span>
+        <button
+          type="button"
+          className={`quran-tafsir-btn quran-mark-btn${isBookmarked ? ' on' : ''}`}
+          onClick={() =>
+            toggleBookmark({
+              kind: 'chapter',
+              number: Number(surah),
+              key: selection.key,
+              label: `${ref}${selection.page ? ` · muka surat ${selection.page}` : ''}`
+            })
+          }
+          aria-pressed={isBookmarked}
+          aria-label={isBookmarked ? `Remove bookmark from ayat ${selection.key}` : `Bookmark ayat ${selection.key}`}
+          title={isBookmarked ? 'Remove bookmark' : 'Bookmark this ayat'}
+        >
+          {isBookmarked ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+        </button>
         <button
           type="button"
           className="quran-tafsir-btn"
