@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { fetchChapters, fetchJuzs, juzPages, keyFromHash, saveLastRead, TOTAL_JUZ, TOTAL_PAGES } from '../services/quranApi';
 import { useQuranVerses } from '../hooks/useQuranVerses';
 import QuranVerses from '../components/QuranVerses';
@@ -10,6 +10,9 @@ import MushafWordPanel from '../components/MushafWordPanel';
 import AyatSearch from '../components/AyatSearch';
 import { QuranDisplayControls, QuranModeSwitch, useQuranPrefs, useReaderMode } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
+import { useAudioSpeed } from '../hooks/useAudioSpeed';
+import { useAyatPlayer } from '../hooks/useAyatPlayer';
+import SpeedButton from '../components/SpeedButton';
 
 // Reader for a whole juzuk (/quran/juz/:number) or a single mushaf page
 // (/quran/page/:number). Both can cross surah boundaries, so verses are shown
@@ -36,6 +39,19 @@ function QuranRangeReader({ kind }) {
     untilKey: targetKey,
     loadAll: kind === 'page'
   });
+
+  const [speed, nextSpeed] = useAudioSpeed();
+  const player = useAyatPlayer(kind, valid ? number : null, speed);
+  const playingKey = player.currentKey;
+
+  // Keep the ayat being recited in view (when it is on screen to scroll to).
+  useEffect(() => {
+    if (!playingKey || !player.playing) return;
+    document
+      .querySelector(`.quran-verses [data-key="${playingKey}"], .mushaf-line [data-key="${playingKey}"]`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playingKey]);
 
   useEffect(() => {
     fetchChapters().then(setChapters).catch(() => {});
@@ -154,10 +170,23 @@ function QuranRangeReader({ kind }) {
         <p className="page-subtitle">{subtitle || ' '}</p>
         <QuranModeSwitch reading={reading} onChange={switchMode} />
         <AyatSearch ranges={ayatRanges} chaptersById={chaptersById} />
-        {!reading && (
-          <div className="quran-tools">
-            <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />
-          </div>
+        <div className="quran-tools">
+          <button type="button" className="btn btn-primary btn-sm" onClick={player.toggle} disabled={player.loading}>
+            {player.playing ? <Pause size={14} /> : <Play size={14} />}{' '}
+            {player.loading ? 'Loading…' : player.playing ? 'Pause' : playingKey ? 'Resume' : 'Listen'}
+          </button>
+          <SpeedButton speed={speed} onClick={nextSpeed} />
+          {!reading && <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />}
+        </div>
+        {player.error && <p className="reminder-warn">Couldn't play the recitation. Check your connection.</p>}
+        {playingKey && (
+          <p className="quran-reciter">
+            {chaptersById[playingKey.split(':')[0]]?.name_simple || 'Surah'} {playingKey} · Mishary Rashid al-Afasy
+          </p>
+        )}
+        {/* Tint the ayat being recited, in either view */}
+        {playingKey && (
+          <style>{`.quran-verses [data-key="${playingKey}"], .mushaf-line [data-key="${playingKey}"] { background: var(--primary-tint); border-radius: 6px; }`}</style>
         )}
       </div>
 

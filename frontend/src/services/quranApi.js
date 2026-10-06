@@ -188,6 +188,20 @@ export async function fetchJuzs() {
   return [...byNumber.values()].sort((a, b) => a.n - b.n);
 }
 
+// One audio file per ayat for a juzuk or mushaf page (same reciter), a batch
+// at a time: { files: [{ key: '78:1', url }], nextPage }.
+const AYAT_AUDIO_BASE = 'https://verses.quran.com/';
+export async function fetchAyatAudio(kind, number, batch = 1) {
+  const data = await get(`/recitations/${RECITATION_ID}/${BY[kind]}/${number}?per_page=50&page=${batch}`);
+  return {
+    files: data.audio_files.map((f) => ({
+      key: f.verse_key,
+      url: /^https?:/.test(f.url) ? f.url : f.url.startsWith('//') ? `https:${f.url}` : AYAT_AUDIO_BASE + f.url
+    })),
+    nextPage: data.pagination.next_page
+  };
+}
+
 export async function fetchChapterAudio(chapterId) {
   return (await get(`/chapter_recitations/${RECITATION_ID}/${chapterId}`)).audio_file?.audio_url || null;
 }
