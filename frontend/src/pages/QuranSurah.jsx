@@ -9,6 +9,18 @@ import AyatSearch from '../components/AyatSearch';
 import { QuranDisplayControls, QuranModeSwitch, useQuranPrefs, useReaderMode } from '../components/QuranControls';
 import { useStartPage } from '../hooks/useStartPage';
 
+const SPEEDS = [1, 1.25, 1.5, 0.75];
+const SPEED_KEY = 'quran_audio_speed';
+
+function savedSpeed() {
+  try {
+    const saved = Number(localStorage.getItem(SPEED_KEY));
+    return SPEEDS.includes(saved) ? saved : 1;
+  } catch {
+    return 1;
+  }
+}
+
 function QuranSurahReader() {
   const { surah } = useParams();
   const id = Number(surah);
@@ -33,6 +45,26 @@ function QuranSurahReader() {
   const [playing, setPlaying] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const audioRef = useRef(null);
+  const [speed, setSpeed] = useState(savedSpeed);
+
+  // Recitation speed: kept across surahs and visits. Both rates are set
+  // because loading a new surah's audio resets the rate to the default one.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.defaultPlaybackRate = speed;
+    audio.playbackRate = speed;
+  }, [speed]);
+
+  function nextSpeed() {
+    const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    setSpeed(next);
+    try {
+      localStorage.setItem(SPEED_KEY, String(next));
+    } catch {
+      // private mode: the choice just isn't remembered
+    }
+  }
 
   useEffect(() => {
     setChapter(null);
@@ -149,6 +181,15 @@ function QuranSurahReader() {
         <div className="quran-tools">
           <button type="button" className="btn btn-primary btn-sm" onClick={togglePlay}>
             {playing ? <Pause size={14} /> : <Play size={14} />} {playing ? 'Pause' : 'Listen'}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm quran-speed${speed !== 1 ? ' on' : ''}`}
+            onClick={nextSpeed}
+            aria-label={`Recitation speed ${speed}×. Tap to change.`}
+            title="Recitation speed"
+          >
+            {speed}×
           </button>
           {!reading && <QuranDisplayControls prefs={prefs} setPrefs={setPrefs} />}
         </div>

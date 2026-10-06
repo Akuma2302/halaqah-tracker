@@ -2434,6 +2434,18 @@ a {
   text-align: center;
 }
 
+/* Recitation speed button next to Listen */
+.quran-tools .quran-speed {
+  min-width: 52px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.quran-tools .quran-speed.on {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
 .quran-reciter {
   margin-top: 8px;
   font-size: 12px;
