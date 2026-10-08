@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
-import { BookMarked, ChevronLeft, ChevronRight, Check, Calendar, Copy, X } from 'lucide-react';
+import { BarChart3, BookMarked, ChevronLeft, ChevronRight, Check, Copy } from 'lucide-react';
 import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
+import Sheet from '../components/Sheet';
 import {
   MUTABAAH_FIELDS,
   MUTABAAH_PERIODS,
@@ -16,8 +17,12 @@ import {
   zikirCountPatch,
   togglePatch
 } from '../features/mutabaah/mutabaahFields';
+import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
 import CountStepper from '../components/CountStepper';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
+
+const TOTAL = MUTABAAH_FIELDS.length;
+const todayKey = () => dayjs().format('YYYY-MM-DD');
 
 // Labels used specifically for the "Copy" summary text, per the requested
 // format — a couple of these differ from the on-screen checklist labels
@@ -32,16 +37,32 @@ const COPY_LABELS = {
   zikir: 'Istighfar 100x'
 };
 
+// One-tap ranges for the period report: [label, from, to].
+function periodPresets() {
+  const today = dayjs();
+  return [
+    ['Last 7 days', today.subtract(6, 'day'), today],
+    ['Last 30 days', today.subtract(29, 'day'), today],
+    ['This month', today.startOf('month'), today]
+  ].map(([label, from, to]) => ({ label, from: from.format('YYYY-MM-DD'), to: to.format('YYYY-MM-DD') }));
+}
+
+function doneCount(entry) {
+  return entry ? MUTABAAH_FIELDS.filter((f) => entry[f.key]).length : 0;
+}
+
 export default function Checklist() {
   const { user } = useAuth();
-  const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [date, setDate] = useState(todayKey);
   const [entry, setEntry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // Last 30 days, for the little rings on the week strip.
+  const [history, setHistory] = useState([]);
 
   const [periodOpen, setPeriodOpen] = useState(false);
   const [fromDate, setFromDate] = useState(dayjs().subtract(6, 'day').format('YYYY-MM-DD'));
-  const [toDate, setToDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [toDate, setToDate] = useState(todayKey);
   const [periodData, setPeriodData] = useState(null);
   const [periodLoading, setPeriodLoading] = useState(false);
   const [periodError, setPeriodError] = useState('');
@@ -58,7 +79,15 @@ export default function Checklist() {
       .finally(() => setLoading(false));
   }, [date]);
 
-  const isToday = date === dayjs().format('YYYY-MM-DD');
+  useEffect(() => {
+    client
+      .get('/mutabaah/summary?range=month')
+      .then((res) => setHistory(res.data))
+      .catch(() => setHistory([]));
+  }, []);
+
+  const today = todayKey();
+  const isToday = date === today;
   const nowPeriod = isToday ? currentPeriodKey(dayjs().hour()) : null;
 
   useEffect(() => {
@@ -120,19 +149,26 @@ export default function Checklist() {
   // Don't lose a pending page count when switching day or leaving the page.
   useEffect(() => () => void flushPendingPages()?.catch(() => {}), [date]);
 
-  function loadPeriod() {
-    if (!fromDate || !toDate || fromDate > toDate) {
+  function loadPeriod(from = fromDate, to = toDate) {
+    if (!from || !to || from > to) {
       setPeriodError('Please choose a valid range (from must not be after to).');
       return;
     }
+    setFromDate(from);
+    setToDate(to);
     setPeriodLoading(true);
     setPeriodError('');
     setCopied(false);
     client
-      .get('/mutabaah/period', { params: { from: fromDate, to: toDate } })
+      .get('/mutabaah/period', { params: { from, to } })
       .then((res) => setPeriodData(res.data))
       .catch(() => setPeriodError("Couldn't load that period. Please try again."))
       .finally(() => setPeriodLoading(false));
+  }
+
+  function openPeriod() {
+    setPeriodOpen(true);
+    loadPeriod();
   }
 
   function copySummary() {
@@ -150,181 +186,190 @@ export default function Checklist() {
     });
   }
 
-  const completedCount = entry ? MUTABAAH_FIELDS.filter((f) => entry[f.key]).length : 0;
+  const completedCount = doneCount(entry);
+  const left = TOTAL - completedCount;
+
+  // The week strip: the 7 days ending on the later of the chosen day and
+  // today's week window, so today stays in view until you go further back.
+  const windowEnd = useMemo(() => {
+    const back = dayjs(today).diff(dayjs(date), 'day');
+    return dayjs(today)
+      .subtract(Math.floor(back / 7) * 7, 'day')
+      .format('YYYY-MM-DD');
+  }, [date, today]);
+  const strip = Array.from({ length: 7 }, (_, i) => dayjs(windowEnd).subtract(6 - i, 'day').format('YYYY-MM-DD'));
+  // Done-counts for the strip: history, with the open day always live.
+  const countByDate = useMemo(() => {
+    const map = Object.fromEntries(history.map((e) => [e.date, doneCount(e)]));
+    if (entry && !loading) map[date] = doneCount(entry);
+    return map;
+  }, [history, entry, date, loading]);
+
+  const presets = periodPresets();
 
   return (
-    <div className="page">
+    <div className="page mutabaah-page">
       <div className="page-header">
         <div>
           <h1 className="page-title">Mutabaah</h1>
-          <p className="page-subtitle">
-            {completedCount}/{MUTABAAH_FIELDS.length} done {isToday ? 'today' : `on ${dayjs(date).format('D MMM')}`}
-          </p>
+          <p className="page-subtitle">{isToday ? dayjs(date).format('dddd, D MMM') : `${dayjs(date).format('dddd, D MMM YYYY')}`}</p>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setPeriodOpen((v) => !v)}>
-          <Calendar size={13} /> {periodOpen ? 'Hide' : 'View'} period performance
+        <button className="btn btn-ghost btn-sm" onClick={openPeriod}>
+          <BarChart3 size={13} /> Report
         </button>
       </div>
 
-      {periodOpen && (
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span className="section-label">Period performance</span>
-            <button className="icon-btn" onClick={() => setPeriodOpen(false)} aria-label="Close">
-              <X size={15} />
-            </button>
-          </div>
-
-          <div className="grid-2">
-            <div className="field">
-              <label>From</label>
-              <input className="input" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} max={toDate} />
-            </div>
-            <div className="field">
-              <label>To</label>
-              <input className="input" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} min={fromDate} max={dayjs().format('YYYY-MM-DD')} />
-            </div>
-          </div>
-
-          <button className="btn btn-primary" onClick={loadPeriod} disabled={periodLoading}>
-            {periodLoading ? 'Loading…' : 'Show performance'}
-          </button>
-
-          {periodError && <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 10 }}>{periodError}</p>}
-
-          {periodData && (
-            <div style={{ marginTop: 16 }}>
-              <p className="page-subtitle" style={{ marginBottom: 10 }}>
-                {dayjs(periodData.from).format('D MMM YYYY')} – {dayjs(periodData.to).format('D MMM YYYY')} ·{' '}
-                {periodData.totalDays} day{periodData.totalDays === 1 ? '' : 's'}
-              </p>
-              {MUTABAAH_FIELDS.map((f) => (
-                <div className="member-row" key={f.key}>
-                  <div style={{ flex: 1 }}>
-                    <div className="name">{f.label}</div>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>
-                    {periodData.totals[f.key]}/{periodData.totalDays}
-                  </span>
-                </div>
-              ))}
-              {typeof periodData.zikirCount === 'number' && (
-                <div className="member-row">
-                  <div style={{ flex: 1 }}>
-                    <div className="name">Istighfar count</div>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>{periodData.zikirCount}x</span>
-                </div>
-              )}
-              {/* Older backends don't send tilawahPages; hide the row rather than show 0 */}
-              {typeof periodData.tilawahPages === 'number' && (
-                <div className="member-row">
-                  <div style={{ flex: 1 }}>
-                    <div className="name">Tilawah pages read</div>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-soft)' }}>
-                    {periodData.tilawahPages} ≈ {(periodData.tilawahPages / PAGES_PER_JUZ).toFixed(1)} juz
-                  </span>
-                </div>
-              )}
-              <button className="btn btn-ghost btn-block" onClick={copySummary} style={{ marginTop: 12 }}>
-                <Copy size={14} /> {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          )}
+      {/* ---------- the day at a glance ---------- */}
+      <div className={`card day-progress${entry && left === 0 ? ' complete' : ''}`}>
+        <div className="day-progress-top">
+          <span className="day-progress-count">
+            {completedCount}
+            <small>/{TOTAL}</small>
+          </span>
+          <span className="day-progress-text">
+            <strong>
+              {!entry || loading
+                ? ' '
+                : left === 0
+                  ? 'All done. Alhamdulillah.'
+                  : isToday
+                    ? completedCount === 0
+                      ? `${TOTAL} to go today`
+                      : `${left} left today`
+                    : `${left} not done`}
+            </strong>
+            <span>{isToday ? 'Tap an item to tick it' : 'You can still update this day'}</span>
+          </span>
         </div>
-      )}
+        <div className="day-progress-segments" aria-hidden="true">
+          {MUTABAAH_FIELDS.map((f) => (
+            <span key={f.key} className={entry?.[f.key] ? 'on' : ''} title={f.label} />
+          ))}
+        </div>
+      </div>
 
-      <div className="date-nav">
-        <button
-          className="icon-btn"
-          onClick={() => setDate(dayjs(date).subtract(1, 'day').format('YYYY-MM-DD'))}
-          aria-label="Previous day"
-        >
+      {/* ---------- pick a day ---------- */}
+      <div className="week-strip">
+        <button className="icon-btn" onClick={() => setDate(dayjs(date).subtract(7, 'day').format('YYYY-MM-DD'))} aria-label="Previous week">
           <ChevronLeft size={16} />
         </button>
-        <span className="date-label">{isToday ? 'Today' : dayjs(date).format('dddd, D MMM YYYY')}</span>
+        <div className="week-strip-days">
+          {strip.map((d) => {
+            const count = countByDate[d];
+            const percent = count ? Math.round((count / TOTAL) * 100) : 0;
+            return (
+              <button
+                key={d}
+                type="button"
+                className={`week-day${d === date ? ' selected' : ''}${d === today ? ' today' : ''}`}
+                onClick={() => setDate(d)}
+                aria-pressed={d === date}
+                aria-label={`${dayjs(d).format('dddd, D MMMM')}${count !== undefined ? `, ${count} of ${TOTAL} done` : ''}`}
+              >
+                <span className="week-day-name">{dayjs(d).format('dd')[0]}</span>
+                <span className={`week-day-ring${count === TOTAL ? ' full' : ''}`} style={{ '--p': percent }}>
+                  <span>{dayjs(d).format('D')}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <button
           className="icon-btn"
-          onClick={() => setDate(dayjs(date).add(1, 'day').format('YYYY-MM-DD'))}
-          disabled={isToday}
-          aria-label="Next day"
+          onClick={() => {
+            const next = dayjs(date).add(7, 'day');
+            setDate((next.isAfter(dayjs(today)) ? dayjs(today) : next).format('YYYY-MM-DD'));
+          }}
+          disabled={windowEnd === today}
+          aria-label="Next week"
         >
           <ChevronRight size={16} />
         </button>
       </div>
+      {!isToday && (
+        <button type="button" className="back-to-today" onClick={() => setDate(today)}>
+          Back to today
+        </button>
+      )}
 
       {loading ? (
-        <div className="spinner" style={{ margin: '0 auto', display: 'block' }} />
+        <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
       ) : error || !entry ? (
-        <p className="page-subtitle">Couldn't load today's checklist. Please refresh the page.</p>
+        <p className="page-subtitle">Couldn't load this day's checklist. Please refresh the page.</p>
       ) : (
         <div>
           {MUTABAAH_PERIODS.map((p) => {
             const fields = MUTABAAH_FIELDS.filter((f) => f.period === p.key);
-            const doneCount = fields.filter((f) => entry[f.key]).length;
+            const groupDone = fields.filter((f) => entry[f.key]).length;
             const isNow = p.key === nowPeriod;
             return (
               <section key={p.key} className={`checklist-group${isNow ? ' now' : ''}`}>
                 <div className="checklist-group-head">
                   <span className="checklist-group-title">{p.label}</span>
                   {isNow && <span className="badge badge-gold">Now</span>}
-                  <span className="checklist-group-count">
-                    {doneCount}/{fields.length}
+                  <span className={`checklist-group-count${groupDone === fields.length ? ' full' : ''}`}>
+                    {groupDone === fields.length && <Check size={11} strokeWidth={3} />}
+                    {groupDone}/{fields.length}
                   </span>
                 </div>
-                {fields.map((f) => (
-                  <div
-                    key={f.key}
-                    className={`checklist-item${entry[f.key] ? ' done' : ''}`}
-                    onClick={() => toggle(f.key)}
-                    role="checkbox"
-                    aria-checked={!!entry[f.key]}
-                    tabIndex={0}
-                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(f.key)}
-                  >
-                    <span className="check-circle">{entry[f.key] && <Check size={15} strokeWidth={3} />}</span>
-                    <div>
-                      <div className="item-name">{f.label}</div>
-                      <div className="item-time">{f.time}</div>
+                {fields.map((f) => {
+                  const Icon = MUTABAAH_ICONS[f.key] || Check;
+                  return (
+                    <div
+                      key={f.key}
+                      className={`checklist-item${entry[f.key] ? ' done' : ''}`}
+                      onClick={() => toggle(f.key)}
+                      role="checkbox"
+                      aria-checked={!!entry[f.key]}
+                      tabIndex={0}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(f.key)}
+                    >
+                      <span className="item-icon">
+                        <Icon size={18} />
+                      </span>
+                      <div className="item-body">
+                        <div className="item-name">{f.label}</div>
+                        <div className="item-time">{f.time}</div>
+                      </div>
+                      {(f.key === 'mathuratPagi' || f.key === 'mathuratPetang') && (
+                        <Link
+                          className="checklist-read"
+                          to={`/mathurat?w=${f.key === 'mathuratPagi' ? 'pagi' : 'petang'}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <BookMarked size={13} /> Read
+                        </Link>
+                      )}
+                      <span className="check-circle">{entry[f.key] && <Check size={15} strokeWidth={3} />}</span>
+                      {f.key === 'tilawah' && (
+                        <CountStepper
+                          value={entry.tilawahPages || 0}
+                          onChange={(n) => setCount(tilawahPagesPatch(n))}
+                          max={MAX_TILAWAH_PAGES}
+                          goal={PAGES_PER_JUZ}
+                          unit="pages"
+                          label="page"
+                          goalText={(n) =>
+                            n >= PAGES_PER_JUZ
+                              ? `${(n / PAGES_PER_JUZ).toFixed(1).replace(/\.0$/, '')} juz ✓`
+                              : `${PAGES_PER_JUZ - n} more page${PAGES_PER_JUZ - n === 1 ? '' : 's'} to complete 1 juz`
+                          }
+                        />
+                      )}
+                      {f.key === 'zikir' && (
+                        <CountStepper
+                          value={entry.zikirCount || 0}
+                          onChange={(n) => setCount(zikirCountPatch(n))}
+                          max={MAX_ZIKIR_COUNT}
+                          goal={ZIKIR_GOAL}
+                          unit="times"
+                          label="count"
+                          goalText={(n) => (n >= ZIKIR_GOAL ? `${n}x ✓` : `${ZIKIR_GOAL - n} more to reach ${ZIKIR_GOAL}x`)}
+                        />
+                      )}
                     </div>
-                    {(f.key === 'mathuratPagi' || f.key === 'mathuratPetang') && (
-                      <Link
-                        className="checklist-read"
-                        to={`/mathurat?w=${f.key === 'mathuratPagi' ? 'pagi' : 'petang'}`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <BookMarked size={13} /> Read
-                      </Link>
-                    )}
-                    {f.key === 'tilawah' && (
-                      <CountStepper
-                        value={entry.tilawahPages || 0}
-                        onChange={(n) => setCount(tilawahPagesPatch(n))}
-                        max={MAX_TILAWAH_PAGES}
-                        goal={PAGES_PER_JUZ}
-                        unit="pages"
-                        label="page"
-                        goalText={(n) =>
-                          n >= PAGES_PER_JUZ
-                            ? `${(n / PAGES_PER_JUZ).toFixed(1).replace(/\.0$/, '')} juz ✓`
-                            : `${PAGES_PER_JUZ - n} more page${PAGES_PER_JUZ - n === 1 ? '' : 's'} to complete 1 juz`
-                        }
-                      />
-                    )}
-                    {f.key === 'zikir' && (
-                      <CountStepper
-                        value={entry.zikirCount || 0}
-                        onChange={(n) => setCount(zikirCountPatch(n))}
-                        max={MAX_ZIKIR_COUNT}
-                        goal={ZIKIR_GOAL}
-                        unit="times"
-                        label="count"
-                        goalText={(n) => (n >= ZIKIR_GOAL ? `${n}x ✓` : `${ZIKIR_GOAL - n} more to reach ${ZIKIR_GOAL}x`)}
-                      />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </section>
             );
           })}
@@ -335,6 +380,79 @@ export default function Checklist() {
           )}
         </div>
       )}
+
+      {/* ---------- period report ---------- */}
+      <Sheet open={periodOpen} onClose={() => setPeriodOpen(false)} title="Period report">
+        <div className="chip-row period-presets">
+          {presets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className={`chip${fromDate === p.from && toDate === p.to ? ' on' : ''}`}
+              onClick={() => loadPeriod(p.from, p.to)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid-2 period-dates">
+          <div className="field">
+            <label>From</label>
+            <input className="input" type="date" value={fromDate} onChange={(e) => loadPeriod(e.target.value, toDate)} max={toDate} />
+          </div>
+          <div className="field">
+            <label>To</label>
+            <input className="input" type="date" value={toDate} onChange={(e) => loadPeriod(fromDate, e.target.value)} min={fromDate} max={today} />
+          </div>
+        </div>
+
+        {periodError && <p className="form-error">{periodError}</p>}
+
+        {periodLoading && !periodData ? (
+          <div className="spinner" style={{ margin: '18px auto', display: 'block' }} />
+        ) : (
+          periodData && (
+            <div className={`period-result${periodLoading ? ' loading' : ''}`}>
+              <p className="period-range">
+                {dayjs(periodData.from).format('D MMM YYYY')} – {dayjs(periodData.to).format('D MMM YYYY')} · {periodData.totalDays} day
+                {periodData.totalDays === 1 ? '' : 's'}
+              </p>
+              {MUTABAAH_FIELDS.map((f) => {
+                const Icon = MUTABAAH_ICONS[f.key] || Check;
+                const percent = periodData.totalDays ? Math.round((periodData.totals[f.key] / periodData.totalDays) * 100) : 0;
+                return (
+                  <div className="period-row" key={f.key}>
+                    <Icon size={15} />
+                    <span className="period-row-name">{f.label}</span>
+                    <span className="period-row-bar">
+                      <span style={{ width: `${percent}%` }} />
+                    </span>
+                    <span className="period-row-value">
+                      {periodData.totals[f.key]}/{periodData.totalDays}
+                    </span>
+                  </div>
+                );
+              })}
+              <div className="period-extras">
+                {typeof periodData.zikirCount === 'number' && (
+                  <span>
+                    <strong>{periodData.zikirCount}x</strong> istighfar
+                  </span>
+                )}
+                {/* Older backends don't send tilawahPages; hide it rather than show 0 */}
+                {typeof periodData.tilawahPages === 'number' && (
+                  <span>
+                    <strong>{periodData.tilawahPages}</strong> pages ≈ {(periodData.tilawahPages / PAGES_PER_JUZ).toFixed(1)} juz
+                  </span>
+                )}
+              </div>
+              <button className="btn btn-primary btn-block" onClick={copySummary} style={{ marginTop: 14 }}>
+                <Copy size={14} /> {copied ? 'Copied!' : 'Copy summary'}
+              </button>
+            </div>
+          )
+        )}
+      </Sheet>
     </div>
   );
 }

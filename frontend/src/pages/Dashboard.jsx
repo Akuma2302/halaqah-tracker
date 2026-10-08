@@ -7,16 +7,10 @@ import {
   BookOpenText,
   Check,
   ChevronRight,
-  CloudSun,
   Flame,
   MapPin,
-  MoonStar,
   Network,
   NotebookText,
-  Sparkles,
-  Sun,
-  Sunrise,
-  Sunset,
   TrendingUp
 } from 'lucide-react';
 import client from '../services/apiClient';
@@ -24,6 +18,7 @@ import { useAuth } from '../hooks/useAuth';
 import MutabaahRing from '../components/MutabaahRing';
 import ProfileSheet from '../components/ProfileSheet';
 import { MUTABAAH_FIELDS, currentPeriodKey, togglePatch } from '../features/mutabaah/mutabaahFields';
+import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
 import { currentStreak, hijriDate } from '../features/mutabaah/streak';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
@@ -31,16 +26,6 @@ import { lastReadPath, readLastRead } from '../services/quranApi';
 
 const SETUP_DISMISSED_KEY = 'mutabaah_setup_dismissed';
 const TOTAL = MUTABAAH_FIELDS.length;
-const ICONS = {
-  tahajud: MoonStar,
-  subuhBerjemaah: Sunrise,
-  mathuratPagi: Sun,
-  mathuratPetang: Sunset,
-  dhuha: CloudSun,
-  tilawah: BookOpenText,
-  zikir: Sparkles
-};
-
 function readSetupDismissed() {
   try {
     return localStorage.getItem(SETUP_DISMISSED_KEY) === '1';
@@ -271,7 +256,7 @@ export default function Dashboard() {
           </div>
           <div className="quick-checks">
             {MUTABAAH_FIELDS.map((f) => {
-              const Icon = ICONS[f.key] || Check;
+              const Icon = MUTABAAH_ICONS[f.key] || Check;
               const isDone = !!today?.[f.key];
               const amount =
                 f.key === 'tilawah' && today?.tilawahPages
