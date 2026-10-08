@@ -27,6 +27,15 @@ router.get(
   })
 );
 
+router.get(
+  '/dashboard',
+  asyncHandler(async (req, res) => {
+    const date = dateParam(req, res, 'date');
+    const weekStart = date && dateParam(req, res, 'weekStart');
+    if (weekStart) res.json(await mentoringService.getDashboard(req.userId, { date, weekStart }));
+  })
+);
+
 router.put(
   '/mentor',
   validate(setMentorSchema),

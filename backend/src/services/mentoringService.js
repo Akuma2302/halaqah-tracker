@@ -133,4 +133,86 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart }) {
   };
 }
 
-module.exports = { getTree, setMentor, getMenteeDetail, parseMemberNo, relationTo };
+// One person's numbers for a week, from their mutabaah rows and academic log.
+// Mutabaah is measured against the days of the week that have happened so far
+// (up to `date`), so a week in progress isn't marked down for days to come.
+function weekStats(mutabaahRows, academic, { date, weekStart }) {
+  const weekEnd = addDays(weekStart, 6);
+  const lastDay = date < weekStart ? null : date > weekEnd ? weekEnd : date;
+  const daysElapsed = lastDay ? Math.round((new Date(`${lastDay}T00:00:00Z`) - new Date(`${weekStart}T00:00:00Z`)) / 86400000) + 1 : 0;
+  const counted = mutabaahRows.filter((r) => lastDay && r.date >= weekStart && r.date <= lastDay);
+  const done = counted.reduce((sum, r) => sum + doneCount(mutabaahService.toApiShapePublic(r, r.user_id, r.date)), 0);
+  const possible = daysElapsed * CAMEL_FIELDS.length;
+  const todayRow = mutabaahRows.find((r) => r.date === date);
+
+  const hours = academic.studySessions.reduce((sum, s) => sum + s.hours, 0);
+  return {
+    mutabaahPercent: possible ? Math.round((done / possible) * 100) : 0,
+    mutabaahToday: todayRow ? doneCount(mutabaahService.toApiShapePublic(todayRow, todayRow.user_id, date)) : 0,
+    mutabaahTotal: CAMEL_FIELDS.length,
+    studyHours: Math.round(hours * 10) / 10,
+    studiedToday: academic.studySessions.some((s) => s.date === date),
+    studySessions: academic.studySessions.length,
+    questions: academic.questionPractice.reduce((sum, q) => sum + (q.questionCount || 0), 0),
+    consultations: academic.consultations.length
+  };
+}
+
+function groupSummary(people) {
+  const n = people.length;
+  const avg = (pick) => (n ? people.reduce((sum, p) => sum + pick(p), 0) / n : 0);
+  return {
+    count: n,
+    avgMutabaahPercent: Math.round(avg((p) => p.mutabaahPercent)),
+    avgStudyHours: Math.round(avg((p) => p.studyHours) * 10) / 10,
+    studiedToday: people.filter((p) => p.studiedToday).length,
+    metLecturer: people.filter((p) => p.consultations > 0).length
+  };
+}
+
+// Overall performance for the week: my mentoring mates (with me among them,
+// for comparison) and my mentees, each as a ranked list plus group averages.
+// Follows the same visibility rule as the detail page: no mentor, no one else.
+async function getDashboard(userId, { date, weekStart }) {
+  const me = await userRepository.findById(userId);
+  const [mentees, underMyMentor] = await Promise.all([
+    userRepository.findMentees(userId),
+    me?.mentor_id ? userRepository.findMentees(me.mentor_id) : []
+  ]);
+  const mates = underMyMentor.filter((u) => u.id !== userId);
+  const everyone = [me, ...mates, ...mentees];
+
+  const [mutabaahRows, academicLogs] = await Promise.all([
+    mutabaahRepository.findBoundedRangeForUsers(
+      everyone.map((u) => u.id),
+      weekStart,
+      addDays(weekStart, 6)
+    ),
+    Promise.all(everyone.map((u) => weeklyLogService.getWeek(u.id, weekStart)))
+  ]);
+  const academicByUser = Object.fromEntries(everyone.map((u, i) => [u.id, academicLogs[i]]));
+  const person = (u) => ({
+    ...publicUser(u),
+    isMe: u.id === userId,
+    ...weekStats(
+      mutabaahRows.filter((r) => r.user_id === u.id),
+      academicByUser[u.id],
+      { date, weekStart }
+    )
+  });
+  // Best mutabaah first, study hours as the tie-break.
+  const ranked = (users) =>
+    users.map(person).sort((a, b) => b.mutabaahPercent - a.mutabaahPercent || b.studyHours - a.studyHours || a.name.localeCompare(b.name));
+
+  const mateGroup = me?.mentor_id ? ranked([me, ...mates]) : [];
+  const menteeGroup = ranked(mentees);
+  return {
+    date,
+    weekStart,
+    hasMentor: !!me?.mentor_id,
+    mates: { summary: groupSummary(mateGroup), people: mateGroup },
+    mentees: { summary: groupSummary(menteeGroup), people: menteeGroup }
+  };
+}
+
+module.exports = { getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, groupSummary };

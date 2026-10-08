@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Check, ChevronRight, Copy, User, Users } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { BarChart3, Check, ChevronRight, Copy, Network, User, Users } from 'lucide-react';
+import MentoringDashboard from '../features/mentoring/MentoringDashboard';
 import client from '../services/apiClient';
 import { useToast } from '../hooks/useToast';
 import { toDateKey } from '../features/academic/weekUtils';
@@ -35,6 +36,8 @@ function PersonLink({ person }) {
 // my ID). Mates and mentees can be opened to see their detail; a mentor's
 // own detail is never shown to their mentees.
 export default function Mentoring() {
+  const [params, setParams] = useSearchParams();
+  const view = params.get('view') === 'dashboard' ? 'dashboard' : 'tree';
   const [tree, setTree] = useState(null);
   const [error, setError] = useState(false);
   const [mentorInput, setMentorInput] = useState('');
@@ -86,11 +89,22 @@ export default function Mentoring() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Mentoring Tree</h1>
-          <p className="page-subtitle">Your mentor, and the mentees who follow you</p>
+          <p className="page-subtitle">Your mentor, your mentoring mates and your mentees</p>
         </div>
       </div>
 
-      {error ? (
+      <div className="range-toggle segmented">
+        <button className={view === 'tree' ? 'active' : ''} onClick={() => setParams({}, { replace: true })}>
+          <Network size={14} /> Tree
+        </button>
+        <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setParams({ view: 'dashboard' }, { replace: true })}>
+          <BarChart3 size={14} /> Dashboard
+        </button>
+      </div>
+
+      {view === 'dashboard' ? (
+        <MentoringDashboard />
+      ) : error ? (
         <div className="card empty-state">
           <h3>Couldn't load your mentoring tree</h3>
           <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={load}>

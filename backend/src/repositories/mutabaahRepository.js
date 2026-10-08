@@ -48,6 +48,19 @@ async function findBoundedRangeForUser(userId, fromDate, toDate) {
   return data;
 }
 
+// Same range, for several users at once (the mentoring dashboard).
+async function findBoundedRangeForUsers(userIds, fromDate, toDate) {
+  if (!userIds.length) return [];
+  const { data, error } = await supabase
+    .from('mutabaah_entries')
+    .select('*')
+    .in('user_id', userIds)
+    .gte('date', fromDate)
+    .lte('date', toDate);
+  if (error) throw error;
+  return data;
+}
+
 // Upsert on (user_id, date) — mirrors the old findOneAndUpdate(..., { upsert: true })
 async function upsert(userId, date, fields) {
   const { data, error } = await supabase
@@ -62,4 +75,11 @@ async function upsert(userId, date, fields) {
   return data;
 }
 
-module.exports = { findByUserAndDate, findByUsersAndDate, findRangeForUser, findBoundedRangeForUser, upsert };
+module.exports = {
+  findByUserAndDate,
+  findByUsersAndDate,
+  findRangeForUser,
+  findBoundedRangeForUser,
+  findBoundedRangeForUsers,
+  upsert
+};
