@@ -52,7 +52,23 @@ async function findWithMutabaahRemindersOn() {
   return data;
 }
 
+// By the running number behind the short User ID ("D4F-0007" -> 7).
+async function findByMemberNo(memberNo) {
+  const { data, error } = await supabase.from('users').select('*').eq('member_no', memberNo).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// Everyone who has set this user as their mentor.
+async function findMentees(mentorId) {
+  const { data, error } = await supabase.from('users').select('*').eq('mentor_id', mentorId);
+  if (error) throw error;
+  return data;
+}
+
 module.exports = {
+  findByMemberNo,
+  findMentees,
   findByGoogleId,
   findById,
   create,

@@ -31,6 +31,7 @@ app.use('/api/academic', require('./routes/academic'));
 app.use('/api/push', require('./routes/push'));
 app.use('/api/widget', require('./routes/widget'));
 app.use('/api/quran', require('./routes/quran'));
+app.use('/api/mentoring', require('./routes/mentoring'));
 app.use('/api/jobs', require('./routes/jobs'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));

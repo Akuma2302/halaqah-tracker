@@ -13,6 +13,8 @@ import StudyGroupRoom from './pages/StudyGroupRoom';
 import AcademicJournal from './pages/AcademicJournal';
 import SubjectList from './pages/SubjectList';
 import Notifications from './pages/Notifications';
+import Mentoring from './pages/Mentoring';
+import MenteeDetail from './pages/MenteeDetail';
 
 // Loaded on demand: the Mathurat text is the largest chunk of the app.
 const Mathurat = lazy(() => import('./pages/Mathurat'));
@@ -90,6 +92,8 @@ export default function App() {
             }
           />
           <Route path="/compilation" element={<Navigate to="/mathurat" replace />} />
+          <Route path="/mentoring" element={<Mentoring />} />
+          <Route path="/mentoring/:id" element={<MenteeDetail />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

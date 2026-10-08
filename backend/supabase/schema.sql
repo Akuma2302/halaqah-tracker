@@ -396,3 +396,9 @@ exception
     raise notice 'User ID setup skipped: %', sqlerrm;
 end
 $$;
+
+-- Mentoring tree: a mentee points at their mentor (set by entering the
+-- mentor's User ID). That link is what allows the mentor to see the mentee's
+-- mutabaah and academic detail. Removing the mentor's account clears the link.
+alter table users add column if not exists mentor_id uuid references users(id) on delete set null;
+create index if not exists idx_users_mentor on users(mentor_id);
