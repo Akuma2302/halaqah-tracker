@@ -660,11 +660,12 @@ a {
 }
 
 .mentor-avatar-letter {
+  --person: hsl(var(--hue, 165) 55% 50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-tint);
-  color: var(--primary-dark);
+  background: color-mix(in srgb, var(--person) 22%, var(--surface));
+  color: color-mix(in srgb, var(--person) 70%, var(--ink));
   font-weight: 700;
 }
 
@@ -905,9 +906,9 @@ a {
 }
 
 .tree {
-  --rail: var(--border);
+  --rail: color-mix(in srgb, var(--primary) 35%, var(--border));
   --indent: 18px;
-  --reach: 14px;
+  --reach: 16px;
 }
 
 .tree-node {
@@ -940,20 +941,116 @@ a {
   margin-left: -4px;
 }
 
+/* Mentor: the head of the tree */
 .tree-node.mentor {
+  min-height: 72px;
+  padding: 12px 14px;
   border-color: transparent;
-  background: var(--primary-tint);
+  background: linear-gradient(135deg, var(--primary-tint), color-mix(in srgb, var(--primary-tint) 35%, var(--surface)));
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 
+.tree-node.mentor .mentor-avatar {
+  width: 46px;
+  height: 46px;
+  font-size: 18px;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary);
+}
+
+.tree-node.mentor .mentor-name {
+  font-size: 16.5px;
+}
+
+.tree-remove {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+
+.tree-remove:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* You: outlined in the app colour so your place in the tree is obvious */
 .tree-node.you {
-  border-color: var(--gold-border);
-  background: var(--gold-tint);
+  border: 1.5px solid var(--primary);
+  background: color-mix(in srgb, var(--primary-tint) 45%, var(--surface));
 }
 
-.tree-node.you .mentor-name {
-  display: flex;
+.tree-node.you .mentor-avatar {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--primary);
+}
+
+/* Your User ID as a chip: tap to copy */
+.id-chip {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px dashed var(--primary);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary-dark);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.id-chip:hover {
+  border-style: solid;
+}
+
+/* Today's mutabaah as a ring */
+.today-ring {
+  --ring: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--surface) 74%, transparent 76%),
+    conic-gradient(var(--ring) calc(var(--p) * 1%), var(--border) 0);
+}
+
+.today-ring > span {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.today-ring small {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.today-ring.tone-mid {
+  --ring: var(--gold);
+}
+
+.today-ring.tone-low {
+  --ring: var(--danger);
+}
+
+.today-ring.tone-none > span {
+  color: var(--ink-soft);
+}
+
+.today-ring.tone-done {
+  background: var(--primary);
+}
+
+.today-ring.tone-done > span,
+.today-ring.tone-done small {
+  color: #fff;
 }
 
 .tree-node.empty {
@@ -966,8 +1063,16 @@ a {
   text-decoration: none;
 }
 
+.tree-link {
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
 .tree-link:hover {
   border-color: var(--primary);
+}
+
+.tree-link:active {
+  transform: scale(0.99);
 }
 
 .tree-role {
@@ -1022,23 +1127,29 @@ a {
 
 .tree-branch > *:last-child::after {
   bottom: auto;
-  height: 39px;
+  height: 28px; /* down to where the last elbow starts */
 }
 
-/* the connector from the rail to an item (30px = half a node's height) */
+/* the connector from the rail into an item: a rounded elbow ending at the
+   middle of the node (30px = half a node's height) */
 .tree-item::before {
   content: '';
   position: absolute;
   left: calc(-1 * var(--reach));
-  top: 30px;
+  top: 20px;
   width: var(--reach);
-  border-top: 2px solid var(--rail);
+  height: 11px;
+  border-left: 2px solid var(--rail);
+  border-bottom: 2px solid var(--rail);
+  border-bottom-left-radius: 10px;
 }
 
 .tree-caption {
-  padding: 4px 0 0;
-  font-size: 11.5px;
+  padding: 6px 0 0;
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--ink-soft);
 }
 

@@ -1,22 +1,45 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BarChart3, Check, ChevronRight, Copy, Network, Share2, UserPlus } from 'lucide-react';
+import { BarChart3, Check, ChevronRight, Copy, Network, Share2, UserMinus, UserPlus } from 'lucide-react';
 import MentoringDashboard from '../features/mentoring/MentoringDashboard';
 import client from '../services/apiClient';
 import { useToast } from '../hooks/useToast';
 import { toDateKey } from '../features/academic/weekUtils';
 
+// A steady colour per person (from their name), so faces in the tree are easy
+// to tell apart when there is no photo.
+function hueFor(name) {
+  let sum = 0;
+  for (const ch of name || '') sum = (sum * 31 + ch.charCodeAt(0)) % 360;
+  return sum;
+}
+
 function Avatar({ person }) {
   return person.avatarUrl ? (
     <img className="avatar mentor-avatar" src={person.avatarUrl} alt="" />
   ) : (
-    <div className="avatar mentor-avatar mentor-avatar-letter">{(person.name || '?').trim()[0]?.toUpperCase()}</div>
+    <div className="avatar mentor-avatar mentor-avatar-letter" style={{ '--hue': hueFor(person.name) }}>
+      {(person.name || '?').trim()[0]?.toUpperCase()}
+    </div>
+  );
+}
+
+// Today's mutabaah as a small ring: how much of the day's list is done.
+function TodayRing({ done, total }) {
+  const percent = total ? Math.round((done / total) * 100) : 0;
+  const tone = done === total ? 'done' : done === 0 ? 'none' : percent >= 50 ? 'mid' : 'low';
+  return (
+    <span className={`today-ring tone-${tone}`} style={{ '--p': percent }} title={`Mutabaah today: ${done} of ${total}`}>
+      <span>
+        {done}
+        <small>/{total}</small>
+      </span>
+    </span>
   );
 }
 
 // A mentee or mentoring mate in the tree: opens their detail page.
 function PersonNode({ person }) {
-  const allDone = person.mutabaahDone === person.mutabaahTotal;
   return (
     <Link to={`/mentoring/${person._id}`} className="tree-node tree-link">
       <Avatar person={person} />
@@ -24,12 +47,7 @@ function PersonNode({ person }) {
         <div className="mentor-name">{person.name}</div>
         <div className="mentor-meta">{[person.memberId, person.kampus].filter(Boolean).join(' · ')}</div>
       </div>
-      <span
-        className={`badge ${allDone ? 'badge-primary' : 'badge-muted'}`}
-        title={`Mutabaah today: ${person.mutabaahDone} of ${person.mutabaahTotal}`}
-      >
-        {person.mutabaahDone}/{person.mutabaahTotal}
-      </span>
+      <TodayRing done={person.mutabaahDone} total={person.mutabaahTotal} />
       <ChevronRight size={16} className="mentee-chevron" />
     </Link>
   );
@@ -105,14 +123,14 @@ export default function Mentoring() {
       <div className="tree-node you">
         <Avatar person={tree.me} />
         <div className="mentor-body">
-          <div className="mentor-name">
-            {tree.me.name} <span className="badge badge-gold">You</span>
-          </div>
-          <div className="mentor-meta">{tree.me.memberId || 'Your User ID is being set up'}</div>
+          <div className="tree-role">You</div>
+          <div className="mentor-name">{tree.me.name}</div>
+          {!tree.me.memberId && <div className="mentor-meta">Your User ID is being set up</div>}
         </div>
         {tree.me.memberId && (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={copyId} aria-label="Copy your User ID">
-            {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copied' : 'Copy ID'}
+          <button type="button" className="id-chip" onClick={copyId} aria-label={`Copy your User ID, ${tree.me.memberId}`} title="Copy your User ID">
+            <span>{copied ? 'Copied' : tree.me.memberId}</span>
+            {copied ? <Check size={13} /> : <Copy size={13} />}
           </button>
         )}
       </div>
@@ -196,8 +214,15 @@ export default function Mentoring() {
                   <div className="mentor-name">{tree.mentor.name}</div>
                   <div className="mentor-meta">{[tree.mentor.memberId, tree.mentor.kampus].filter(Boolean).join(' · ')}</div>
                 </div>
-                <button className="btn btn-ghost btn-sm danger-text" onClick={removeMentor} disabled={saving}>
-                  Remove
+                <button
+                  type="button"
+                  className="icon-btn tree-remove"
+                  onClick={removeMentor}
+                  disabled={saving}
+                  aria-label={`Remove ${tree.mentor.name} as your mentor`}
+                  title="Remove mentor"
+                >
+                  <UserMinus size={15} />
                 </button>
               </div>
             ) : (
@@ -258,7 +283,7 @@ export default function Mentoring() {
             </div>
           </div>
           {(mates.length > 0 || mentees.length > 0) && (
-            <p className="mentor-note">The number beside each person is their mutabaah today, out of 7. Tap someone to see their updates.</p>
+            <p className="mentor-note">The ring beside each person is their mutabaah today, out of 7. Tap someone to see their updates.</p>
           )}
         </>
       )}
