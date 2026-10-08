@@ -402,3 +402,20 @@ $$;
 -- mutabaah and academic detail. Removing the mentor's account clears the link.
 alter table users add column if not exists mentor_id uuid references users(id) on delete set null;
 create index if not exists idx_users_mentor on users(mentor_id);
+
+-- Weekly class timetable: one row per class slot. day_of_week 0 = Sunday.
+-- A class is one of the user's subjects, a free-text title, or both.
+create table if not exists timetable_entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  subject_id uuid references subjects(id) on delete cascade,
+  title text not null default '',
+  day_of_week integer not null check (day_of_week between 0 and 6),
+  start_time time not null,
+  end_time time not null,
+  venue text not null default '',
+  kind text not null default 'lecture',
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_timetable_entries_user on timetable_entries(user_id);
+alter table timetable_entries enable row level security;

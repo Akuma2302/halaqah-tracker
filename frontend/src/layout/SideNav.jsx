@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, BookOpenText, Bell, NotebookText, ClipboardList, BookOpen, Network } from 'lucide-react';
+import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, BookOpenText, Bell, NotebookText, ClipboardList, BookOpen, CalendarDays, Network } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const TABS = [
@@ -8,6 +8,7 @@ const TABS = [
   { to: '/study-groups', label: 'Your Groups', icon: GraduationCap },
   { to: '/academic-journal', label: 'Academic', icon: NotebookText },
   { to: '/subject-list', label: 'Subjects', icon: ClipboardList },
+  { to: '/timetable', label: 'Timetable', icon: CalendarDays },
   { to: '/quran', label: 'Quran', icon: BookOpenText },
   { to: '/mathurat', label: 'Mathurat', icon: BookMarked },
   { to: '/mentoring', label: 'Mentoring', icon: Network },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, ListChecks, GraduationCap, NotebookText, Menu, ClipboardList, BookMarked, BookOpenText, Bell, ChevronRight, Network } from 'lucide-react';
+import { Home, ListChecks, GraduationCap, NotebookText, Menu, ClipboardList, BookMarked, BookOpenText, Bell, CalendarDays, ChevronRight, Network } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 // Mobile-only navigation (hidden above 720px, where SideNav takes over).
@@ -13,6 +13,7 @@ const TABS = [
 
 const MORE = [
   { to: '/subject-list', label: 'Subjects', icon: ClipboardList },
+  { to: '/timetable', label: 'Timetable', icon: CalendarDays },
   { to: '/quran', label: 'Al-Quran', icon: BookOpenText },
   { to: '/mathurat', label: 'Al-Mathurat', icon: BookMarked },
   { to: '/mentoring', label: 'Mentoring Tree', icon: Network },
