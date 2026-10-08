@@ -1,17 +1,45 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
-import { Check, ChevronRight, Flame, MapPin, NotebookText } from 'lucide-react';
+import {
+  ArrowRight,
+  BookMarked,
+  BookOpenText,
+  Check,
+  ChevronRight,
+  CloudSun,
+  Flame,
+  MapPin,
+  MoonStar,
+  Network,
+  NotebookText,
+  Sparkles,
+  Sun,
+  Sunrise,
+  Sunset,
+  TrendingUp
+} from 'lucide-react';
 import client from '../services/apiClient';
 import { useAuth } from '../hooks/useAuth';
 import MutabaahRing from '../components/MutabaahRing';
 import ProfileSheet from '../components/ProfileSheet';
-import { MUTABAAH_FIELDS, togglePatch } from '../features/mutabaah/mutabaahFields';
+import { MUTABAAH_FIELDS, currentPeriodKey, togglePatch } from '../features/mutabaah/mutabaahFields';
 import { currentStreak, hijriDate } from '../features/mutabaah/streak';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
+import { lastReadPath, readLastRead } from '../services/quranApi';
 
 const SETUP_DISMISSED_KEY = 'mutabaah_setup_dismissed';
+const TOTAL = MUTABAAH_FIELDS.length;
+const ICONS = {
+  tahajud: MoonStar,
+  subuhBerjemaah: Sunrise,
+  mathuratPagi: Sun,
+  mathuratPetang: Sunset,
+  dhuha: CloudSun,
+  tilawah: BookOpenText,
+  zikir: Sparkles
+};
 
 function readSetupDismissed() {
   try {
@@ -21,15 +49,25 @@ function readSetupDismissed() {
   }
 }
 
-function cellColor(entry) {
-  if (!entry) return 'var(--border)';
-  const count = MUTABAAH_FIELDS.filter((f) => entry[f.key]).length;
-  const ratio = count / MUTABAAH_FIELDS.length;
+function doneCount(entry) {
+  return entry ? MUTABAAH_FIELDS.filter((f) => entry[f.key]).length : 0;
+}
+
+function cellColor(count) {
+  const ratio = count / TOTAL;
   if (ratio === 0) return 'var(--border)';
   if (ratio < 0.3) return 'var(--heat-1)';
   if (ratio < 0.6) return 'var(--heat-2)';
   if (ratio < 0.9) return 'var(--heat-3)';
   return 'var(--primary)';
+}
+
+// Where the "Next up" suggestion can take you, if anywhere.
+function shortcutFor(field, lastRead) {
+  if (field.key === 'mathuratPagi') return { to: '/mathurat?w=pagi', label: 'Read' };
+  if (field.key === 'mathuratPetang') return { to: '/mathurat?w=petang', label: 'Read' };
+  if (field.key === 'tilawah') return { to: lastRead?.key ? lastReadPath(lastRead) : '/quran', label: lastRead?.key ? 'Continue' : 'Open Quran' };
+  return null;
 }
 
 export default function Dashboard() {
@@ -38,11 +76,12 @@ export default function Dashboard() {
   const [range, setRange] = useState('week');
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Last 30 days, used only for the streak (independent of the trend toggle).
+  // Last 30 days, used for the streak and the 7-day average (independent of the trend toggle).
   const [history, setHistory] = useState([]);
   const [profileOpen, setProfileOpen] = useState(false);
   const [setupDismissed, setSetupDismissed] = useState(readSetupDismissed);
   const [academicSummary, setAcademicSummary] = useState(null);
+  const lastRead = useMemo(readLastRead, []);
 
   const todayStr = dayjs().format('YYYY-MM-DD');
 
@@ -82,6 +121,9 @@ export default function Dashboard() {
       .format('YYYY-MM-DD')
   );
   const entryByDate = Object.fromEntries(summary.map((e) => [e.date, e]));
+  const trendCounts = dayList.map((d) => doneCount(entryByDate[d]));
+  const trendAverage = trendCounts.reduce((a, b) => a + b, 0) / days;
+  const fullDays = trendCounts.filter((c) => c === TOTAL).length;
 
   // Same optimistic toggle as the Mutabaah page, so today's items can be ticked
   // straight from the dashboard. Also patches today's cell in the trend strip.
@@ -118,8 +160,25 @@ export default function Dashboard() {
   const hours = academicSummary?.hours ?? 0;
   const hoursPercent = Math.min(100, academicSummary?.percent || 0);
 
+  // Today at a glance: how many are left, and what to do next. "Next" prefers
+  // an item that belongs to the current part of the day.
+  const done = doneCount(today);
+  const left = TOTAL - done;
+  const nowPeriod = currentPeriodKey(new Date().getHours());
+  const pending = MUTABAAH_FIELDS.filter((f) => !today?.[f.key]);
+  const nextUp = today ? pending.find((f) => f.period === nowPeriod) || pending[0] || null : null;
+  const nextShortcut = nextUp && shortcutFor(nextUp, lastRead);
+
+  // Average for the last 7 days (today included), from the 30-day history.
+  const historyByDate = Object.fromEntries(history.map((e) => [e.date, e]));
+  const last7 = Array.from({ length: 7 }, (_, i) => doneCount(historyByDate[dayjs().subtract(i, 'day').format('YYYY-MM-DD')]));
+  const weekPercent = Math.round((last7.reduce((a, b) => a + b, 0) / (7 * TOTAL)) * 100);
+  const activeDays = last7.filter((c) => c > 0).length;
+
+  const mathuratWaktu = new Date().getHours() < 12 ? 'pagi' : 'petang';
+
   return (
-    <div className="page">
+    <div className="page home">
       <div className="page-header greeting">
         <div style={{ minWidth: 0 }}>
           <h1 className="page-title">Assalamualaikum, {user?.name?.split(' ')[0]}</h1>
@@ -169,45 +228,95 @@ export default function Dashboard() {
 
       <ProfileSheet open={profileOpen} onClose={() => setProfileOpen(false)} title="Set up your profile" />
 
-      <div className="card ring-card">
-        <MutabaahRing entry={today} />
-        <div className="quick-checks">
-          <span className="section-label" style={{ marginBottom: 2 }}>
-            Tap to mark today
-          </span>
-          {MUTABAAH_FIELDS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              className={`quick-check${today?.[f.key] ? ' done' : ''}`}
-              onClick={() => toggle(f.key)}
-              disabled={!today}
-              aria-pressed={!!today?.[f.key]}
-            >
-              <span className="quick-check-box">{today?.[f.key] && <Check size={13} strokeWidth={3} />}</span>
-              <span className="quick-check-label">{f.label}</span>
-              <span className="quick-check-time">
-                {f.key === 'tilawah' && today?.tilawahPages
+      <div className="home-today">
+        {/* ---------- today at a glance ---------- */}
+        <div className={`card today-hero${today && left === 0 ? ' complete' : ''}`}>
+          <MutabaahRing entry={today} size={124} caption={false} />
+          <div className="today-hero-text">
+            <div className="today-hero-label">Today's mutabaah</div>
+            <div className="today-hero-status">
+              {!today ? 'Loading…' : left === 0 ? 'All done. Alhamdulillah.' : done === 0 ? `${TOTAL} to go` : `${left} left today`}
+            </div>
+            <div className="today-hero-sub">
+              {done} of {TOTAL} completed
+            </div>
+            {nextUp && (
+              <div className="today-next">
+                <span className="today-next-text">
+                  Next up: <strong>{nextUp.label}</strong>
+                </span>
+                {nextShortcut ? (
+                  <Link to={nextShortcut.to} className="today-next-link">
+                    {nextShortcut.label} <ArrowRight size={13} />
+                  </Link>
+                ) : (
+                  <button type="button" className="today-next-link" onClick={() => toggle(nextUp.key)}>
+                    Mark done <Check size={13} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ---------- tick today's items ---------- */}
+        <div className="card quick-card">
+          <div className="quick-head">
+            <span className="section-label" style={{ marginBottom: 0 }}>
+              Tap to mark today
+            </span>
+            <Link to="/checklist" className="quick-more">
+              Details <ChevronRight size={14} />
+            </Link>
+          </div>
+          <div className="quick-checks">
+            {MUTABAAH_FIELDS.map((f) => {
+              const Icon = ICONS[f.key] || Check;
+              const isDone = !!today?.[f.key];
+              const amount =
+                f.key === 'tilawah' && today?.tilawahPages
                   ? `${today.tilawahPages} pages`
                   : f.key === 'zikir' && today?.zikirCount
                     ? `${today.zikirCount}x`
-                    : f.time}
-              </span>
-            </button>
-          ))}
+                    : '';
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  className={`quick-check${isDone ? ' done' : ''}`}
+                  onClick={() => toggle(f.key)}
+                  disabled={!today}
+                  aria-pressed={isDone}
+                >
+                  <span className="quick-check-box">
+                    <Icon size={17} />
+                  </span>
+                  <span className="quick-check-text">
+                    <span className="quick-check-label">{f.label}</span>
+                    <span className="quick-check-time">{amount ? `${f.time} · ${amount}` : f.time}</span>
+                  </span>
+                  {!isDone && f.period === nowPeriod && <span className="badge badge-gold">Now</span>}
+                  <span className="quick-check-tick" aria-hidden="true">
+                    {isDone && <Check size={13} strokeWidth={3} />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <Link to="/academic-journal" className="card hours-card">
-        <span className="hours-icon">
-          <NotebookText size={18} />
-        </span>
-        <span className="hours-body">
-          <span className="hours-head">
-            <span className="hours-title">Study hours this week</span>
-            <span className="hours-value">
-              <strong>{hours}h</strong> / {WEEKLY_TARGET_HOURS}h
+      {/* ---------- the week in two numbers ---------- */}
+      <div className="home-stats">
+        <Link to="/academic-journal" className="card home-stat">
+          <span className="home-stat-head">
+            <span className="home-stat-icon">
+              <NotebookText size={16} />
             </span>
+            Study this week
+          </span>
+          <span className="home-stat-value">
+            {hours}h <small>of the {WEEKLY_TARGET_HOURS}h target</small>
           </span>
           <span
             className="hours-bar"
@@ -219,21 +328,45 @@ export default function Dashboard() {
           >
             <span className="hours-bar-fill" style={{ width: `${hoursPercent}%` }} />
           </span>
-        </span>
-        <ChevronRight size={18} className="hours-chevron" />
-      </Link>
+        </Link>
+        <Link to="/checklist" className="card home-stat">
+          <span className="home-stat-head">
+            <span className="home-stat-icon gold">
+              <TrendingUp size={16} />
+            </span>
+            Mutabaah, last 7 days
+          </span>
+          <span className="home-stat-value">
+            {weekPercent}% <small>{activeDays} of 7 days active</small>
+          </span>
+          <span className="hours-bar" role="progressbar" aria-valuenow={weekPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Mutabaah over the last 7 days">
+            <span className="hours-bar-fill gold" style={{ width: `${weekPercent}%` }} />
+          </span>
+        </Link>
+      </div>
 
-      <div className="card" style={{ marginTop: 14 }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 14,
-            flexWrap: 'wrap',
-            gap: 10
-          }}
-        >
+      {/* ---------- shortcuts ---------- */}
+      <div className="home-links">
+        <Link to={lastRead?.key ? lastReadPath(lastRead) : '/quran'} className="card home-link">
+          <BookOpenText size={18} />
+          <span className="home-link-title">Al-Quran</span>
+          <span className="home-link-sub">{lastRead?.label ? `Continue: ${lastRead.label}` : 'Start reading'}</span>
+        </Link>
+        <Link to={`/mathurat?w=${mathuratWaktu}`} className="card home-link">
+          <BookMarked size={18} />
+          <span className="home-link-title">Al-Mathurat</span>
+          <span className="home-link-sub">{mathuratWaktu === 'pagi' ? 'Bacaan pagi' : 'Bacaan petang'}</span>
+        </Link>
+        <Link to="/mentoring" className="card home-link">
+          <Network size={18} />
+          <span className="home-link-title">Mentoring</span>
+          <span className="home-link-sub">Tree and dashboard</span>
+        </Link>
+      </div>
+
+      {/* ---------- trend ---------- */}
+      <div className="card trend-card">
+        <div className="trend-head">
           <span className="section-label" style={{ marginBottom: 0 }}>
             Your trend
           </span>
@@ -250,23 +383,38 @@ export default function Dashboard() {
         {loading ? (
           <div className="spinner" />
         ) : (
-          <div className="day-strip">
-            {dayList.map((d) => {
-              const entry = entryByDate[d];
-              const count = entry ? MUTABAAH_FIELDS.filter((f) => entry[f.key]).length : 0;
-              const ratio = count / MUTABAAH_FIELDS.length;
-              return (
-                <div
-                  key={d}
-                  className="day-cell"
-                  style={{ background: cellColor(entry), color: ratio > 0.6 ? 'var(--on-primary)' : 'var(--ink-soft)' }}
-                  title={`${dayjs(d).format('D MMM')} — ${count}/${MUTABAAH_FIELDS.length}`}
-                >
-                  {range === 'week' ? dayjs(d).format('dd')[0] : ''}
-                </div>
-              );
-            })}
-          </div>
+          <>
+            <p className="trend-summary">
+              Average <strong>{Math.round(trendAverage * 10) / 10}</strong> of {TOTAL} a day · {fullDays} full day{fullDays === 1 ? '' : 's'}
+            </p>
+            {range === 'week' ? (
+              <div className="trend-bars" aria-label="Mutabaah items done per day, last 7 days">
+                {dayList.map((d, i) => (
+                  <div key={d} className={`trend-bar${d === todayStr ? ' today' : ''}`} title={`${dayjs(d).format('D MMM')}: ${trendCounts[i]}/${TOTAL}`}>
+                    <span className="trend-bar-value">{trendCounts[i] || ''}</span>
+                    <span className="trend-bar-track">
+                      <span className="trend-bar-fill" style={{ height: `${(trendCounts[i] / TOTAL) * 100}%`, background: cellColor(trendCounts[i]) }} />
+                    </span>
+                    <span className="trend-bar-day">{dayjs(d).format('dd')[0]}</span>
+                    <span className="trend-bar-date">{dayjs(d).format('D')}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="trend-grid" aria-label="Mutabaah items done per day, last 30 days">
+                {dayList.map((d, i) => (
+                  <div
+                    key={d}
+                    className={`trend-cell${d === todayStr ? ' today' : ''}`}
+                    style={{ background: cellColor(trendCounts[i]), color: trendCounts[i] / TOTAL > 0.6 ? 'var(--on-primary)' : 'var(--ink-soft)' }}
+                    title={`${dayjs(d).format('D MMM')}: ${trendCounts[i]}/${TOTAL}`}
+                  >
+                    {dayjs(d).format('D')}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 
-export default function MutabaahRing({ entry, size = 168 }) {
+// `caption={false}` drops the "n/7 completed today" line for a smaller ring
+// that sits beside its own text.
+export default function MutabaahRing({ entry, size = 168, caption = true }) {
   const total = MUTABAAH_FIELDS.length;
   const completed = MUTABAAH_FIELDS.filter((f) => entry?.[f.key]).length;
   const percent = total ? Math.round((completed / total) * 100) : 0;
@@ -51,19 +53,21 @@ export default function MutabaahRing({ entry, size = 168 }) {
       />
       <text
         x="50%"
-        y="45%"
+        y={caption ? '45%' : '50%'}
         textAnchor="middle"
         dominantBaseline="central"
         fontFamily="var(--font-display)"
-        fontSize="32"
+        fontSize={caption ? 32 : Math.round(size * 0.22)}
         fontWeight="700"
         fill="var(--ink)"
       >
         {percent}%
       </text>
-      <text x="50%" y="64%" textAnchor="middle" dominantBaseline="central" fontSize="11" fill="var(--ink-soft)">
-        {completed}/{total} completed today
-      </text>
+      {caption && (
+        <text x="50%" y="64%" textAnchor="middle" dominantBaseline="central" fontSize="11" fill="var(--ink-soft)">
+          {completed}/{total} completed today
+        </text>
+      )}
     </svg>
   );
 }

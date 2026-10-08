@@ -4686,55 +4686,142 @@ a.perf-row:hover .perf-name {
 
 /* ---------- dashboard ---------- */
 
-.ring-card {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  flex-wrap: wrap;
+/* Home is a stack of sections; cards inside its grids don't use the usual
+   card-after-card gap. */
+.home-today,
+.home-stats,
+.home-links {
+  display: grid;
+  gap: 12px;
 }
 
-.ring-legend {
-  flex: 1;
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.home-today .card,
+.home-stats .card,
+.home-links .card {
+  margin-top: 0;
 }
 
-.ring-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--ink-soft);
+.home-stats,
+.home-links,
+.trend-card {
+  margin-top: 12px;
 }
 
-.ring-legend-item .dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--border);
-  flex-shrink: 0;
-}
-
-.ring-legend-item.done {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.ring-legend-item.done .dot {
-  background: var(--primary);
-}
-
-@media (max-width: 720px) {
-  .ring-card {
+@media (min-width: 900px) {
+  .home-today {
+    grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+    align-items: start;
+  }
+  .today-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+  .today-hero .today-next {
     justify-content: center;
   }
 }
 
-.quick-checks {
+/* Today at a glance: ring, status, and what to do next */
+.today-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background: linear-gradient(140deg, var(--primary-tint), var(--surface) 62%);
+}
+
+.today-hero.complete {
+  background: linear-gradient(140deg, var(--primary-tint), color-mix(in srgb, var(--primary-tint) 55%, var(--surface)));
+  border-color: transparent;
+}
+
+.today-hero svg {
+  flex-shrink: 0;
+}
+
+.today-hero-text {
   flex: 1;
-  min-width: 220px;
+  min-width: 0;
+}
+
+.today-hero-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--primary-dark);
+}
+
+.today-hero-status {
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.today-hero-sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.today-next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 10px;
+}
+
+.today-next-text {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.today-next-text strong {
+  color: var(--ink);
+}
+
+.today-next-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Tick today's items */
+.quick-card {
+  padding: 16px;
+}
+
+.quick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.quick-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  text-decoration: none;
+}
+
+.quick-checks {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -4743,10 +4830,10 @@ a.perf-row:hover .perf-name {
 .quick-check {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  min-height: 44px;
-  padding: 8px 12px;
+  min-height: 54px;
+  padding: 8px 12px 8px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -4770,22 +4857,29 @@ a.perf-row:hover .perf-name {
   cursor: default;
 }
 
+/* the item's own icon */
 .quick-check-box {
-  width: 22px;
-  height: 22px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
-  border-radius: 7px;
-  border: 2px solid var(--border);
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--on-primary);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  background: var(--paper);
+  color: var(--ink-soft);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.quick-check-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .quick-check-label {
-  flex: 1;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
   color: var(--ink);
 }
@@ -4795,12 +4889,35 @@ a.perf-row:hover .perf-name {
   color: var(--ink-soft);
 }
 
+.quick-check .badge {
+  flex-shrink: 0;
+}
+
+/* the tick, on the right */
+.quick-check-tick {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-primary);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
 .quick-check.done {
   background: var(--primary-tint);
   border-color: transparent;
 }
 
 .quick-check.done .quick-check-box {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.quick-check.done .quick-check-tick {
   background: var(--primary);
   border-color: var(--primary);
   animation: check-pop 0.25s ease;
@@ -4808,6 +4925,207 @@ a.perf-row:hover .perf-name {
 
 .quick-check.done .quick-check-label {
   color: var(--primary-dark);
+}
+
+/* The week in two numbers */
+.home-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.home-stat:hover,
+.home-link:hover {
+  border-color: var(--primary);
+}
+
+.home-stat-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.home-stat-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+.home-stat-icon.gold {
+  background: var(--gold-tint);
+  color: var(--gold);
+}
+
+.home-stat-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.home-stat-value small {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-body, inherit);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.hours-bar-fill.gold {
+  background: var(--gold);
+}
+
+/* Shortcuts */
+.home-links {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.home-link svg {
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+
+.home-link-title {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.home-link-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+/* Trend */
+.trend-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.trend-summary {
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.trend-summary strong {
+  color: var(--ink);
+}
+
+.trend-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.trend-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.trend-bar-value {
+  min-height: 15px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trend-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 36px;
+  height: 88px;
+  border-radius: 9px;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.trend-bar-fill {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  border-radius: 9px;
+  transition: height 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.trend-bar-day {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.trend-bar-date {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.trend-bar.today .trend-bar-track {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.trend-bar.today .trend-bar-day,
+.trend-bar.today .trend-bar-date {
+  color: var(--primary-dark);
+}
+
+.trend-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.trend-cell {
+  aspect-ratio: 1;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.trend-cell.today {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
 }
 
 .greeting {
