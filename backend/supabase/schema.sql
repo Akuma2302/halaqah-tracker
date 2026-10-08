@@ -363,3 +363,36 @@ create table if not exists quran_bookmarks (
 );
 create index if not exists idx_quran_bookmarks_user on quran_bookmarks(user_id);
 alter table quran_bookmarks enable row level security;
+
+-- Short, human-friendly user ID: a running number in sign-up order, shown as
+-- "D4F-0007" (see serializeUser). Existing users are numbered by when they
+-- joined; new users take the next number. Safe to re-run: only rows without a
+-- number are touched, and the sequence is moved past the highest one in use.
+-- Wrapped so a problem here can never stop the server from booting: the IDs
+-- would simply be missing (memberId null) until it is fixed.
+do $$
+begin
+  create sequence if not exists users_member_no_seq;
+  alter table users add column if not exists member_no integer unique;
+
+  update users u
+  set member_no = numbered.n
+  from (
+    select id,
+           row_number() over (order by created_at, id) + coalesce((select max(member_no) from users), 0) as n
+    from users
+    where member_no is null
+  ) numbered
+  where u.id = numbered.id;
+
+  perform setval(
+    'users_member_no_seq',
+    greatest(coalesce((select max(member_no) from users), 0), 1),
+    exists (select 1 from users where member_no is not null)
+  );
+  alter table users alter column member_no set default nextval('users_member_no_seq');
+exception
+  when others then
+    raise notice 'User ID setup skipped: %', sqlerrm;
+end
+$$;

@@ -2,10 +2,17 @@
 // refs) so the existing React frontend needs no changes even though the data
 // now lives in Postgres instead of MongoDB.
 
+// Short user ID people can read out or type, from the user's running number
+// (users.member_no): 7 -> "D4F-0007". Null until the number has been assigned.
+function memberId(memberNo) {
+  return Number.isInteger(memberNo) ? `D4F-${String(memberNo).padStart(4, '0')}` : null;
+}
+
 function serializeUser(row) {
   if (!row) return null;
   return {
     _id: row.id,
+    memberId: memberId(row.member_no),
     googleId: row.google_id,
     email: row.email,
     name: row.name,

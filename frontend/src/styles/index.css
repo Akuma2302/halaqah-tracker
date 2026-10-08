@@ -635,6 +635,38 @@ a {
   margin-bottom: 14px;
 }
 
+/* Read-only User ID at the top of the profile sheet */
+.member-id {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.member-id-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.member-id-value {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.member-id .btn {
+  margin: 0;
+  flex-shrink: 0;
+}
+
 .sheet-title {
   font-size: 18px;
   font-weight: 700;
