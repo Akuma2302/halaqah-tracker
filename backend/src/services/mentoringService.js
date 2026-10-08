@@ -145,8 +145,27 @@ function weekStats(mutabaahRows, academic, { date, weekStart }) {
   const possible = daysElapsed * CAMEL_FIELDS.length;
   const todayRow = mutabaahRows.find((r) => r.date === date);
 
+  // Items done on each day of the week, Sunday first; null for days still to come.
+  const doneByDate = Object.fromEntries(
+    mutabaahRows.map((r) => [r.date, doneCount(mutabaahService.toApiShapePublic(r, r.user_id, r.date))])
+  );
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const day = addDays(weekStart, i);
+    return lastDay && day <= lastDay ? doneByDate[day] || 0 : null;
+  });
+
+  // The whole week before, for the trend. Null when nothing at all was logged
+  // then, so a new user doesn't show a meaningless jump.
+  const prevStart = addDays(weekStart, -7);
+  const prevRows = mutabaahRows.filter((r) => r.date >= prevStart && r.date < weekStart);
+  const prevDone = prevRows.reduce((sum, r) => sum + doneByDate[r.date], 0);
+  const prevMutabaahPercent = prevRows.length ? Math.round((prevDone / (7 * CAMEL_FIELDS.length)) * 100) : null;
+
   const hours = academic.studySessions.reduce((sum, s) => sum + s.hours, 0);
   return {
+    days,
+    daysElapsed,
+    prevMutabaahPercent,
     mutabaahPercent: possible ? Math.round((done / possible) * 100) : 0,
     mutabaahToday: todayRow ? doneCount(mutabaahService.toApiShapePublic(todayRow, todayRow.user_id, date)) : 0,
     mutabaahTotal: CAMEL_FIELDS.length,
@@ -161,8 +180,14 @@ function weekStats(mutabaahRows, academic, { date, weekStart }) {
 function groupSummary(people) {
   const n = people.length;
   const avg = (pick) => (n ? people.reduce((sum, p) => sum + pick(p), 0) / n : 0);
+  // Trend for the group: only people who logged something the week before.
+  const withPrev = people.filter((p) => p.prevMutabaahPercent !== null && p.prevMutabaahPercent !== undefined);
+  const mutabaahChange = withPrev.length
+    ? Math.round(withPrev.reduce((sum, p) => sum + (p.mutabaahPercent - p.prevMutabaahPercent), 0) / withPrev.length)
+    : null;
   return {
     count: n,
+    mutabaahChange,
     avgMutabaahPercent: Math.round(avg((p) => p.mutabaahPercent)),
     avgStudyHours: Math.round(avg((p) => p.studyHours) * 10) / 10,
     studiedToday: people.filter((p) => p.studiedToday).length,
@@ -183,9 +208,10 @@ async function getDashboard(userId, { date, weekStart }) {
   const everyone = [me, ...mates, ...mentees];
 
   const [mutabaahRows, academicLogs] = await Promise.all([
+    // From the week before, so each person's trend can be worked out too.
     mutabaahRepository.findBoundedRangeForUsers(
       everyone.map((u) => u.id),
-      weekStart,
+      addDays(weekStart, -7),
       addDays(weekStart, 6)
     ),
     Promise.all(everyone.map((u) => weeklyLogService.getWeek(u.id, weekStart)))

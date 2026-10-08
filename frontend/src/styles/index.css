@@ -925,10 +925,15 @@ a.perf-row:hover .perf-name {
   min-width: 0;
 }
 
-.perf-name {
+.perf-head {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.perf-name {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -936,12 +941,230 @@ a.perf-row:hover .perf-name {
   color: var(--ink);
 }
 
+.perf-head .badge {
+  flex-shrink: 0;
+}
+
+/* Sunday-to-Saturday strip: each square fills up with that day's mutabaah */
+.perf-days {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.perf-day {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 18px;
+  border-radius: 4px;
+  background: linear-gradient(to top, color-mix(in srgb, var(--primary) 55%, transparent) calc(var(--fill, 0) * 100%), var(--paper) 0);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.perf-day.full {
+  background: var(--primary);
+  color: #fff;
+}
+
+.perf-day.none {
+  background: color-mix(in srgb, var(--danger) 16%, var(--paper));
+}
+
+.perf-day.future {
+  background: none;
+  outline: 1px dashed var(--border);
+  outline-offset: -1px;
+  opacity: 0.6;
+}
+
+.perf-trend {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.perf-trend.up,
+.perf-hero-trend.up {
+  color: var(--primary-dark);
+}
+
+.perf-trend.down,
+.perf-hero-trend.down {
+  color: var(--danger);
+}
+
+.perf-trend.flat,
+.perf-hero-trend.flat {
+  color: var(--ink-soft);
+}
+
+.page .range-toggle.segmented.perf-groups {
+  margin-bottom: 12px;
+}
+
+/* Group at a glance: ring with the average, then three figures */
+.perf-overview {
+  margin-bottom: 12px;
+}
+
+.perf-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.perf-hero-ring {
+  --ring: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--surface) 78%, transparent 80%),
+    conic-gradient(var(--ring) calc(var(--p) * 1%), var(--border) 0);
+}
+
+.perf-hero-ring.tone-mid {
+  --ring: var(--gold);
+}
+
+.perf-hero-ring.tone-low {
+  --ring: var(--danger);
+}
+
+.perf-hero-ring span {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.perf-hero-text {
+  min-width: 0;
+}
+
+.perf-hero-title {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.perf-hero-sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.perf-hero-trend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.perf-overview .week-stats.perf-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 12px 0 0;
+}
+
+/* Who to follow up with */
+.perf-attention {
+  margin-bottom: 12px;
+  padding: 12px 14px 6px;
+  border-color: var(--gold-border);
+  background: var(--gold-tint);
+}
+
+.perf-attention.clear {
+  padding-bottom: 12px;
+  border-color: transparent;
+  background: var(--primary-tint);
+}
+
+.perf-attention-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-ink);
+}
+
+.perf-attention.clear .perf-attention-title {
+  color: var(--primary-dark);
+}
+
+.perf-attention-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 8px;
+  margin-top: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--gold-border);
+  color: inherit;
+  text-decoration: none;
+}
+
+.perf-attention-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.perf-attention-why {
+  grid-column: 1;
+  font-size: 12.5px;
+  color: var(--gold-ink);
+}
+
+.perf-attention-row svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--gold-ink);
+}
+
+.perf-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.perf-sort {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.perf-sort .chip {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.perf-row .mentee-chevron {
+  align-self: center;
+}
+
 .perf-bars {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 42px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px 8px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .perf-bar-label {
@@ -972,10 +1195,13 @@ a.perf-row:hover .perf-name {
 }
 
 .perf-bar-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 64px;
   font-size: 12px;
   font-weight: 700;
   color: var(--ink);
-  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
