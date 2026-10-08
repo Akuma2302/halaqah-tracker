@@ -13,8 +13,27 @@ function Avatar({ person }) {
   );
 }
 
-// Mentoring Tree: my mentor (linked by entering their User ID) and my mentees
-// (everyone who entered mine). A mentor can open a mentee to see their detail.
+// A mentee or mentoring mate in a list: opens their detail page.
+function PersonLink({ person }) {
+  return (
+    <Link to={`/mentoring/${person._id}`} className="card mentor-card mentee-link">
+      <Avatar person={person} />
+      <div className="mentor-body">
+        <div className="mentor-name">{person.name}</div>
+        <div className="mentor-meta">{[person.memberId, person.kampus].filter(Boolean).join(' · ')}</div>
+      </div>
+      <span className={`badge ${person.mutabaahDone === person.mutabaahTotal ? 'badge-primary' : 'badge-muted'}`}>
+        {person.mutabaahDone}/{person.mutabaahTotal} today
+      </span>
+      <ChevronRight size={16} className="mentee-chevron" />
+    </Link>
+  );
+}
+
+// Mentoring Tree: my mentor (linked by entering their User ID), my mentoring
+// mates (the others under that mentor) and my mentees (everyone who entered
+// my ID). Mates and mentees can be opened to see their detail; a mentor's
+// own detail is never shown to their mentees.
 export default function Mentoring() {
   const [tree, setTree] = useState(null);
   const [error, setError] = useState(false);
@@ -39,8 +58,9 @@ export default function Mentoring() {
     setFormError('');
     try {
       const res = await client.put('/mentoring/mentor', { memberId });
-      setTree((t) => ({ ...t, mentor: res.data.mentor }));
+      setTree((t) => ({ ...t, mentor: res.data.mentor, mates: [] }));
       setMentorInput('');
+      load(); // mates depend on who the mentor is
       showToast(res.data.mentor ? `${res.data.mentor.name} is now your mentor` : 'Mentor removed');
     } catch (err) {
       setFormError(err.response?.data?.error || "Couldn't save. Please try again.");
@@ -50,9 +70,8 @@ export default function Mentoring() {
   }
 
   function removeMentor() {
-    if (window.confirm(`Remove ${tree.mentor.name} as your mentor? They will no longer see your mutabaah and academic detail.`)) {
-      saveMentor('');
-    }
+    const message = `Remove ${tree.mentor.name} as your mentor? They and your mentoring mates will no longer see your mutabaah and academic detail, and you will no longer see your mates'.`;
+    if (window.confirm(message)) saveMentor('');
   }
 
   function copyId() {
@@ -132,9 +151,25 @@ export default function Mentoring() {
               </div>
               {formError && <p className="form-error">{formError}</p>}
               <p className="mentor-note">
-                Adding a mentor lets them see your mutabaah and academic detail. You can remove them at any time.
+                Adding a mentor lets them, and the other mentees under them, see your mutabaah and academic detail. You
+                can remove them at any time.
               </p>
             </form>
+          )}
+
+          {tree.mentor && (
+            <>
+              <h2 className="mentor-heading">
+                <Users size={15} /> My mentoring mates ({tree.mates?.length || 0})
+              </h2>
+              {!tree.mates?.length ? (
+                <div className="card">
+                  <p className="log-empty">Nobody else is under {tree.mentor.name} yet.</p>
+                </div>
+              ) : (
+                <div className="mentee-list">{tree.mates.map((m) => <PersonLink key={m._id} person={m} />)}</div>
+              )}
+            </>
           )}
 
           <h2 className="mentor-heading">
@@ -147,21 +182,7 @@ export default function Mentoring() {
               </p>
             </div>
           ) : (
-            <div className="mentee-list">
-              {tree.mentees.map((m) => (
-                <Link key={m._id} to={`/mentoring/${m._id}`} className="card mentor-card mentee-link">
-                  <Avatar person={m} />
-                  <div className="mentor-body">
-                    <div className="mentor-name">{m.name}</div>
-                    <div className="mentor-meta">{[m.memberId, m.kampus].filter(Boolean).join(' · ')}</div>
-                  </div>
-                  <span className={`badge ${m.mutabaahDone === m.mutabaahTotal ? 'badge-primary' : 'badge-muted'}`}>
-                    {m.mutabaahDone}/{m.mutabaahTotal} today
-                  </span>
-                  <ChevronRight size={16} className="mentee-chevron" />
-                </Link>
-              ))}
-            </div>
+            <div className="mentee-list">{tree.mentees.map((m) => <PersonLink key={m._id} person={m} />)}</div>
           )}
         </>
       )}

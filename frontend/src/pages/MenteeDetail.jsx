@@ -45,7 +45,15 @@ export default function MenteeDetail() {
     client
       .get(`/mentoring/mentees/${id}`, { params: { date: todayKey, weekStart: week } })
       .then((res) => !cancelled && setData(res.data))
-      .catch((err) => !cancelled && setError(err.response?.status === 403 ? 'This user is not your mentee.' : "Couldn't load this mentee."));
+      .catch(
+        (err) =>
+          !cancelled &&
+          setError(
+            err.response?.status === 403
+              ? "You can't view this person's updates. Only their mentor and mentoring mates can."
+              : "Couldn't load this person's updates."
+          )
+      );
     return () => {
       cancelled = true;
     };
@@ -67,7 +75,8 @@ export default function MenteeDetail() {
       </div>
     );
   }
-  if (!data) {
+  // Never show one person's updates under another's address while loading.
+  if (!data || data.user._id !== id) {
     return (
       <div className="page">
         {back}
@@ -96,7 +105,9 @@ export default function MenteeDetail() {
       <div className="page-header">
         <div>
           <h1 className="page-title">{user.name}</h1>
-          <p className="page-subtitle">{[user.memberId, user.kampus].filter(Boolean).join(' · ') || 'Mentee'}</p>
+          <p className="page-subtitle">
+            {[data.relation === 'mate' ? 'Mentoring mate' : 'Your mentee', user.memberId, user.kampus].filter(Boolean).join(' · ')}
+          </p>
         </div>
       </div>
 

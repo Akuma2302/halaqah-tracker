@@ -733,7 +733,8 @@ a {
   gap: 8px;
 }
 
-.mentee-list .card {
+.mentee-list .card,
+.mentee-list .card + .card {
   margin: 0;
 }
 
