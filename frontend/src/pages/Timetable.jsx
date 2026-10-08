@@ -7,6 +7,7 @@ import { useToast } from '../hooks/useToast';
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const KINDS = [
+  ['class', 'Class'],
   ['lecture', 'Lecture'],
   ['tutorial', 'Tutorial'],
   ['lab', 'Lab'],

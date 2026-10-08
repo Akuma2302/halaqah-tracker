@@ -6,7 +6,7 @@ const asyncHandler = require('../middlewares/asyncHandler');
 const timetableRepository = require('../repositories/timetableRepository');
 const subjectRepository = require('../repositories/subjectRepository');
 
-const KINDS = ['lecture', 'tutorial', 'lab', 'halaqah', 'other'];
+const KINDS = ['class', 'lecture', 'tutorial', 'lab', 'halaqah', 'other'];
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 // A weekly class: a day (0 = Sunday), a start and end time ("HH:MM", 24h),
