@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Trash2, Eye, EyeOff, X, ChevronLeft, MoreVertical, User, CalendarClock, Check, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, X, ChevronLeft, MoreVertical, User, CalendarClock, CalendarDays, Check, BookOpen } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { ASSESSMENT_TYPES } from '../features/academic/constants';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
+import { KINDS, SHORT_DAYS, slotSummary } from '../features/timetable/timetable';
 
 const TYPE_LABEL = ASSESSMENT_LABEL;
 const CREDIT_PRESETS = [2, 3, 4];
-const emptyForm = { name: '', code: '', lecturerName: '', creditHour: '', assessments: [] };
+const emptyForm = { name: '', code: '', lecturerName: '', creditHour: '', assessments: [], classes: [] };
+const emptyClass = { dayOfWeek: 1, startTime: '09:00', endTime: '10:00', venue: '', kind: 'lecture' };
 
 // Overall progress weighted by each assessment's percentage (done = 100%).
 function subjectProgress(assessments) {
@@ -46,6 +48,17 @@ export default function SubjectList() {
   const [error, setError] = useState('');
   const [menuFor, setMenuFor] = useState(null);
   const [toast, showToast] = useToast();
+  // Every class slot in the timetable; each subject's own are shown and edited here.
+  const [timetable, setTimetable] = useState([]);
+
+  function loadTimetable() {
+    client
+      .get('/timetable')
+      .then((res) => setTimetable(res.data))
+      .catch(() => setTimetable([]));
+  }
+
+  const classesOf = (subjectId) => timetable.filter((e) => e.subject?._id === subjectId);
 
   function load() {
     setLoading(true);
@@ -57,7 +70,10 @@ export default function SubjectList() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    loadTimetable();
+  }, []);
 
   // Close the ⋯ menu on any outside tap.
   useEffect(() => {
@@ -86,6 +102,15 @@ export default function SubjectList() {
         dueDate: a.dueDate || '',
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: !!a.isDone
+      })),
+      classes: classesOf(subject._id).map((e) => ({
+        _id: e._id,
+        title: e.title || '',
+        dayOfWeek: e.dayOfWeek,
+        startTime: e.startTime,
+        endTime: e.endTime,
+        venue: e.venue || '',
+        kind: e.kind || 'lecture'
       }))
     });
     setEditingId(subject._id);
@@ -112,11 +137,52 @@ export default function SubjectList() {
     setForm((f) => ({ ...f, assessments: f.assessments.filter((_, idx) => idx !== i) }));
   }
 
+  // Class times: a new slot starts from the last one's times, on the next day.
+  function addClass() {
+    setForm((f) => {
+      const last = f.classes[f.classes.length - 1];
+      const next = last ? { ...emptyClass, ...last, _id: undefined, title: '', dayOfWeek: (last.dayOfWeek + 1) % 7 } : emptyClass;
+      return { ...f, classes: [...f.classes, next] };
+    });
+  }
+
+  function updateClass(i, patch) {
+    setForm((f) => ({ ...f, classes: f.classes.map((c, idx) => (idx === i ? { ...c, ...patch } : c)) }));
+  }
+
+  function removeClass(i) {
+    setForm((f) => ({ ...f, classes: f.classes.filter((_, idx) => idx !== i) }));
+  }
+
+  // Bring the timetable in line with the form: new slots are added, changed
+  // ones updated, and ones taken out of the form removed.
+  async function saveClasses(subjectId) {
+    const kept = new Set(form.classes.map((c) => c._id).filter(Boolean));
+    const removed = classesOf(subjectId).filter((e) => !kept.has(e._id));
+    const body = (c) => ({
+      subjectId,
+      title: c.title || '',
+      kind: c.kind,
+      dayOfWeek: Number(c.dayOfWeek),
+      startTime: c.startTime,
+      endTime: c.endTime,
+      venue: (c.venue || '').trim()
+    });
+    await Promise.all([
+      ...removed.map((e) => client.delete(`/timetable/${e._id}`)),
+      ...form.classes.map((c) => (c._id ? client.put(`/timetable/${c._id}`, body(c)) : client.post('/timetable', body(c))))
+    ]);
+  }
+
   async function save(addAnother) {
     if (!form.name.trim()) return setError('Enter the subject name.');
     const missingWeight = form.assessments.findIndex((a) => a.percentage === '');
     if (missingWeight !== -1) {
       return setError(`Enter the weight % for ${TYPE_LABEL[form.assessments[missingWeight].type] || 'each assessment'}.`);
+    }
+    const badClass = form.classes.findIndex((c) => !c.startTime || !c.endTime || c.endTime <= c.startTime);
+    if (badClass !== -1) {
+      return setError(`Class time ${badClass + 1}: the end time must be after the start time.`);
     }
     setSaving(true);
     setError('');
@@ -134,9 +200,22 @@ export default function SubjectList() {
       }))
     };
     try {
+      let subjectId = editingId;
       if (editingId) await client.put(`/academic/subjects/${editingId}`, payload);
-      else await client.post('/academic/subjects', payload);
+      else subjectId = (await client.post('/academic/subjects', payload)).data?._id;
       load();
+      // The subject is saved by now; a failure below only concerns its class times.
+      if (subjectId && (form.classes.length || classesOf(subjectId).length)) {
+        try {
+          await saveClasses(subjectId);
+        } catch {
+          loadTimetable();
+          setEditingId(subjectId);
+          setError("The subject was saved, but its class times couldn't be. Check them and save again.");
+          return;
+        }
+        loadTimetable();
+      }
       showToast(editingId ? 'Subject updated' : 'Subject added');
       if (addAnother) {
         setForm(emptyForm);
@@ -237,6 +316,11 @@ export default function SubjectList() {
                       <span className="subject-dot">·</span>
                       {s.creditHour || 0} credit{Number(s.creditHour) === 1 ? '' : 's'}
                     </span>
+                    {classesOf(s._id).length > 0 && (
+                      <span className="subject-meta subject-classes">
+                        <CalendarDays size={12} /> {slotSummary(classesOf(s._id))}
+                      </span>
+                    )}
                   </button>
                   <div className="subject-menu" onPointerDown={(e) => e.stopPropagation()}>
                     <button
@@ -365,6 +449,47 @@ export default function SubjectList() {
                 aria-label="Other credit hours"
               />
             </div>
+          </div>
+
+          <div className="field">
+            <div className="assess-head">
+              <label>Class times</label>
+              {form.classes.length > 0 && <span className="assess-total">Shown in your Timetable</span>}
+            </div>
+
+            {form.classes.map((c, i) => (
+              <div key={c._id || `new-${i}`} className="assess-card class-slot">
+                <div className="assess-row">
+                  <select className="input class-slot-day" value={c.dayOfWeek} onChange={(e) => updateClass(i, { dayOfWeek: Number(e.target.value) })} aria-label="Day">
+                    {SHORT_DAYS.map((label, d) => (
+                      <option key={label} value={d}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <input className="input" type="time" value={c.startTime} onChange={(e) => updateClass(i, { startTime: e.target.value })} aria-label="Start time" />
+                  <span className="class-slot-to">to</span>
+                  <input className="input" type="time" value={c.endTime} onChange={(e) => updateClass(i, { endTime: e.target.value })} aria-label="End time" />
+                  <button type="button" className="icon-btn" onClick={() => removeClass(i)} aria-label="Remove class time">
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="assess-row">
+                  <select className="input class-slot-kind" value={c.kind} onChange={(e) => updateClass(i, { kind: e.target.value })} aria-label="Type">
+                    {KINDS.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <input className="input class-slot-venue" value={c.venue} onChange={(e) => updateClass(i, { venue: e.target.value })} placeholder="Venue, e.g. Dewan Kuliah 3" maxLength={80} aria-label="Venue" />
+                </div>
+              </div>
+            ))}
+
+            <button type="button" className="chip class-slot-add" onClick={addClass}>
+              <Plus size={12} /> Add class time
+            </button>
           </div>
 
           <div className="field">

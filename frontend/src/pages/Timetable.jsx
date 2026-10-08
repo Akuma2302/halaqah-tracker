@@ -3,29 +3,7 @@ import { CalendarDays, Clock, MapPin, Plus, Trash2 } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
-
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const KINDS = [
-  ['class', 'Class'],
-  ['lecture', 'Lecture'],
-  ['tutorial', 'Tutorial'],
-  ['lab', 'Lab'],
-  ['halaqah', 'Halaqah'],
-  ['other', 'Other']
-];
-const KIND_LABEL = Object.fromEntries(KINDS);
-
-function minutes(time) {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
-}
-
-// "14:30" -> "2:30 pm"
-function clock(time) {
-  const [h, m] = time.split(':').map(Number);
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
-}
+import { DAYS, KINDS, KIND_LABEL, SHORT_DAYS, clock, minutes } from '../features/timetable/timetable';
 
 function duration(mins) {
   const h = Math.floor(mins / 60);
