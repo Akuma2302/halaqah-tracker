@@ -4,16 +4,17 @@ import { Home, ListChecks, GraduationCap, NotebookText, Menu, ClipboardList, Boo
 import { useAuth } from '../hooks/useAuth';
 
 // Mobile-only navigation (hidden above 720px, where SideNav takes over).
+// Home sits in the middle as a raised round button.
 const TABS = [
-  { to: '/', label: 'Home', icon: Home, end: true },
-  { to: '/checklist', label: 'Mutabaah', icon: ListChecks },
+  { to: '/timetable', label: 'Timetable', icon: CalendarDays },
   { to: '/study-groups', label: 'Groups', icon: GraduationCap },
+  { to: '/', label: 'Home', icon: Home, end: true, home: true },
   { to: '/academic-journal', label: 'Academic', icon: NotebookText }
 ];
 
 const MORE = [
+  { to: '/checklist', label: 'Mutabaah', icon: ListChecks },
   { to: '/subject-list', label: 'Subjects', icon: ClipboardList },
-  { to: '/timetable', label: 'Timetable', icon: CalendarDays },
   { to: '/quran', label: 'Al-Quran', icon: BookOpenText },
   { to: '/mathurat', label: 'Al-Mathurat', icon: BookMarked },
   { to: '/mentoring', label: 'Mentoring Tree', icon: Network },
@@ -58,10 +59,10 @@ export default function BottomNav() {
       )}
 
       <nav className="bottom-nav" aria-label="Main">
-        {TABS.map(({ to, label, icon: Icon, end }) => (
-          <NavLink key={to} to={to} end={end} className={({ isActive }) => `bottom-nav-link${isActive ? ' active' : ''}`}>
+        {TABS.map(({ to, label, icon: Icon, end, home }) => (
+          <NavLink key={to} to={to} end={end} className={({ isActive }) => `bottom-nav-link${home ? ' home' : ''}${isActive ? ' active' : ''}`}>
             <span className="bottom-nav-icon">
-              <Icon size={20} />
+              <Icon size={home ? 24 : 20} />
             </span>
             <span>{label}</span>
           </NavLink>

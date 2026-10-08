@@ -4337,6 +4337,32 @@ a.perf-row:hover .perf-name {
     top: -2px;
     right: 6px;
   }
+  /* Home: a raised round button in the middle of the bar */
+  .bottom-nav-link.home {
+    gap: 2px;
+  }
+  .bottom-nav-link.home .bottom-nav-icon,
+  .bottom-nav-link.home.active .bottom-nav-icon {
+    width: 54px;
+    height: 54px;
+    margin-top: -26px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid var(--surface);
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--on-primary);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 35%, transparent);
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .bottom-nav-link.home:not(.active) .bottom-nav-icon {
+    background: color-mix(in srgb, var(--primary) 78%, var(--surface));
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  }
+  .bottom-nav-link.home:active .bottom-nav-icon {
+    transform: scale(0.94);
+  }
   .page {
     padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
