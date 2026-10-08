@@ -349,9 +349,10 @@ export default function Checklist() {
                           goal={PAGES_PER_JUZ}
                           unit="pages"
                           label="page"
+                          quick={[5, 10, 20]}
                           goalText={(n) =>
                             n >= PAGES_PER_JUZ
-                              ? `${(n / PAGES_PER_JUZ).toFixed(1).replace(/\.0$/, '')} juz ✓`
+                              ? `${(n / PAGES_PER_JUZ).toFixed(1).replace(/\.0$/, '')} juz read`
                               : `${PAGES_PER_JUZ - n} more page${PAGES_PER_JUZ - n === 1 ? '' : 's'} to complete 1 juz`
                           }
                         />
@@ -364,7 +365,8 @@ export default function Checklist() {
                           goal={ZIKIR_GOAL}
                           unit="times"
                           label="count"
-                          goalText={(n) => (n >= ZIKIR_GOAL ? `${n}x ✓` : `${ZIKIR_GOAL - n} more to reach ${ZIKIR_GOAL}x`)}
+                          quick={[10, 33, 100]}
+                          goalText={(n) => (n >= ZIKIR_GOAL ? `${n}x done` : `${ZIKIR_GOAL - n} more to reach ${ZIKIR_GOAL}x`)}
                         />
                       )}
                     </div>
