@@ -52,4 +52,20 @@ async function remove(id, userId) {
   if (error) throw error;
 }
 
-module.exports = { findByUser, create, update, remove };
+// Postgres returns times as "09:00:00"; the app works in "09:00".
+function serialize(row) {
+  return {
+    _id: row.id,
+    title: row.title,
+    dayOfWeek: row.day_of_week,
+    startTime: String(row.start_time).slice(0, 5),
+    endTime: String(row.end_time).slice(0, 5),
+    venue: row.venue,
+    kind: row.kind,
+    subject: row.subject
+      ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code, lecturerName: row.subject.lecturer_name }
+      : null
+  };
+}
+
+module.exports = { findByUser, create, update, remove, serialize };

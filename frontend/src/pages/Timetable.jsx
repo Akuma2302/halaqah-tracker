@@ -3,7 +3,7 @@ import { CalendarDays, Clock, MapPin, Plus, Trash2 } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
-import { DAYS, KINDS, KIND_LABEL, SHORT_DAYS, clock, minutes } from '../features/timetable/timetable';
+import { DAYS, KINDS, KIND_LABEL, SHORT_DAYS, clock, hueFor, minutes } from '../features/timetable/timetable';
 
 function duration(mins) {
   const h = Math.floor(mins / 60);
@@ -13,14 +13,6 @@ function duration(mins) {
 
 function nameOf(entry) {
   return entry.title || entry.subject?.name || 'Class';
-}
-
-// A steady colour per class (from its name), so the same subject looks the
-// same on every day.
-function hueFor(text) {
-  let sum = 0;
-  for (const ch of text || '') sum = (sum * 31 + ch.charCodeAt(0)) % 360;
-  return sum;
 }
 
 function emptyForm(day) {

@@ -32,3 +32,11 @@ export function slotSummary(entries) {
     .map((e) => `${SHORT_DAYS[e.dayOfWeek]} ${clock(e.startTime)}`)
     .join(' · ');
 }
+
+// A steady colour per class (from its name), so the same subject looks the
+// same on every day.
+export function hueFor(text) {
+  let sum = 0;
+  for (const ch of text || '') sum = (sum * 31 + ch.charCodeAt(0)) % 360;
+  return sum;
+}

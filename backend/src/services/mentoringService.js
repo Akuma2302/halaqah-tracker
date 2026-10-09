@@ -1,5 +1,6 @@
 const userRepository = require('../repositories/userRepository');
 const mutabaahRepository = require('../repositories/mutabaahRepository');
+const timetableRepository = require('../repositories/timetableRepository');
 const mutabaahService = require('./mutabaahService');
 const weeklyLogService = require('./weeklyLogService');
 const { CAMEL_FIELDS } = require('../models/MutabaahEntry');
@@ -112,10 +113,11 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart }) {
   if (!relation) throw fail(403, "You can't view this person's updates");
 
   const weekEnd = addDays(weekStart, 6);
-  const [todayEntry, weekRows, academic] = await Promise.all([
+  const [todayEntry, weekRows, academic, timetableRows] = await Promise.all([
     mutabaahService.getEntry(menteeId, date),
     mutabaahRepository.findBoundedRangeForUser(menteeId, weekStart, weekEnd),
-    weeklyLogService.getWeek(menteeId, weekStart)
+    weeklyLogService.getWeek(menteeId, weekStart),
+    timetableRepository.findByUser(menteeId)
   ]);
   const rowByDate = Object.fromEntries(weekRows.map((r) => [r.date, r]));
   const week = Array.from({ length: 7 }, (_, i) => {
@@ -129,7 +131,9 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart }) {
     date,
     weekStart,
     mutabaah: { today: todayEntry, week },
-    academic
+    academic,
+    // Their weekly class timetable (the same every week).
+    timetable: timetableRows.map(timetableRepository.serialize)
   };
 }
 

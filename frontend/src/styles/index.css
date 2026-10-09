@@ -6128,6 +6128,20 @@ a.perf-row:hover .perf-name {
   opacity: 0.55;
 }
 
+/* Read-only, e.g. a mentee's timetable */
+.class-card.static {
+  cursor: default;
+}
+
+.class-card.static:hover {
+  border-color: var(--border);
+  border-left-color: var(--subject);
+}
+
+.class-card.static:active {
+  transform: none;
+}
+
 .class-time {
   display: flex;
   flex-direction: column;

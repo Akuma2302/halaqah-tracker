@@ -5,6 +5,7 @@ const validate = require('../middlewares/validate');
 const asyncHandler = require('../middlewares/asyncHandler');
 const timetableRepository = require('../repositories/timetableRepository');
 const subjectRepository = require('../repositories/subjectRepository');
+const serialize = timetableRepository.serialize;
 
 const KINDS = ['class', 'lecture', 'tutorial', 'lab', 'halaqah', 'other'];
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -23,22 +24,6 @@ const entrySchema = z
   })
   .refine((e) => e.endTime > e.startTime, { message: 'End time must be after the start time' })
   .refine((e) => e.subjectId || (e.title && e.title.length > 0), { message: 'Choose a subject or give the class a name' });
-
-// Postgres returns times as "09:00:00"; the app works in "09:00".
-function serialize(row) {
-  return {
-    _id: row.id,
-    title: row.title,
-    dayOfWeek: row.day_of_week,
-    startTime: String(row.start_time).slice(0, 5),
-    endTime: String(row.end_time).slice(0, 5),
-    venue: row.venue,
-    kind: row.kind,
-    subject: row.subject
-      ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code, lecturerName: row.subject.lecturer_name }
-      : null
-  };
-}
 
 // A subject id from the client must be one of the user's own subjects.
 async function ownSubject(req, res) {

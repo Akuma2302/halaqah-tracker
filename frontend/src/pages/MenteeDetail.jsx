@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight, Minus, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, MapPin, Minus, X } from 'lucide-react';
 import client from '../services/apiClient';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../features/academic/weekUtils';
+import { DAYS, KIND_LABEL, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
 
-const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
 const todayKey = toDateKey(new Date());
 const currentWeekKey = toDateKey(getWeekStart());
@@ -31,8 +31,8 @@ function subjectLabel(s) {
 }
 
 // A mentor's view of one mentee: today's mutabaah item by item, the week's
-// mutabaah, and the week's academic log (studied or not, sessions, questions,
-// lecturer consultations). Read-only.
+// mutabaah, the week's academic log (studied or not, sessions, questions,
+// lecturer consultations) and their class timetable. Read-only.
 export default function MenteeDetail() {
   const { id } = useParams();
   const [week, setWeek] = useState(currentWeekKey);
@@ -98,6 +98,9 @@ export default function MenteeDetail() {
   const totalQuestions = academic.questionPractice.reduce((sum, q) => sum + (q.questionCount || 0), 0);
   const consultations = academic.consultations;
   const validated = academic.mentorValidation?.isValidated;
+  const timetable = data.timetable || [];
+  const weekday = new Date().getDay();
+  const classDays = DAYS.map((label, day) => ({ label, day, entries: timetable.filter((e) => e.dayOfWeek === day) })).filter((d) => d.entries.length);
 
   return (
     <div className="page">
@@ -267,6 +270,42 @@ export default function MenteeDetail() {
                   {[c.date && shortDate(c.date), subjectLabel(c.subject), c.venue].filter(Boolean).join(' · ')}
                 </div>
                 {c.detail && <div className="log-meta">{c.detail}</div>}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ---------- their weekly classes ---------- */}
+      <div className="card">
+        <div className="log-section-title">Timetable · {timetable.length} class{timetable.length === 1 ? '' : 'es'} a week</div>
+        {classDays.length === 0 ? (
+          <p className="log-empty">No classes in their timetable yet.</p>
+        ) : (
+          classDays.map(({ label, day, entries }) => (
+            <div className="week-group" key={label}>
+              <div className={`week-group-title${day === weekday ? ' today' : ''}`}>
+                {label}
+                {day === weekday && <span className="badge badge-gold">Today</span>}
+              </div>
+              <div className="class-list">
+                {entries.map((e) => (
+                  <div key={e._id} className="class-card static" style={{ '--hue': hueFor(e.subject?.name || e.title) }}>
+                    <span className="class-time">
+                      <strong>{clock(e.startTime)}</strong>
+                      <span>{clock(e.endTime)}</span>
+                    </span>
+                    <span className="class-body">
+                      <span className="class-name">{e.title || e.subject?.name || 'Class'}</span>
+                      <span className="class-meta">{[e.subject?.code, KIND_LABEL[e.kind] || e.kind].filter(Boolean).join(' · ')}</span>
+                      {e.venue && (
+                        <span className="class-meta">
+                          <MapPin size={11} /> {e.venue}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           ))
