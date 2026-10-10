@@ -757,72 +757,340 @@ a {
   color: var(--ink-soft);
 }
 
-.mentee-today {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
+/* ---------- a mentee's or mate's page ---------- */
+.md-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.mentee-today-tile {
+.md-stack .card,
+.md-stack .card + .card {
+  margin: 0;
+}
+
+.md-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Who it is: a band in their colour, the avatar sitting over its edge */
+.md-stack .md-hero {
+  --person: hsl(var(--hue, 165) 55% 50%);
+  padding: 0;
+  overflow: hidden;
+}
+
+.md-hero-band {
+  height: 56px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--person) 34%, var(--surface)), var(--primary-tint));
+}
+
+.md-hero-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: -28px;
+  padding: 0 16px 14px;
+}
+
+.md-avatar {
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  border: 3px solid var(--surface);
+  font-size: 24px;
+  object-fit: cover;
+}
+
+.md-hero-text {
+  flex: 1;
+  min-width: 0;
+  padding-top: 36px;
+}
+
+.md-name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.md-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.md-ring-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 12px 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
+  gap: 4px;
+  flex-shrink: 0;
+  padding-top: 36px;
+}
+
+.today-ring.md-ring {
+  width: 58px;
+  height: 58px;
+}
+
+.today-ring.md-ring > span {
+  font-size: 18px;
+}
+
+.today-ring.md-ring small {
+  font-size: 11px;
+}
+
+.md-ring-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.md-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+}
+
+.md-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 11px 6px;
   text-align: center;
 }
 
-.mentee-today-tile.ok {
+.md-stat + .md-stat {
+  border-left: 1px solid var(--border);
+}
+
+.md-stat strong {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--ink-soft);
+}
+
+.md-stat.ok strong {
+  color: var(--primary-dark);
+}
+
+.md-stat span {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* Today's items as tiles */
+.md-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.md-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.md-item.done {
   border-color: transparent;
   background: var(--primary-tint);
 }
 
-.mentee-today-value {
+.md-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+.md-item.done .md-item-icon {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.md-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.md-item-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.md-item.done .md-item-text strong {
+  color: var(--ink);
+}
+
+.md-item-text span {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.md-item-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Week picker */
+.md-week {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.md-week-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.md-week-label strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.md-week-reset {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+.md-pill {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+.md-pill.ok {
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+}
+
+.md-pill.mid {
+  background: var(--gold-tint);
+  color: var(--gold-ink);
+}
+
+.md-pill.low {
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  color: var(--danger);
+}
+
+.md-figure {
+  flex-shrink: 0;
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 700;
   color: var(--ink);
 }
 
-.mentee-today-tile.ok .mentee-today-value {
-  color: var(--primary-dark);
-}
-
-.mentee-today-label {
-  font-size: 11px;
+.md-figure small {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--ink-soft);
 }
 
-.mentee-check {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  border-radius: 50%;
+.md-progress {
+  height: 6px;
+  margin: 12px 0 4px;
+  border-radius: 999px;
   background: var(--paper);
-  color: var(--ink-soft);
+  overflow: hidden;
 }
 
-.mentee-check.done {
+.md-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
   background: var(--primary);
-  color: #fff;
 }
 
-.mentee-extra {
-  font-size: 12.5px;
-  color: var(--ink-soft);
+.md-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
-.mentee-summary {
-  margin: 4px 0 10px;
-  font-size: 13px;
-  color: var(--ink-soft);
+.day-tabs.md-day-tabs {
+  margin: 12px 0;
+}
+
+.md-day-tabs .day-tab {
+  background: var(--paper);
+}
+
+.md-day-tabs .day-tab.selected {
+  background: var(--primary);
+}
+
+@media (max-width: 420px) {
+  .md-ring-label {
+    display: none;
+  }
+
+  .md-name {
+    font-size: 18px;
+  }
 }
 
 .mentee-grid {
@@ -878,6 +1146,25 @@ a {
 .mentee-dot.future {
   background: none;
   border: 1px dashed var(--border);
+}
+
+.mentee-grid-row.total {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.mentee-grid-row.total .mentee-grid-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-align: left;
+  color: var(--ink-soft);
+}
+
+.mentee-grid-row.total .today {
+  color: var(--primary-dark);
 }
 
 /* Mentoring Tree, drawn as a tree: each branch hangs off a rail on its left,
@@ -3767,7 +4054,7 @@ a.perf-row:hover .perf-name {
 
 .quran-juz-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   gap: 8px;
 }
 
