@@ -896,7 +896,7 @@ a {
 /* Today's items as tiles */
 .md-items {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 8px;
   margin-top: 12px;
 }
@@ -4054,7 +4054,7 @@ a.perf-row:hover .perf-name {
 
 .quran-juz-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 8px;
 }
 
