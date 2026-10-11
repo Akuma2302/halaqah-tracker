@@ -10993,6 +10993,123 @@ button.adm-row:hover {
   text-decoration: none;
 }
 
+/* Mentoring: one tree per mentor, mentees nested under a line */
+.adm-toolbar .adm-search-wide {
+  flex: 1;
+}
+
+.btn.adm-expand {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.adm-trees {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+.card.adm-tree {
+  margin: 0;
+  padding: 14px;
+}
+
+.adm-node-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-btn.adm-node-toggle,
+.adm-node-leaf {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+}
+
+.adm-node-person {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.adm-node-person:hover {
+  background: var(--paper);
+}
+
+.adm-node-person .adm-user-text {
+  flex: 1;
+}
+
+.adm-node.root > .adm-node-row .adm-user-name {
+  font-size: 15.5px;
+}
+
+/* The line that ties mentees to their mentor */
+.adm-node-children {
+  margin: 2px 0 4px 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+
+.adm-branch + .adm-branch {
+  margin-top: 6px;
+}
+
+.adm-branch-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin: 6px 0 2px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  background: var(--gold-tint);
+  color: var(--gold-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.adm-branch-title span {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.adm-branch-title em {
+  margin-left: auto;
+  font-style: normal;
+}
+
+.adm-foot.adm-branch-empty {
+  margin: 4px 0 4px 10px;
+}
+
+@media (max-width: 900px) {
+  .adm-trees {
+    grid-template-columns: 1fr;
+  }
+
+  .adm-node-children {
+    margin-left: 6px;
+    padding-left: 6px;
+  }
+
+  .adm-node-person .adm-user-sub {
+    white-space: normal;
+  }
+}
+
 /* Groups: totals, then a card per group; a group's chat is read in the sheet */
 .adm-mini.adm-group-totals {
   margin: 0 0 14px;

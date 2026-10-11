@@ -403,4 +403,31 @@ async function getGroup(id, { before } = {}) {
   };
 }
 
-module.exports = { getOverview, listUsers, getUser, updateUser, deleteUser, listPastPapers, removePastPaper, listGroups, getGroup };
+// Every mentor's own groupings of their mentees ("Mentoring 1"), with when
+// and where each meets. Who mentors whom comes with the users list.
+async function listMentoringGroups() {
+  const { rows } = await pool.query(
+    'select id, mentor_id, name, day_of_week, start_time, venue from mentoring_groups order by mentor_id, created_at'
+  );
+  return rows.map((g) => ({
+    _id: g.id,
+    mentorId: g.mentor_id,
+    name: g.name,
+    dayOfWeek: g.day_of_week,
+    startTime: g.start_time ? String(g.start_time).slice(0, 5) : null,
+    venue: g.venue || ''
+  }));
+}
+
+module.exports = {
+  getOverview,
+  listUsers,
+  getUser,
+  updateUser,
+  deleteUser,
+  listPastPapers,
+  removePastPaper,
+  listGroups,
+  getGroup,
+  listMentoringGroups
+};

@@ -90,6 +90,14 @@ router.delete(
   })
 );
 
+// The mentoring groups mentors have made, to draw each mentor's tree.
+router.get(
+  '/mentoring-groups',
+  asyncHandler(async (req, res) => {
+    res.json(await adminService.listMentoringGroups());
+  })
+);
+
 // Study groups, and one group's chat to read without joining it.
 router.get(
   '/groups',

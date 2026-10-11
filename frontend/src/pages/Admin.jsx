@@ -7,6 +7,7 @@ import {
   BookOpen,
   CheckCircle2,
   ArrowLeft,
+  ChevronDown,
   ChevronRight,
   Clock,
   Download,
@@ -46,6 +47,7 @@ const WEEK_POSSIBLE = 49;
 const SECTIONS = [
   { key: 'dashboard', to: '/admin', label: 'Dashboard', icon: LayoutDashboard, title: 'Dashboard', sub: "Here's how everyone on Double 4 Flat is doing today." },
   { key: 'users', to: '/admin/users', label: 'Users', icon: Users, title: 'Users', sub: 'Everyone who has signed in, with this week beside each name.' },
+  { key: 'mentoring', to: '/admin/mentoring', label: 'Mentoring', icon: Network, title: 'Mentoring', sub: "Each mentor's tree: their groups, their mentees, and the mentees under those." },
   { key: 'groups', to: '/admin/groups', label: 'Groups', icon: GraduationCap, title: 'Groups', sub: 'Every study group that has been created. Open one to read its chat.' },
   { key: 'papers', to: '/admin/papers', label: 'Past papers', icon: FileStack, title: 'Past papers', sub: 'Every paper users have shared. Remove one that should not be there.' }
 ];
@@ -756,6 +758,168 @@ function PapersTab({ papers, onRemoved, showToast }) {
   );
 }
 
+// One person in a mentoring tree, with their own mentees (in their groups)
+// nested under them. A mentee who mentors others opens to show their tree too.
+function TreeNode({ person, childrenOf, groupsOf, onOpen, depth, expandAll, path }) {
+  const mentees = childrenOf[person._id] || [];
+  const [open, setOpen] = useState(depth === 0);
+  const shown = expandAll || open;
+  const p = percent(person.mutabaahDone, WEEK_POSSIBLE);
+  // A loop in the data would never end, so a person already above is not opened again.
+  const safe = !path.includes(person._id);
+
+  // Mentees by the mentor's groups, then those in no group.
+  const groups = groupsOf[person._id] || [];
+  const branches = [
+    ...groups.map((g) => ({ group: g, people: mentees.filter((m) => m.mentoringGroupId === g._id) })),
+    { group: null, people: mentees.filter((m) => !groups.some((g) => g._id === m.mentoringGroupId)) }
+  ].filter((b) => b.people.length > 0 || b.group);
+
+  return (
+    <div className={`adm-node${depth === 0 ? ' root' : ''}`}>
+      <div className="adm-node-row">
+        {mentees.length > 0 && safe ? (
+          <button type="button" className="icon-btn adm-node-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={shown} aria-label={`${shown ? 'Hide' : 'Show'} ${person.name}'s mentees`}>
+            {shown ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+        ) : (
+          <span className="adm-node-leaf" />
+        )}
+        <button type="button" className="adm-node-person" onClick={() => onOpen(person._id)}>
+          <Avatar user={person} size={depth === 0 ? 40 : 32} />
+          <span className="adm-user-text">
+            <span className="adm-user-name">
+              {person.name} <Tags user={person} />
+              {mentees.length > 0 && <span className="badge badge-muted">{mentees.length} mentee{mentees.length === 1 ? '' : 's'}</span>}
+            </span>
+            <span className="adm-user-sub">
+              {person.memberId || 'No ID'} · {person.kampus || 'No kampus'} · {lastActive(person).toLowerCase()}
+            </span>
+          </span>
+          <span className={`adm-pill tone-${tone(p)}`}>{p}%</span>
+        </button>
+      </div>
+
+      {shown && safe && mentees.length > 0 && (
+        <div className="adm-node-children">
+          {branches.map((b) => (
+            <div className="adm-branch" key={b.group?._id || 'none'}>
+              {(b.group || groups.length > 0) && (
+                <div className="adm-branch-title">
+                  {b.group ? b.group.name : 'Not in a group'}
+                  {b.group && (
+                    <span>
+                      {[
+                        b.group.dayOfWeek !== null && b.group.dayOfWeek !== undefined ? SHORT_DAYS[b.group.dayOfWeek] : '',
+                        b.group.startTime ? clock(b.group.startTime) : '',
+                        b.group.venue
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || 'No time set'}
+                    </span>
+                  )}
+                  <em>{b.people.length}</em>
+                </div>
+              )}
+              {b.people.length === 0 ? (
+                <p className="adm-foot adm-branch-empty">Nobody in this group yet.</p>
+              ) : (
+                b.people.map((m) => (
+                  <TreeNode key={m._id} person={m} childrenOf={childrenOf} groupsOf={groupsOf} onOpen={onOpen} depth={depth + 1} expandAll={expandAll} path={[...path, person._id]} />
+                ))
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The mentoring trees: one per mentor at the top of a line, with everyone under them.
+function MentoringTab({ users, mentoringGroups, onOpen }) {
+  const [query, setQuery] = useState('');
+  const [expandAll, setExpandAll] = useState(false);
+
+  const { childrenOf, groupsOf, mentors, roots } = useMemo(() => {
+    const kids = {};
+    users.forEach((u) => {
+      if (u.mentorId) (kids[u.mentorId] ||= []).push(u);
+    });
+    Object.values(kids).forEach((list) => list.sort((a, b) => a.name.localeCompare(b.name)));
+    const groups = {};
+    mentoringGroups.forEach((g) => (groups[g.mentorId] ||= []).push(g));
+    const all = users.filter((u) => kids[u._id]);
+    const ids = new Set(users.map((u) => u._id));
+    return {
+      childrenOf: kids,
+      groupsOf: groups,
+      mentors: all,
+      // Trees start from the mentors who have no mentor themselves.
+      roots: all.filter((u) => !u.mentorId || !ids.has(u.mentorId)).sort((a, b) => a.name.localeCompare(b.name))
+    };
+  }, [users, mentoringGroups]);
+
+  // Searching shows the tree of every mentor that matches, wherever they sit.
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? mentors.filter((u) => [u.name, u.memberId, u.kampus, u.email].some((t) => (t || '').toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name))
+    : roots;
+  const withMentor = users.filter((u) => u.mentorId).length;
+
+  return (
+    <>
+      <div className="adm-mini adm-group-totals">
+        <div>
+          <strong>{mentors.length}</strong>
+          <span>Mentors</span>
+        </div>
+        <div>
+          <strong>{withMentor}</strong>
+          <span>Mentees</span>
+        </div>
+        <div>
+          <strong>{mentoringGroups.length}</strong>
+          <span>Mentoring groups</span>
+        </div>
+        <div>
+          <strong>{users.length - withMentor - roots.length}</strong>
+          <span>In no tree</span>
+        </div>
+      </div>
+
+      <div className="adm-toolbar">
+        <label className="perf-search adm-search adm-search-wide">
+          <Search size={16} />
+          <input type="search" placeholder="Search a mentor by name, User ID or kampus" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <button type="button" className="btn btn-ghost adm-expand" onClick={() => setExpandAll((v) => !v)} aria-pressed={expandAll}>
+          {expandAll ? 'Collapse all' : 'Expand all'}
+        </button>
+      </div>
+      <div className="dl-result">
+        {q ? `${shown.length} of ${mentors.length} mentors` : `${roots.length} tree${roots.length === 1 ? '' : 's'} · ${mentors.length} mentors`}
+      </div>
+
+      {shown.length === 0 ? (
+        <div className="card empty-state">
+          <h3>{mentors.length ? 'No mentor matches that' : 'Nobody has mentees yet'}</h3>
+          <p>{mentors.length ? 'Try another name or User ID.' : "Set a user's mentor from the Users section, and their tree shows here."}</p>
+        </div>
+      ) : (
+        <div className="adm-trees">
+          {shown.map((m) => (
+            <div className="card adm-tree" key={m._id}>
+              <TreeNode person={m} childrenOf={childrenOf} groupsOf={groupsOf} onOpen={onOpen} depth={0} expandAll={expandAll} path={[]} />
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="adm-foot">The figure beside each person is their mutabaah over the last 7 days. Tap a person to open them and change their mentor or group.</p>
+    </>
+  );
+}
+
 // Every study group, as cards; opening one shows its members and chat.
 function GroupsTab({ groups, onOpen }) {
   const [query, setQuery] = useState('');
@@ -986,6 +1150,7 @@ export default function Admin() {
   const [users, setUsers] = useState(null);
   const [papers, setPapers] = useState(null);
   const [groups, setGroups] = useState(null);
+  const [mentoringGroups, setMentoringGroups] = useState(null);
   const [openGroup, setOpenGroup] = useState(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1013,9 +1178,11 @@ export default function Admin() {
       client.get('/admin/overview', { params: period }),
       client.get('/admin/users', { params: period }),
       client.get('/admin/past-papers'),
-      client.get('/admin/groups')
+      client.get('/admin/groups'),
+      client.get('/admin/mentoring-groups')
     ])
-      .then(([o, u, p, g]) => {
+      .then(([o, u, p, g, mg]) => {
+        setMentoringGroups(mg.data);
         setOverview(o.data);
         setUsers(u.data);
         setPapers(p.data);
@@ -1130,12 +1297,14 @@ export default function Admin() {
                 Try again
               </button>
             </div>
-          ) : !overview || !users || !papers || !groups ? (
+          ) : !overview || !users || !papers || !groups || !mentoringGroups ? (
             <div className="spinner" style={{ margin: '40px auto' }} />
           ) : section.key === 'dashboard' ? (
             <Overview data={overview} users={users} onOpen={setOpenUser} />
           ) : section.key === 'users' ? (
             <UsersTab users={users} onOpen={setOpenUser} />
+          ) : section.key === 'mentoring' ? (
+            <MentoringTab users={users} mentoringGroups={mentoringGroups} onOpen={setOpenUser} />
           ) : section.key === 'groups' ? (
             <GroupsTab groups={groups} onOpen={setOpenGroup} />
           ) : (
