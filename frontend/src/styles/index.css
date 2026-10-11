@@ -10045,6 +10045,13 @@ button.md-deadline:active {
   color: var(--primary);
 }
 
+/* The menu button and its close button only exist on a narrow screen */
+.adm-menu-btn,
+.adm-menu-close {
+  display: none;
+  flex-shrink: 0;
+}
+
 .adm-nav {
   display: flex;
   flex: 1;
@@ -10652,53 +10659,44 @@ button.adm-row:hover {
 }
 
 /* On a phone the table becomes one card per user */
-/* A narrow screen: the sidebar becomes a strip of sections along the top */
+/* A narrow screen: the sidebar becomes a menu, opened from the top bar */
 @media (max-width: 900px) {
   .adm-shell {
     flex-direction: column;
   }
 
+  /* The sidebar is a menu that slides in from the left */
   .adm-side {
-    position: static;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    height: auto;
-    padding: 10px 12px;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    width: min(280px, 84vw);
+    box-shadow: var(--shadow-md);
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    visibility: hidden;
   }
 
-  .adm-brand {
-    padding: 0 4px 0 0;
+  .adm-shell.menu-open .adm-side {
+    transform: none;
+    visibility: visible;
   }
 
-  .adm-brand > span:last-child {
-    display: none;
+  .adm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: var(--overlay);
   }
 
-  .adm-nav,
-  .adm-side-foot {
-    flex-direction: row;
-    flex: none;
-    padding-top: 0;
-    border-top: none;
+  .adm-menu-btn,
+  .adm-menu-close {
+    display: flex;
   }
 
-  .adm-side-foot {
+  .adm-menu-close {
     margin-left: auto;
-  }
-
-  .adm-nav-link {
-    width: auto;
-    padding: 8px 10px;
-    white-space: nowrap;
-  }
-
-  .adm-side-foot .adm-nav-link span {
-    display: none;
   }
 
   .adm-top {

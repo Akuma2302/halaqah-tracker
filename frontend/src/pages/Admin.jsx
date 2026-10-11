@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Menu,
   MessageSquare,
   Network,
   RefreshCw,
@@ -989,6 +990,15 @@ export default function Admin() {
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [openUser, setOpenUser] = useState(null);
+  // On a phone the sidebar is a menu that slides in; it closes on moving to a section.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (e) => e.key === 'Escape' && setMenuOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   const section = SECTIONS.find((s) => s.to !== '/admin' && pathname.startsWith(s.to)) || SECTIONS[0];
   const search = section.key === 'users' ? params.get('q') || '' : '';
@@ -1031,8 +1041,9 @@ export default function Admin() {
   const counts = { users: users?.length, groups: groups?.length, papers: papers?.length };
 
   return (
-    <div className="adm-shell">
-      <aside className="adm-side">
+    <div className={`adm-shell${menuOpen ? ' menu-open' : ''}`}>
+      {menuOpen && <div className="adm-backdrop" onClick={() => setMenuOpen(false)} />}
+      <aside className="adm-side" id="adm-menu">
         <div className="adm-brand">
           <span className="brand-mark">
             <ShieldCheck size={16} />
@@ -1041,6 +1052,9 @@ export default function Admin() {
             Double 4 Flat
             <small>Admin</small>
           </span>
+          <button type="button" className="icon-btn adm-menu-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">
+            <X size={15} />
+          </button>
         </div>
         <nav className="adm-nav" aria-label="Admin sections">
           {SECTIONS.map(({ key, to, label, icon: Icon }) => (
@@ -1065,6 +1079,9 @@ export default function Admin() {
 
       <div className="adm-main">
         <header className="adm-top">
+          <button type="button" className="icon-btn adm-menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen} aria-controls="adm-menu">
+            <Menu size={18} />
+          </button>
           <label className="perf-search adm-search">
             <Search size={16} />
             <input
