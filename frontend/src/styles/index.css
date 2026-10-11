@@ -11284,11 +11284,36 @@ button.adm-group:hover {
   cursor: pointer;
 }
 
+/* A filter that has a choice: a clear button beside the arrow */
+.kampus-picker.clearable .input {
+  padding-right: 64px;
+}
+
+.kampus-picker-clear {
+  position: absolute;
+  top: 50%;
+  right: 36px;
+  display: flex;
+  padding: 4px;
+  border: none;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink-soft);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+/* In a narrow column the list is wider than its box */
+.kampus-picker-list.right {
+  left: auto;
+}
+
 .kampus-picker-list {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
+  min-width: min(300px, calc(100vw - 28px));
   z-index: 20;
   max-height: 260px;
   padding: 4px;

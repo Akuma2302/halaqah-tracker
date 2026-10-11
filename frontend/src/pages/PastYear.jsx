@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
+import ComboBox from '../components/ComboBox';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { ALL_INSTITUTIONS, COURSES, INSTITUTIONS, PAPER_TYPES } from '../features/pastyear/institutions';
@@ -13,59 +14,7 @@ import { hueFor } from '../features/timetable/timetable';
 dayjs.extend(relativeTime);
 
 const MAX_FILE_MB = 10;
-const OTHER = '__other__';
-// `universityPick` / `coursePick` are what the dropdown shows: a listed name,
-// or OTHER, which opens a box to type one that isn't listed.
-const emptyForm = { university: '', universityPick: '', course: '', coursePick: '', subject: '', subjectCode: '', year: '', paperType: '', file: null };
-
-// A dropdown of known names with "Other" at the end; choosing Other shows a
-// box to type your own.
-function PickOrType({ id, label, groups, flat, pick, value, onChange, otherLabel, placeholder, maxLength }) {
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <select
-        id={id}
-        className="input"
-        value={pick}
-        onChange={(e) => onChange(e.target.value, e.target.value === OTHER ? '' : e.target.value)}
-      >
-        <option value="">Choose…</option>
-        {groups
-          ? groups.map((g) => (
-              <optgroup key={g.group} label={g.group}>
-                {g.names
-                  .filter((name) => name !== 'Other')
-                  .map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-              </optgroup>
-            ))
-          : flat
-              .filter((name) => name !== 'Other')
-              .map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-        <option value={OTHER}>{otherLabel}</option>
-      </select>
-      {pick === OTHER && (
-        <input
-          className="input py-other"
-          value={value}
-          onChange={(e) => onChange(OTHER, e.target.value)}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          aria-label={`${label}: type your own`}
-          autoFocus
-        />
-      )}
-    </div>
-  );
-}
+const emptyForm = { university: '', course: '', subject: '', subjectCode: '', year: '', paperType: '', file: null };
 
 function fileSizeText(bytes) {
   if (!bytes) return '';
@@ -131,7 +80,7 @@ export default function PastYear() {
     // Start from your own kampus when it matches one of the places listed.
     const mine = (user?.kampus || '').trim().toLowerCase();
     const myPlace = ALL_INSTITUTIONS.find((name) => mine && (name.toLowerCase() === mine || shortName(name).toLowerCase() === mine));
-    setForm({ ...emptyForm, university: myPlace || '', universityPick: myPlace || '' });
+    setForm({ ...emptyForm, university: myPlace || '' });
     setFormError('');
     setSheetOpen(true);
   }
@@ -232,31 +181,15 @@ export default function PastYear() {
       </label>
 
       <div className="dl-selects py-filters">
-        <label className="field">
+        <div className="field">
           <span>University or college</span>
-          <select className="input" value={university} onChange={(e) => setUniversity(e.target.value)}>
-            <option value="">All</option>
-            {INSTITUTIONS.map((g) => (
-              <optgroup key={g.group} label={g.group}>
-                {g.names.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        <label className="field">
+          <ComboBox id="py-filter-university" groups={INSTITUTIONS} value={university} onChange={setUniversity} placeholder="All" strict />
+        </div>
+        <div className="field">
           <span>Course</span>
-          <input className="input" list="py-courses" value={course} onChange={(e) => setCourse(e.target.value)} placeholder="All courses" />
-        </label>
+          <ComboBox id="py-filter-course" options={COURSES} value={course} onChange={setCourse} placeholder="All courses" maxLength={120} align="right" />
+        </div>
       </div>
-      <datalist id="py-courses">
-        {COURSES.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
 
       {error ? (
         <div className="card empty-state">
@@ -382,28 +315,27 @@ export default function PastYear() {
               <input type="file" hidden accept="application/pdf,image/*,.doc,.docx" onChange={pickFile} />
             </label>
           </div>
-          <PickOrType
-            id="py-university"
-            label="University or college"
-            groups={INSTITUTIONS}
-            pick={form.universityPick}
-            value={form.university}
-            onChange={(universityPick, value) => setForm((f) => ({ ...f, universityPick, university: value }))}
-            otherLabel="Other: mine isn't listed"
-            placeholder="Type your university or college"
-            maxLength={160}
-          />
-          <PickOrType
-            id="py-course"
-            label="Course"
-            flat={COURSES}
-            pick={form.coursePick}
-            value={form.course}
-            onChange={(coursePick, value) => setForm((f) => ({ ...f, coursePick, course: value }))}
-            otherLabel="Other: add my own course"
-            placeholder="Type your course, e.g. Halal Product Science"
-            maxLength={120}
-          />
+          <div className="field">
+            <label htmlFor="py-university">University or college</label>
+            <ComboBox
+              id="py-university"
+              groups={INSTITUTIONS}
+              value={form.university}
+              onChange={(university) => setForm((f) => ({ ...f, university }))}
+              placeholder="Choose, or type one that isn't listed"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="py-course">Course</label>
+            <ComboBox
+              id="py-course"
+              options={COURSES}
+              value={form.course}
+              onChange={(course) => setForm((f) => ({ ...f, course }))}
+              placeholder="Choose, or type your own course"
+              maxLength={120}
+            />
+          </div>
           <div className="edit-grid-2 py-subject-row">
             <div className="field">
               <label htmlFor="py-subject">Subject</label>
