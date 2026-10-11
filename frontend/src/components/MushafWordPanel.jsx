@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bookmark, BookmarkCheck, BookOpenText, Volume2, X } from 'lucide-react';
+import { Bookmark, BookmarkCheck, BookOpenText, NotebookPen, Volume2, X } from 'lucide-react';
 import TafsirSheet from './TafsirSheet';
+import TadabburSheet from './TadabburSheet';
 import { toggleBookmark, useBookmarks } from '../features/quran/bookmarks';
-import { fetchPageWordMeanings, fetchVerseTranslation } from '../services/quranApi';
+import { useTadabbur } from '../features/quran/tadabbur';
+import { fetchPageWordMeanings, fetchVerseText, fetchVerseTranslation } from '../services/quranApi';
 
 // Panel for a tapped word (meaning, transliteration, pronunciation) or a
 // tapped ayah marker (that verse's Malay translation) in Membaca view.
@@ -14,6 +16,9 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
   const audioRef = useRef(null);
   const [tafsirKey, setTafsirKey] = useState(null);
   const bookmarks = useBookmarks();
+  // The ayat being saved for tadabbur; its text is fetched when the button is tapped.
+  const tadabbur = useTadabbur();
+  const [tadabburAyat, setTadabburAyat] = useState(null);
 
   useEffect(() => {
     if (!selection) return;
@@ -42,11 +47,34 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
     return () => window.removeEventListener('keydown', onKey);
   }, [selection, onClose]);
 
-  if (!selection) return <TafsirSheet verseKey={tafsirKey} chaptersById={chaptersById} onClose={() => setTafsirKey(null)} />;
+  if (!selection) {
+    return (
+      <>
+        <TafsirSheet verseKey={tafsirKey} chaptersById={chaptersById} onClose={() => setTafsirKey(null)} />
+        <TadabburSheet
+          ayat={tadabburAyat}
+          saved={tadabburAyat && tadabbur.find((t) => t.key === tadabburAyat.key)}
+          onClose={() => setTadabburAyat(null)}
+        />
+      </>
+    );
+  }
 
   const [surah, ayah] = selection.key.split(':');
   const ref = `${chaptersById[surah]?.name_simple || `Surah ${surah}`} ${surah}:${ayah}`;
   const isBookmarked = bookmarks.some((b) => b.id === selection.key);
+
+  const savedTadabbur = tadabbur.find((t) => t.key === selection.key);
+
+  // Opens the note sheet with the ayat's text (the one already saved, or fetched).
+  function openTadabbur() {
+    const key = selection.key;
+    onClose();
+    if (savedTadabbur) return setTadabburAyat(savedTadabbur);
+    fetchVerseText(key)
+      .catch(() => ({ arabic: '', translation: '' }))
+      .then((text) => setTadabburAyat({ key, label: ref, ...text }));
+  }
 
   function play() {
     if (!detail?.audio) return;
@@ -75,6 +103,15 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
           title={isBookmarked ? 'Remove bookmark' : 'Bookmark this ayat'}
         >
           {isBookmarked ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+        </button>
+        <button
+          type="button"
+          className={`quran-tafsir-btn quran-tadabbur-btn${savedTadabbur ? ' on' : ''}`}
+          onClick={openTadabbur}
+          aria-label={savedTadabbur ? `Open your tadabbur note for ayat ${selection.key}` : `Save ayat ${selection.key} for tadabbur`}
+          title={savedTadabbur ? 'Your tadabbur note' : 'Save for tadabbur'}
+        >
+          <NotebookPen size={13} />
         </button>
         <button
           type="button"

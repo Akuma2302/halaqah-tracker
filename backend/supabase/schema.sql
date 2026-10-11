@@ -503,3 +503,21 @@ create table if not exists past_paper_favourites (
   primary key (user_id, paper_id)
 );
 alter table past_paper_favourites enable row level security;
+
+-- Ayat a user saved for tadabbur (reflection), each with an optional note of
+-- what they understand from it. One per ayat; the ayat's text is kept with it
+-- so the list reads on its own.
+create table if not exists quran_tadabbur (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  verse_key text not null,
+  label text not null,
+  arabic text not null default '',
+  translation text not null default '',
+  note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, verse_key)
+);
+create index if not exists idx_quran_tadabbur_user on quran_tadabbur(user_id);
+alter table quran_tadabbur enable row level security;

@@ -1,4 +1,5 @@
 const quranBookmarkRepository = require('../repositories/quranBookmarkRepository');
+const quranTadabburRepository = require('../repositories/quranTadabburRepository');
 
 // Same shape the frontend keeps on the device (features/quran/bookmarks.js).
 function serialize(row) {
@@ -37,4 +38,22 @@ async function removeBookmark(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { listBookmarks, saveBookmark, removeBookmark };
+async function listTadabbur(req, res) {
+  const rows = await quranTadabburRepository.findByUser(req.userId);
+  res.json(rows.map(quranTadabburRepository.serialize));
+}
+
+async function saveTadabbur(req, res) {
+  const { key, label, arabic, translation, note } = req.body;
+  const row = await quranTadabburRepository.upsert(req.userId, { verseKey: key, label, arabic, translation, note });
+  res.status(201).json(quranTadabburRepository.serialize(row));
+}
+
+async function removeTadabbur(req, res) {
+  const key = String(req.query.key || '');
+  if (!key) return res.status(400).json({ error: 'Ayat is required' });
+  await quranTadabburRepository.remove(req.userId, key);
+  res.json({ ok: true });
+}
+
+module.exports = { listBookmarks, saveBookmark, removeBookmark, listTadabbur, saveTadabbur, removeTadabbur };

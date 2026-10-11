@@ -117,6 +117,12 @@ export async function fetchVerseTranslation(key) {
   return (verse.translations?.[0]?.text || '').replace(/<[^>]+>/g, '');
 }
 
+// One ayat's Arabic text and Malay translation (to keep with a tadabbur note).
+export async function fetchVerseText(key) {
+  const { verse } = await get(`/verses/by_key/${key}?language=ms&translations=${TRANSLATION_ID}&fields=text_uthmani`);
+  return { arabic: verse.text_uthmani || '', translation: (verse.translations?.[0]?.text || '').replace(/<[^>]+>/g, '') };
+}
+
 // Tafsir Ibn Kathir (Abridged, English) for one ayat, straight from the API.
 // Returns its HTML and the ayat it covers (one passage can explain several).
 export const TAFSIR_ID = 169;

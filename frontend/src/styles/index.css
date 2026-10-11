@@ -5356,6 +5356,145 @@ a.perf-row:hover .perf-name {
   margin-left: 0;
 }
 
+/* Four views on Al-Quran: tighter so each label stays on one line on a phone */
+.range-toggle.segmented.quran-views button {
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.word-panel-head .quran-tadabbur-btn {
+  padding: 4px 8px;
+}
+
+.word-panel-head .quran-tadabbur-btn + .quran-tafsir-btn {
+  margin-left: 0;
+}
+
+/* Tadabbur: a button on each ayat, a sheet to write the note, a list on Al-Quran */
+.quran-tafsir-btn.quran-tadabbur-btn.on {
+  border-color: transparent;
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+.tadabbur-ayat {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.tadabbur-ayat .quran-translation,
+.tadabbur-card .quran-translation {
+  margin: 6px 0 0;
+}
+
+.tadabbur-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.mathurat-arabic.tadabbur-arabic {
+  margin: 8px 0 0;
+  font-size: 22px;
+  line-height: 2;
+}
+
+/* A long ayat scrolls inside its box rather than pushing the note off-screen */
+.tadabbur-ayat .tadabbur-arabic {
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
+.tadabbur-form textarea.input {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.tadabbur-count {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.btn.tadabbur-remove {
+  color: var(--danger);
+}
+
+.tadabbur-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.card.tadabbur-card {
+  margin: 0;
+  padding: 14px;
+}
+
+.tadabbur-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tadabbur-card-head .icon-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.tadabbur-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--gold);
+  border-radius: 0 10px 10px 0;
+  background: var(--gold-tint);
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tadabbur-note span {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
+}
+
+.tadabbur-add-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .quran-bookmarks {
   margin-bottom: 14px;
   padding: 12px 14px 6px;

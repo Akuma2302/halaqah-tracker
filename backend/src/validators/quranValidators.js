@@ -14,4 +14,13 @@ const saveBookmarkSchema = z.object({
   at: z.number().int().positive().optional()
 });
 
-module.exports = { saveBookmarkSchema };
+// An ayat saved for tadabbur, with the reader's own note (may be empty).
+const saveTadabburSchema = z.object({
+  key: z.string().regex(/^\d{1,3}:\d{1,3}$/, 'Invalid ayat'),
+  label: z.string().trim().min(1).max(200),
+  arabic: z.string().trim().max(6000).default(''),
+  translation: z.string().trim().max(6000).default(''),
+  note: z.string().trim().max(1000).default('')
+});
+
+module.exports = { saveBookmarkSchema, saveTadabburSchema };

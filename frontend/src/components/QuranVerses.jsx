@@ -1,8 +1,10 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { Bookmark, BookmarkCheck, BookOpenText } from 'lucide-react';
+import { Bookmark, BookmarkCheck, BookOpenText, NotebookPen } from 'lucide-react';
 import TafsirSheet from './TafsirSheet';
 import MushafWordPanel from './MushafWordPanel';
+import TadabburSheet from './TadabburSheet';
 import { toggleBookmark, useBookmarks } from '../features/quran/bookmarks';
+import { useTadabbur } from '../features/quran/tadabbur';
 
 // An ayat's text as its words, in the word-by-word numbering used for
 // meanings ("2:255:3" is the third). Pause and stop marks stand alone in the
@@ -44,6 +46,9 @@ export default function QuranVerses({
   const scrolledTo = useRef(null);
   const [tafsirKey, setTafsirKey] = useState(null);
   const bookmarked = new Set(useBookmarks().map((b) => b.id));
+  // Ayat saved for tadabbur, and the one whose note is being written.
+  const tadabbur = Object.fromEntries(useTadabbur().map((t) => [t.key, t]));
+  const [tadabburAyat, setTadabburAyat] = useState(null);
   // Tapped word, shown in the meaning panel; tapping it again closes the panel.
   const [selection, setSelection] = useState(null);
   const closePanel = useCallback(() => setSelection(null), []);
@@ -138,6 +143,21 @@ export default function QuranVerses({
                   >
                     {bookmarked.has(v.key) ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
                   </button>
+                  <button
+                    type="button"
+                    className={`quran-tafsir-btn quran-tadabbur-btn${tadabbur[v.key] ? ' on' : ''}`}
+                    onClick={() =>
+                      setTadabburAyat({
+                        key: v.key,
+                        label: `${chapter?.name_simple || `Surah ${v.surah}`} ${v.key}`,
+                        arabic: v.ar,
+                        translation: v.ms
+                      })
+                    }
+                    aria-label={tadabbur[v.key] ? `Open your tadabbur note for ayat ${v.key}` : `Save ayat ${v.key} for tadabbur`}
+                  >
+                    <NotebookPen size={13} /> {tadabbur[v.key] ? 'Saved' : 'Tadabbur'}
+                  </button>
                   <button type="button" className="quran-tafsir-btn" onClick={() => setTafsirKey(v.key)}>
                     <BookOpenText size={13} /> Tafsir
                   </button>
@@ -171,6 +191,7 @@ export default function QuranVerses({
       })}
       <TafsirSheet verseKey={tafsirKey} chaptersById={chaptersById} onClose={() => setTafsirKey(null)} />
       <MushafWordPanel selection={selection} chaptersById={chaptersById} onClose={closePanel} />
+      <TadabburSheet ayat={tadabburAyat} saved={tadabburAyat && tadabbur[tadabburAyat.key]} onClose={() => setTadabburAyat(null)} />
     </div>
   );
 }

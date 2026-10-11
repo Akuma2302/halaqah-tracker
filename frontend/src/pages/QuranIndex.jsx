@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Bookmark, BookOpen, ChevronRight, Search, X } from 'lucide-react';
+import { Bookmark, BookOpen, ChevronRight, NotebookPen, Pencil, Search, X } from 'lucide-react';
 import { fetchChapters, fetchJuzs, lastReadPath, readLastRead, TOTAL_PAGES } from '../services/quranApi';
 import { bookmarkPath, removeBookmark, useBookmarks } from '../features/quran/bookmarks';
+import { useTadabbur } from '../features/quran/tadabbur';
+import TadabburSheet from '../components/TadabburSheet';
 
 const VIEWS = [
   ['surah', 'Surah'],
   ['juz', 'Juzuk'],
-  ['page', 'Muka surat']
+  ['page', 'Muka surat'],
+  ['tadabbur', 'Tadabbur']
 ];
 
 // Loose match so "al baqarah", "baqara" and "2" all find Al-Baqarah.
@@ -32,6 +35,9 @@ export default function QuranIndex() {
   const [pageInput, setPageInput] = useState('');
   const lastRead = useMemo(readLastRead, []);
   const bookmarks = useBookmarks();
+  // Ayat saved for tadabbur, and the one whose note is open.
+  const tadabbur = useTadabbur();
+  const [editing, setEditing] = useState(null);
 
   function load() {
     setLoading(true);
@@ -85,7 +91,7 @@ export default function QuranIndex() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Al-Quran</h1>
-          <p className="page-subtitle">Read by surah, juzuk or mushaf page</p>
+          <p className="page-subtitle">Read by surah, juzuk or mushaf page, and keep ayat for tadabbur</p>
         </div>
       </div>
 
@@ -121,7 +127,7 @@ export default function QuranIndex() {
         </div>
       )}
 
-      <div className="range-toggle segmented">
+      <div className="range-toggle segmented quran-views">
         {VIEWS.map(([key, label]) => (
           <button
             key={key}
@@ -133,7 +139,52 @@ export default function QuranIndex() {
         ))}
       </div>
 
-      {loading ? (
+      {view === 'tadabbur' ? (
+        tadabbur.length === 0 ? (
+          <div className="card empty-state">
+            <NotebookPen size={26} />
+            <h3>No ayat saved yet</h3>
+            <p>While reading ayat by ayat, tap Tadabbur on an ayat to keep it here with a note of what you understand.</p>
+            <Link to={lastRead?.key ? lastReadPath(lastRead) : '/quran/1'} className="btn btn-primary" style={{ marginTop: 12 }}>
+              <BookOpen size={14} /> {lastRead?.key ? 'Continue reading' : 'Start reading'}
+            </Link>
+          </div>
+        ) : (
+          <>
+            <span className="section-label">
+              {tadabbur.length} ayat saved
+            </span>
+            <div className="tadabbur-list">
+              {tadabbur.map((t) => (
+                <article key={t.key} className="card tadabbur-card">
+                  <div className="tadabbur-card-head">
+                    <Link to={`/quran/${t.key.split(':')[0]}#${t.key}`} className="tadabbur-ref">
+                      {t.label} <ChevronRight size={13} />
+                    </Link>
+                    <button type="button" className="icon-btn" onClick={() => setEditing(t)} aria-label={`Change your note for ${t.label}`}>
+                      <Pencil size={13} />
+                    </button>
+                  </div>
+                  <p className="mathurat-arabic tadabbur-arabic" dir="rtl" lang="ar">
+                    {t.arabic}
+                  </p>
+                  {t.translation && <p className="quran-translation">{t.translation}</p>}
+                  {t.note ? (
+                    <div className="tadabbur-note">
+                      <span>My note</span>
+                      {t.note}
+                    </div>
+                  ) : (
+                    <button type="button" className="tadabbur-add-note" onClick={() => setEditing(t)}>
+                      <NotebookPen size={13} /> Add a note
+                    </button>
+                  )}
+                </article>
+              ))}
+            </div>
+          </>
+        )
+      ) : loading ? (
         <div className="spinner" style={{ margin: '24px auto' }} />
       ) : error ? (
         <div className="card empty-state">
@@ -225,6 +276,8 @@ export default function QuranIndex() {
           </div>
         </>
       )}
+
+      <TadabburSheet ayat={editing} saved={editing} onClose={() => setEditing(null)} />
 
       <p className="mathurat-source">Quran text, translation and audio from the Quran.com API (Quran Foundation).</p>
     </div>
