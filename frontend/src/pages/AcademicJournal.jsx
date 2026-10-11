@@ -4,7 +4,6 @@ import {
   Plus,
   Trash2,
   Download,
-  ClipboardList,
   Users as UsersIcon,
   CheckCircle2,
   Paperclip,
@@ -13,7 +12,6 @@ import {
   ChevronRight,
   Clock,
   PenLine,
-  CalendarClock,
   BookOpen,
   Camera
 } from 'lucide-react';
@@ -22,8 +20,6 @@ import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
-import { daysUntil, upcomingDeadlines } from '../features/academic/deadlines';
-import { AssessmentSheet, DeadlineTile } from '../features/academic/DeadlineTile';
 import SemesterOverview from '../features/academic/SemesterOverview';
 import SubjectFiles from '../features/academic/SubjectFiles';
 
@@ -33,7 +29,6 @@ const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOUR_PRESETS = [1, 1.5, 2, 3];
 const QUESTION_PRESETS = [5, 10, 20];
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
-const MAX_DEADLINES = 5;
 
 function shiftWeek(weekKey, weeks) {
   const [y, m, d] = weekKey.split('-').map(Number);
@@ -153,9 +148,6 @@ export default function AcademicJournal() {
   const isCurrentWeek = week === currentWeekKey;
   const todayIndex = isCurrentWeek ? new Date().getDay() : -1;
 
-  // Assessment due dates set in Subjects, plus any standalone assignments.
-  const deadlines = useMemo(() => upcomingDeadlines(subjects, overview?.assignments || []), [subjects, overview]);
-  const [openDeadline, setOpenDeadline] = useState(null);
 
   // ---------- add-entry sheet ----------
   function openSheet(kind) {
@@ -280,46 +272,6 @@ export default function AcademicJournal() {
     </>
   );
 
-  // Upcoming deadlines sit second, right under the week's summary. While the
-  // week is still loading (or failed) they stay with the subjects further down.
-  const weekShown = !(weekLoading && !weekData) && !weekError;
-  const overdueCount = deadlines.filter((d) => d.dueDate && daysUntil(d.dueDate) < 0).length;
-  const weekCount = deadlines.filter((d) => d.dueDate && daysUntil(d.dueDate) >= 0 && daysUntil(d.dueDate) <= 7).length;
-  const deadlinesCard = (
-    <div className="card">
-      <div className="log-section-head">
-        <span className="log-section-icon">
-          <CalendarClock size={16} />
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="log-section-title">Upcoming deadlines</div>
-          <div className="log-section-sub">
-            {deadlines.length === 0
-              ? "From your subjects' assessments"
-              : [overdueCount ? `${overdueCount} overdue` : '', `${weekCount} in the next 7 days`].filter(Boolean).join(' · ')}
-          </div>
-        </div>
-        {deadlines.length > 0 && <span className="md-figure">{deadlines.length}</span>}
-      </div>
-      {deadlines.length ? (
-        <>
-          <div className="md-deadlines dl-own">
-            {deadlines.slice(0, MAX_DEADLINES).map((d) => (
-              <DeadlineTile key={d.id} deadline={d} onOpen={setOpenDeadline} />
-            ))}
-          </div>
-          <Link to="/deadlines" className="log-more">
-            {deadlines.length > MAX_DEADLINES ? `View all ${deadlines.length} deadlines` : 'View all deadlines'}
-          </Link>
-        </>
-      ) : (
-        <p className="log-empty">
-          No upcoming deadlines. Add due dates to your assessments in <Link to="/subject-list">Subjects</Link>.
-        </p>
-      )}
-    </div>
-  );
-
   return (
     <div className="page academic">
       <div className="page-header">
@@ -327,9 +279,6 @@ export default function AcademicJournal() {
           <h1 className="page-title">Academic Journal</h1>
           <p className="page-subtitle">Log your study week and track your progress</p>
         </div>
-        <Link to="/subject-list" className="btn btn-ghost btn-sm">
-          <ClipboardList size={14} /> Subjects
-        </Link>
       </div>
 
       {/* ---------- week bar ---------- */}
@@ -452,9 +401,6 @@ export default function AcademicJournal() {
             <SemesterOverview subjects={subjects} timetable={timetable} embedded />
           </div>
 
-          {/* ---------- upcoming deadlines ---------- */}
-          {deadlinesCard}
-
           {/* ---------- study hours ---------- */}
           <LogSection
             icon={Clock}
@@ -572,9 +518,7 @@ export default function AcademicJournal() {
       )}
 
       {/* ---------- assignments and subjects ---------- */}
-      <div className={weekShown ? 'academic-ref' : 'grid-2 academic-ref'}>
-        {!weekShown && deadlinesCard}
-
+      <div className="academic-ref">
         <div className="card">
           <div className="log-section-head">
             <span className="log-section-icon">
@@ -603,8 +547,6 @@ export default function AcademicJournal() {
           )}
         </div>
       </div>
-
-      <AssessmentSheet deadline={openDeadline} onClose={() => setOpenDeadline(null)} />
 
       {/* ---------- add-entry sheets ---------- */}
       <Sheet
