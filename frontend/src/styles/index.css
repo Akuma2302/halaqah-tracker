@@ -1064,6 +1064,208 @@ a {
   background: var(--primary);
 }
 
+/* Study hours: how far along the weekly target, then day by day */
+.md-target {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.md-target strong {
+  color: var(--primary-dark);
+}
+
+.md-validated {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.day-bars.md-day-bars {
+  margin-top: 14px;
+  padding: 10px 8px 8px;
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.md-day-bars .day-bar-track {
+  background: var(--surface);
+}
+
+.md-day-bars .day-bar-label {
+  font-size: 10.5px;
+}
+
+.md-day-bars .day-bar:not(.has) .day-bar-label {
+  opacity: 0.6;
+}
+
+.md-subject-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.md-subject-split span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.md-subject-split i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: hsl(var(--hue, 165) 55% 50%);
+}
+
+.md-subject-split strong {
+  color: var(--ink);
+}
+
+.md-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.md-session {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-left: 4px solid hsl(var(--hue, 165) 55% 50%);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.md-date.md-date-sm {
+  width: 40px;
+}
+
+.md-date.md-date-sm strong {
+  padding: 3px 0 4px;
+  font-size: 15px;
+}
+
+.md-session-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.md-session-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.md-session .log-tags {
+  margin-top: 4px;
+}
+
+.md-session .log-tag {
+  background: var(--surface);
+}
+
+.md-hours {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+/* Practice questions: one set per row, sized against the largest */
+.md-practice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.md-practice-row {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.md-practice-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.md-practice-name {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.md-practice-count {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.md-practice-count small {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.md-practice-bar {
+  height: 5px;
+  margin: 7px 0 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.md-practice-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: hsl(var(--hue, 165) 55% 50%);
+}
+
+.md-practice-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.md-practice-state.ok {
+  color: var(--primary-dark);
+}
+
 /* Lecturer consultations: who, when and where, then what was discussed */
 .md-consults {
   display: flex;

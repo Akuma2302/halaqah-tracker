@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { BellRing, CalendarClock, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, ListChecks, MapPin, MessagesSquare, Minus, PencilLine } from 'lucide-react';
+import { BadgeCheck, BellRing, CalendarClock, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, CircleDashed, Clock, ListChecks, MapPin, MessagesSquare, Minus, PencilLine } from 'lucide-react';
 import client from '../services/apiClient';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
@@ -156,6 +156,16 @@ export default function MenteeDetail() {
   const hoursToday = sessions.filter((s) => s.date === todayKey).reduce((sum, s) => sum + s.hours, 0);
   const totalQuestions = academic.questionPractice.reduce((sum, q) => sum + (q.questionCount || 0), 0);
   const consultations = academic.consultations;
+  const maxQuestions = Math.max(1, ...academic.questionPractice.map((q) => q.questionCount || 0));
+  const validatedSets = academic.questionPractice.filter((q) => q.isValidated).length;
+  // Hours per subject for the week, most first.
+  const hoursBySubject = Object.values(
+    sessions.reduce((acc, x) => {
+      const name = x.subject?.name || 'No subject';
+      acc[name] = { name, hours: (acc[name]?.hours || 0) + x.hours };
+      return acc;
+    }, {})
+  ).sort((a, b) => b.hours - a.hours);
   const validated = academic.mentorValidation?.isValidated;
   const timetable = data.timetable || [];
   const deadlines = data.deadlines || [];
@@ -387,7 +397,7 @@ export default function MenteeDetail() {
         <Section
           icon={Clock}
           title="Study hours"
-          sub={`${sessions.length} session${sessions.length === 1 ? '' : 's'}${validated ? ' · validated by mentor' : ''}`}
+          sub={`${sessions.length} session${sessions.length === 1 ? '' : 's'} ${thisOrThat}`}
           aside={
             <span className="md-figure">
               {formatHours(totalHours)}
@@ -398,55 +408,117 @@ export default function MenteeDetail() {
           <div className="md-progress" role="img" aria-label={`${targetPercent}% of the weekly target`}>
             <span style={{ width: `${targetPercent}%` }} />
           </div>
-          <div className="day-bars" aria-label="Hours per day">
+          <div className="md-target">
+            <span>
+              <strong>{targetPercent}%</strong> of the weekly target
+            </span>
+            <span>{totalHours >= WEEKLY_TARGET_HOURS ? 'Target reached' : `${formatHours(WEEKLY_TARGET_HOURS - totalHours)} to go`}</span>
+          </div>
+          {validated && (
+            <div className="md-validated">
+              <BadgeCheck size={14} /> Validated by mentor
+            </div>
+          )}
+
+          <div className="day-bars md-day-bars" aria-label="Hours per day">
             {hoursByDay.map((h, i) => (
-              <div key={SHORT_DAYS[i]} className={`day-bar${mutabaah.week[i].date === todayKey ? ' today' : ''}`} title={`${SHORT_DAYS[i]}: ${formatHours(h)}`}>
+              <div
+                key={SHORT_DAYS[i]}
+                className={`day-bar${mutabaah.week[i].date === todayKey ? ' today' : ''}${h ? ' has' : ''}`}
+                title={`${SHORT_DAYS[i]}: ${formatHours(h)}`}
+              >
                 <span className="day-bar-value">{h ? formatHours(h) : ''}</span>
                 <span className="day-bar-track">
                   <span className="day-bar-fill" style={{ height: `${(h / maxDayHours) * 100}%` }} />
                 </span>
-                <span className="day-bar-label">{SHORT_DAYS[i][0]}</span>
+                <span className="day-bar-label">{SHORT_DAYS[i]}</span>
               </div>
             ))}
           </div>
+
           {sessions.length === 0 ? (
             <p className="log-empty">No study sessions logged {thisOrThat}.</p>
           ) : (
-            sessions.map((s) => (
-              <div className="log-row" key={s._id}>
-                <span className="log-day">{shortDate(s.date).split(',')[0]}</span>
-                <div className="log-body">
-                  <div className="log-title">{subjectLabel(s.subject)}</div>
-                  {s.categories?.length > 0 && (
-                    <div className="log-tags">
-                      {s.categories.map((c) => (
-                        <span key={c} className="log-tag">
-                          {CATEGORY_LABEL[c] || c}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+            <>
+              {hoursBySubject.length > 1 && (
+                <div className="md-subject-split" aria-label="Hours by subject">
+                  {hoursBySubject.map((x) => (
+                    <span key={x.name} style={{ '--hue': hueFor(x.name) }}>
+                      <i />
+                      {x.name} <strong>{formatHours(x.hours)}</strong>
+                    </span>
+                  ))}
                 </div>
-                <span className="log-amount">{formatHours(s.hours)}</span>
+              )}
+              <div className="md-sessions">
+                {sessions.map((s) => {
+                  const [, , day] = s.date.split('-').map(Number);
+                  return (
+                    <div className="md-session" key={s._id} style={{ '--hue': hueFor(s.subject?.name || '') }}>
+                      <span className="md-date md-date-sm" aria-hidden="true">
+                        <small>{shortDate(s.date).split(',')[0]}</small>
+                        <strong>{day}</strong>
+                      </span>
+                      <div className="md-session-body">
+                        <div className="md-session-title">{subjectLabel(s.subject)}</div>
+                        {s.categories?.length > 0 && (
+                          <div className="log-tags">
+                            {s.categories.map((c) => (
+                              <span key={c} className="log-tag">
+                                {CATEGORY_LABEL[c] || c}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <span className="md-hours">{formatHours(s.hours)}</span>
+                    </div>
+                  );
+                })}
               </div>
-            ))
+            </>
           )}
         </Section>
 
         <div className="md-two">
-          <Section icon={PencilLine} title="Practice questions" sub={`Logged ${thisOrThat}`} aside={<span className="md-figure">{totalQuestions}</span>}>
+          <Section
+            icon={PencilLine}
+            title="Practice questions"
+            sub={
+              academic.questionPractice.length
+                ? `${validatedSets} of ${academic.questionPractice.length} set${academic.questionPractice.length === 1 ? '' : 's'} validated`
+                : `Logged ${thisOrThat}`
+            }
+            aside={
+              <span className="md-figure">
+                {totalQuestions}
+                <small> Q</small>
+              </span>
+            }
+          >
             {academic.questionPractice.length === 0 ? (
               <p className="log-empty">No practice questions logged {thisOrThat}.</p>
             ) : (
-              academic.questionPractice.map((q) => (
-                <div className="log-row" key={q._id}>
-                  <div className="log-body">
-                    <div className="log-title">{subjectLabel(q.subject)}</div>
-                    <div className={`log-meta${q.isValidated ? ' ok' : ''}`}>{q.isValidated ? 'Validated' : 'Not validated'}</div>
+              <div className="md-practice">
+                {academic.questionPractice.map((q) => (
+                  <div className="md-practice-row" key={q._id} style={{ '--hue': hueFor(q.subject?.name || '') }}>
+                    <div className="md-practice-top">
+                      <span className="md-practice-name">{subjectLabel(q.subject)}</span>
+                      <span className="md-practice-count">
+                        {q.questionCount || 0}
+                        <small> Q</small>
+                      </span>
+                    </div>
+                    <div className="md-practice-bar">
+                      <span style={{ width: `${Math.round(((q.questionCount || 0) / maxQuestions) * 100)}%` }} />
+                    </div>
+                    <span className={`md-practice-state${q.isValidated ? ' ok' : ''}`}>
+                      {q.isValidated ? <BadgeCheck size={13} /> : <CircleDashed size={13} />}
+                      {q.isValidated ? 'Validated' : 'Not validated yet'}
+                    </span>
                   </div>
-                  <span className="log-amount">{q.questionCount} Q</span>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </Section>
 
