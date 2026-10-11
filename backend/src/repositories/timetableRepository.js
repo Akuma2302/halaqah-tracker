@@ -1,6 +1,6 @@
 const supabase = require('../config/supabaseClient');
 
-const WITH_SUBJECT = '*, subject:subjects(id, name, code, lecturer_name)';
+const WITH_SUBJECT = '*, subject:subjects(id, name, code, lecturer_name, is_visible)';
 
 async function findByUser(userId) {
   const { data, error } = await supabase
@@ -109,7 +109,14 @@ function serialize(row) {
     venue: row.venue,
     kind: row.kind,
     subject: row.subject
-      ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code, lecturerName: row.subject.lecturer_name }
+      ? {
+          _id: row.subject.id,
+          name: row.subject.name,
+          code: row.subject.code,
+          lecturerName: row.subject.lecturer_name,
+          // A hidden subject's classes are left out of the timetable (but still edited in Subjects).
+          isVisible: row.subject.is_visible !== false
+        }
       : null
   };
 }

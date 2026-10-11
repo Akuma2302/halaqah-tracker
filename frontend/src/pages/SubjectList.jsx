@@ -312,7 +312,7 @@ export default function SubjectList() {
     setSubjects((prev) => prev.map((s) => (s._id === subject._id ? { ...s, isVisible: !s.isVisible } : s)));
     try {
       await client.put(`/academic/subjects/${subject._id}`, { isVisible: !subject.isVisible });
-      showToast(subject.isVisible ? 'Hidden from journal' : 'Shown in journal');
+      showToast(subject.isVisible ? 'Hidden from your journal, timetable and deadlines' : 'Showing again');
     } catch {
       load();
       showToast("Couldn't update. Try again.");
@@ -412,11 +412,11 @@ export default function SubjectList() {
                         <button role="menuitem" onClick={() => toggleVisible(s)}>
                           {s.isVisible === false ? (
                             <>
-                              <Eye size={14} /> Show in journal
+                              <Eye size={14} /> Show subject
                             </>
                           ) : (
                             <>
-                              <EyeOff size={14} /> Hide from journal
+                              <EyeOff size={14} /> Hide subject
                             </>
                           )}
                         </button>
@@ -428,7 +428,7 @@ export default function SubjectList() {
                   </div>
                 </div>
 
-                {s.isVisible === false && <span className="badge badge-muted subject-hidden-badge">Hidden from journal</span>}
+                {s.isVisible === false && <span className="badge badge-muted subject-hidden-badge">Hidden from journal, timetable and deadlines</span>}
 
                 <div className="subject-facts">
                   <span className="subject-fact">

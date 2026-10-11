@@ -33,7 +33,8 @@ async function load(userId) {
     timetableRepository.findSharedWith(userId),
     subjectRepository.findVisibleForUser(userId)
   ]);
-  return { entries: [...own, ...shared], subjects };
+  // Classes of a hidden subject are left out, as its exams and due dates already are.
+  return { entries: [...own, ...shared].filter((row) => row.subject?.is_visible !== false), subjects };
 }
 
 // One-off dated things from the subjects: exams, due dates, and tasks that

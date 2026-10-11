@@ -93,7 +93,9 @@ export default function Deadlines() {
               <span>Subject</span>
               <select className="input" value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
                 <option value="">All subjects</option>
-                {subjects.map((s) => (
+                {subjects
+                  .filter((s) => s.isVisible !== false)
+                  .map((s) => (
                   <option key={s._id} value={s._id}>
                     {s.code ? `${s.code} · ${s.name}` : s.name}
                   </option>

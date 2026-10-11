@@ -77,12 +77,15 @@ export default function Timetable() {
   const today = now.getDay();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
+  // Classes of a subject hidden in Subjects are left out here.
+  const shown = useMemo(() => (entries || []).filter((e) => e.subject?.isVisible !== false), [entries]);
+
   const byDay = useMemo(() => {
     const groups = DAYS.map(() => []);
-    (entries || []).forEach((e) => groups[e.dayOfWeek]?.push(e));
+    shown.forEach((e) => groups[e.dayOfWeek]?.push(e));
     groups.forEach((g) => g.sort((a, b) => a.startTime.localeCompare(b.startTime)));
     return groups;
-  }, [entries]);
+  }, [shown]);
 
   // Dated things from the subjects, still to come, soonest first: quizzes,
   // tests and final exams, and any assessment task given a date and a time.
@@ -90,6 +93,7 @@ export default function Timetable() {
   const exams = useMemo(
     () =>
       subjects
+        .filter((s) => s.isVisible !== false)
         .flatMap((s) =>
           (s.assessments || []).flatMap((a, i) => {
             const items = [];
@@ -162,14 +166,14 @@ export default function Timetable() {
   // Other classes that overlap what's in the form (same day, times crossing).
   const clashes = useMemo(() => {
     if (!editing || !form.startTime || !form.endTime || form.endTime <= form.startTime) return [];
-    return (entries || []).filter(
+    return shown.filter(
       (e) =>
         e._id !== editing?._id &&
         form.days.includes(e.dayOfWeek) &&
         minutes(e.startTime) < minutes(form.endTime) &&
         minutes(form.startTime) < minutes(e.endTime)
     );
-  }, [editing, form, entries]);
+  }, [editing, form, shown]);
 
   // Add the User ID in the box to the people on this task.
   function addPerson() {
@@ -337,7 +341,7 @@ export default function Timetable() {
     );
   }
 
-  const total = entries?.length || 0;
+  const total = shown.length;
   const isClassKind = CLASS_KINDS.some(([value]) => value === form.kind);
   // Who else is on a task someone added me to (not me).
   const others = (viewing?.participants || []).filter((x) => x._id !== user?._id);
@@ -516,7 +520,9 @@ export default function Timetable() {
                 onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value }))}
               >
                 <option value="">Not one of my subjects</option>
-                {subjects.map((s) => (
+                {subjects
+                  .filter((s) => s.isVisible !== false || s._id === form.subjectId)
+                  .map((s) => (
                   <option key={s._id} value={s._id}>
                     {s.code ? `${s.name} (${s.code})` : s.name}
                   </option>

@@ -32,7 +32,10 @@ export function formatDueDate(dateKey) {
 // soonest first. Overdue ones are included so they aren't forgotten; finished
 // ones only with `includeDone`.
 export function upcomingDeadlines(subjects = [], assignments = [], { includeDone = false } = {}) {
-  const fromSubjects = subjects.flatMap((s) =>
+  // A subject hidden in Subjects keeps its deadlines out of every list.
+  const fromSubjects = subjects
+    .filter((s) => s.isVisible !== false)
+    .flatMap((s) =>
     (s.assessments || [])
       .filter((a) => (includeDone || !a.isDone) && a.dueDate)
       .map((a, i) => ({
