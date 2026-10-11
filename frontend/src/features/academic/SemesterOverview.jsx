@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, CalendarDays, ClipboardCheck, LayoutDashboard, TrendingUp } from 'lucide-react';
+import { BookOpen, CalendarDays, ChevronRight, ClipboardCheck, LayoutDashboard, TrendingUp } from 'lucide-react';
 import { ASSESSMENT_TYPES } from './constants';
 import { daysUntil, isExam } from './deadlines';
 import { CLASS_KINDS, KIND_LABEL, minutes } from '../timetable/timetable';
@@ -66,33 +66,53 @@ export default function SemesterOverview({ subjects, timetable, embedded = false
         </div>
       )}
 
-      <div className="sem-tiles">
-        <Link to="/subject-list" className="sem-tile">
-          <BookOpen size={15} />
-          <strong>{visible.length}</strong>
-          <span>Subject{visible.length === 1 ? '' : 's'}</span>
-          <small>{credits} credit hours</small>
+      {/* The same tiles as the week's log: the ones that open a page carry an arrow */}
+      <div className="aj-actions sem-tiles">
+        <Link to="/subject-list" className="aj-action">
+          <span className="aj-action-icon">
+            <BookOpen size={16} />
+          </span>
+          <span className="aj-action-text">
+            <strong>{visible.length}</strong>
+            <span>Subject{visible.length === 1 ? '' : 's'}</span>
+            <small>{credits} credit hours</small>
+          </span>
+          <ChevronRight size={15} className="aj-action-go" />
         </Link>
-        <Link to="/timetable" className="sem-tile">
-          <CalendarDays size={15} />
-          <strong>{classes.length}</strong>
-          <span>Class{classes.length === 1 ? '' : 'es'} a week</span>
-          <small>{hoursText(classMinutes)} in class</small>
+        <Link to="/timetable" className="aj-action">
+          <span className="aj-action-icon">
+            <CalendarDays size={16} />
+          </span>
+          <span className="aj-action-text">
+            <strong>{classes.length}</strong>
+            <span>Class{classes.length === 1 ? '' : 'es'} a week</span>
+            <small>{hoursText(classMinutes)} in class</small>
+          </span>
+          <ChevronRight size={15} className="aj-action-go" />
         </Link>
-        <Link to="/deadlines" className="sem-tile">
-          <ClipboardCheck size={15} />
-          <strong>
-            {done}
-            <em>/{assessments.length}</em>
-          </strong>
-          <span>Assessments done</span>
-          <small className={overdue ? 'warn' : ''}>{overdue ? `${overdue} overdue` : `${assessments.length - done} to go`}</small>
+        <Link to="/deadlines" className="aj-action">
+          <span className="aj-action-icon">
+            <ClipboardCheck size={16} />
+          </span>
+          <span className="aj-action-text">
+            <strong>
+              {done}
+              <em>/{assessments.length}</em>
+            </strong>
+            <span>Assessments done</span>
+            <small className={overdue ? 'warn' : ''}>{overdue ? `${overdue} overdue` : `${assessments.length - done} to go`}</small>
+          </span>
+          <ChevronRight size={15} className="aj-action-go" />
         </Link>
-        <div className="sem-tile">
-          <TrendingUp size={15} />
-          <strong>{progress}%</strong>
-          <span>Overall progress</span>
-          <small>Weighted by grade</small>
+        <div className="aj-action sem-static">
+          <span className="aj-action-icon">
+            <TrendingUp size={16} />
+          </span>
+          <span className="aj-action-text">
+            <strong>{progress}%</strong>
+            <span>Overall progress</span>
+            <small>Weighted by grade</small>
+          </span>
         </div>
       </div>
 

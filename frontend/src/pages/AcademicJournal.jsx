@@ -14,6 +14,8 @@ import {
   PenLine,
   BookOpen,
   Camera,
+  FileText,
+  Star,
   X
 } from 'lucide-react';
 import client from '../services/apiClient';
@@ -23,6 +25,9 @@ import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/cons
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
 import SemesterOverview from '../features/academic/SemesterOverview';
 import SubjectFiles from '../features/academic/SubjectFiles';
+
+// How many favourite past year papers the Academic page lists before "more".
+const FAVOURITES_SHOWN = 4;
 
 const MAX_WEEKS_BACK = 15; // the week picker used to offer this week + 15 previous weeks
 const currentWeekKey = toDateKey(getWeekStart());
@@ -109,6 +114,15 @@ export default function AcademicJournal({ focus = null }) {
       .get('/timetable')
       .then((res) => setTimetable(Array.isArray(res.data) ? res.data : []))
       .catch(() => setTimetable([]));
+  }, []);
+
+  // The past year papers I starred, listed at the foot of the page.
+  const [favouritePapers, setFavouritePapers] = useState([]);
+  useEffect(() => {
+    client
+      .get('/past-papers', { params: { favourites: 1 } })
+      .then((res) => setFavouritePapers(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setFavouritePapers([]));
   }, []);
 
   useEffect(() => {
@@ -649,6 +663,45 @@ export default function AcademicJournal({ focus = null }) {
                 <p className="log-empty">
                   No subjects yet. <Link to="/subject-list">Add one in Subjects</Link>.
                 </p>
+              )}
+            </div>
+
+            {/* ---------- the past year papers I starred ---------- */}
+            <div className="card">
+              <div className="log-section-head">
+                <span className="log-section-icon">
+                  <Star size={16} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="log-section-title">Favourite papers</div>
+                  <div className="log-section-sub">
+                    {favouritePapers.length ? `${favouritePapers.length} saved from Past Year` : 'The ones you star in Past Year'}
+                  </div>
+                </div>
+                <Link to="/past-year?view=favourites" className="btn btn-ghost btn-sm aj-fav-all">
+                  {favouritePapers.length ? 'View all' : 'Browse'}
+                </Link>
+              </div>
+              {favouritePapers.length ? (
+                favouritePapers.slice(0, FAVOURITES_SHOWN).map((p) => (
+                  <a key={p._id} className="subject-row aj-fav-row" href={p.fileUrl} target="_blank" rel="noreferrer">
+                    <FileText size={15} className="subject-row-icon" />
+                    <div className="log-body">
+                      <div className="log-title">{p.subject}</div>
+                      <div className="log-meta">{[p.subjectCode, p.year, p.paperType].filter(Boolean).join(' · ') || p.course}</div>
+                    </div>
+                    <ChevronRight size={15} className="subject-row-icon" />
+                  </a>
+                ))
+              ) : (
+                <p className="log-empty">
+                  No favourites yet. <Link to="/past-year">Find a paper in Past Year</Link> and tap its star.
+                </p>
+              )}
+              {favouritePapers.length > FAVOURITES_SHOWN && (
+                <Link to="/past-year?view=favourites" className="aj-fav-more">
+                  {favouritePapers.length - FAVOURITES_SHOWN} more in Past Year
+                </Link>
               )}
             </div>
           </div>

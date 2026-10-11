@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FileText, FolderUp, GraduationCap, Image as ImageIcon, Library, Search, Star, Trash2, Upload, X } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -87,7 +88,9 @@ export default function PastYear() {
   const [university, setUniversity] = useState('');
   const [course, setCourse] = useState('');
   // Which papers to show: everyone's ('all'), my favourites, or the ones I shared ('mine').
-  const [scope, setScope] = useState('all');
+  // ?view=favourites (from the Academic page) opens on the favourites.
+  const [searchParams] = useSearchParams();
+  const [scope, setScope] = useState(() => (['favourites', 'mine'].includes(searchParams.get('view')) ? searchParams.get('view') : 'all'));
   const mine = scope === 'mine';
   const favouritesOnly = scope === 'favourites';
   const [sheetOpen, setSheetOpen] = useState(false);
