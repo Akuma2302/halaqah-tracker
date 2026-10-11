@@ -453,21 +453,43 @@ export default function MenteeDetail() {
           <Section
             icon={MessagesSquare}
             title="Lecturer consultations"
-            sub={`Logged ${thisOrThat}`}
+            sub={consultations.length ? `Met a lecturer ${thisOrThat}` : `Logged ${thisOrThat}`}
             aside={<span className="md-figure">{consultations.length}</span>}
           >
             {consultations.length === 0 ? (
               <p className="log-empty">No lecturer consultations logged {thisOrThat}.</p>
             ) : (
-              consultations.map((c) => (
-                <div className="log-row" key={c._id}>
-                  <div className="log-body">
-                    <div className="log-title">{c.lecturerName || c.subject?.lecturerName || 'Lecturer'}</div>
-                    <div className="log-meta">{[c.date && shortDate(c.date), subjectLabel(c.subject), c.venue].filter(Boolean).join(' · ')}</div>
-                    {c.detail && <div className="log-meta">{c.detail}</div>}
-                  </div>
-                </div>
-              ))
+              <div className="md-consults">
+                {consultations.map((c) => {
+                  const lecturer = c.lecturerName || c.subject?.lecturerName || 'Lecturer';
+                  return (
+                    <div className="md-consult" key={c._id}>
+                      <div className="md-consult-head">
+                        <span className="avatar md-consult-avatar mentor-avatar-letter" style={{ '--hue': hueFor(lecturer) }}>
+                          {lecturer.replace(/^(dr|prof|ustaz|ustazah|encik|puan|mr|mrs|ms)\.?\s+/i, '').trim()[0]?.toUpperCase() || 'L'}
+                        </span>
+                        <div className="md-consult-who">
+                          <strong>{lecturer}</strong>
+                          {c.subject && <span>{subjectLabel(c.subject)}</span>}
+                        </div>
+                      </div>
+                      <div className="md-consult-facts">
+                        {c.date && (
+                          <span>
+                            <CalendarDays size={12} /> {shortDate(c.date)}
+                          </span>
+                        )}
+                        {c.venue && (
+                          <span>
+                            <MapPin size={12} /> {c.venue}
+                          </span>
+                        )}
+                      </div>
+                      {c.detail && <p className="md-consult-note">{c.detail}</p>}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </Section>
         </div>

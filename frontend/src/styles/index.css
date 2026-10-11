@@ -1064,6 +1064,83 @@ a {
   background: var(--primary);
 }
 
+/* Lecturer consultations: who, when and where, then what was discussed */
+.md-consults {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.md-consult {
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.md-consult-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.md-consult-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.md-consult-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.md-consult-who strong {
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+.md-consult-who span {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.md-consult-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.md-consult-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.md-consult-facts svg {
+  color: var(--primary);
+}
+
+.md-consult-note {
+  margin: 9px 0 0;
+  padding-left: 10px;
+  border-left: 3px solid color-mix(in srgb, var(--primary) 55%, transparent);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
 .md-two {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
