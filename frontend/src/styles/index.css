@@ -8187,6 +8187,16 @@ input.input::-webkit-date-and-time-value {
 }
 
 /* ---------- Past Year: shared papers ---------- */
+.range-toggle.segmented.py-scope {
+  margin-bottom: 10px;
+}
+
+/* The box that opens under a dropdown when "Other" is chosen */
+.input.py-other {
+  margin-top: 6px;
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+}
+
 .perf-search.py-search {
   margin: 0 0 10px;
   background: var(--surface);

@@ -25,7 +25,13 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const rows = await pastPaperRepository.search({ q: req.query.q, university: req.query.university, course: req.query.course });
+    const rows = await pastPaperRepository.search({
+      q: req.query.q,
+      university: req.query.university,
+      course: req.query.course,
+      // ?mine=1 lists only the papers the signed-in user shared
+      uploaderId: req.query.mine ? req.userId : undefined
+    });
     res.json(rows.map(pastPaperRepository.serialize));
   })
 );

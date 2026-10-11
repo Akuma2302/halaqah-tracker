@@ -12,8 +12,9 @@ const clean = (text) =>
     .slice(0, 80);
 
 // Newest first. `q` looks in the subject, its code, the course and the
-// university; `university` must match exactly; `course` is a "contains".
-async function search({ q, university, course, limit = 100 }) {
+// university; `university` must match exactly; `course` is a "contains";
+// `uploaderId` keeps only what that user shared.
+async function search({ q, university, course, uploaderId, limit = 100 }) {
   let query = supabase.from('past_papers').select(WITH_UPLOADER).order('created_at', { ascending: false }).limit(limit);
   const text = clean(q);
   if (text) {
@@ -22,6 +23,7 @@ async function search({ q, university, course, limit = 100 }) {
   }
   if (clean(university)) query = query.eq('university', String(university).trim().slice(0, 160));
   if (clean(course)) query = query.ilike('course', `%${clean(course)}%`);
+  if (uploaderId) query = query.eq('uploader_id', uploaderId);
   const { data, error } = await query;
   if (error) throw error;
   return data;

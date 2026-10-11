@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, GraduationCap, Image as ImageIcon, Search, Trash2, Upload, X } from 'lucide-react';
+import { FileText, FolderUp, GraduationCap, Image as ImageIcon, Library, Search, Trash2, Upload, X } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import client from '../services/apiClient';
@@ -12,7 +12,59 @@ import { hueFor } from '../features/timetable/timetable';
 dayjs.extend(relativeTime);
 
 const MAX_FILE_MB = 10;
-const emptyForm = { university: '', course: '', subject: '', subjectCode: '', year: '', paperType: '', file: null };
+const OTHER = '__other__';
+// `universityPick` / `coursePick` are what the dropdown shows: a listed name,
+// or OTHER, which opens a box to type one that isn't listed.
+const emptyForm = { university: '', universityPick: '', course: '', coursePick: '', subject: '', subjectCode: '', year: '', paperType: '', file: null };
+
+// A dropdown of known names with "Other" at the end; choosing Other shows a
+// box to type your own.
+function PickOrType({ id, label, groups, flat, pick, value, onChange, otherLabel, placeholder, maxLength }) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <select
+        id={id}
+        className="input"
+        value={pick}
+        onChange={(e) => onChange(e.target.value, e.target.value === OTHER ? '' : e.target.value)}
+      >
+        <option value="">Choose…</option>
+        {groups
+          ? groups.map((g) => (
+              <optgroup key={g.group} label={g.group}>
+                {g.names
+                  .filter((name) => name !== 'Other')
+                  .map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+              </optgroup>
+            ))
+          : flat
+              .filter((name) => name !== 'Other')
+              .map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+        <option value={OTHER}>{otherLabel}</option>
+      </select>
+      {pick === OTHER && (
+        <input
+          className="input py-other"
+          value={value}
+          onChange={(e) => onChange(OTHER, e.target.value)}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          aria-label={`${label}: type your own`}
+          autoFocus
+        />
+      )}
+    </div>
+  );
+}
 
 function fileSizeText(bytes) {
   if (!bytes) return '';
@@ -34,6 +86,8 @@ export default function PastYear() {
   const [query, setQuery] = useState('');
   const [university, setUniversity] = useState('');
   const [course, setCourse] = useState('');
+  // Show everyone's papers, or only the ones I shared.
+  const [mine, setMine] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -46,7 +100,9 @@ export default function PastYear() {
     const timer = setTimeout(() => {
       setError(false);
       client
-        .get('/past-papers', { params: { q: query.trim() || undefined, university: university || undefined, course: course.trim() || undefined } })
+        .get('/past-papers', {
+          params: { q: query.trim() || undefined, university: university || undefined, course: course.trim() || undefined, mine: mine ? 1 : undefined }
+        })
         .then((res) => !cancelled && setPapers(Array.isArray(res.data) ? res.data : []))
         .catch(() => !cancelled && setError(true));
     }, 300);
@@ -54,7 +110,7 @@ export default function PastYear() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query, university, course]);
+  }, [query, university, course, mine]);
 
   const filtered = !!(query.trim() || university || course.trim());
   const thisYear = new Date().getFullYear();
@@ -62,8 +118,8 @@ export default function PastYear() {
 
   function openUpload() {
     // Start from your own kampus when it matches one of the places listed.
-    const mine = ALL_INSTITUTIONS.find((name) => user?.kampus && shortName(name).toLowerCase() === user.kampus.trim().toLowerCase());
-    setForm({ ...emptyForm, university: mine || '' });
+    const myPlace = ALL_INSTITUTIONS.find((name) => user?.kampus && shortName(name).toLowerCase() === user.kampus.trim().toLowerCase());
+    setForm({ ...emptyForm, university: myPlace || '', universityPick: myPlace || '' });
     setFormError('');
     setSheetOpen(true);
   }
@@ -121,6 +177,15 @@ export default function PastYear() {
         </button>
       </div>
 
+      <div className="range-toggle segmented py-scope">
+        <button className={mine ? '' : 'active'} onClick={() => setMine(false)}>
+          <Library size={14} /> All papers
+        </button>
+        <button className={mine ? 'active' : ''} onClick={() => setMine(true)}>
+          <FolderUp size={14} /> My uploads
+        </button>
+      </div>
+
       <label className="perf-search py-search">
         <Search size={15} />
         <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search a subject, code or course" aria-label="Search past year papers" />
@@ -157,11 +222,6 @@ export default function PastYear() {
           <option key={name} value={name} />
         ))}
       </datalist>
-      <datalist id="py-institutions">
-        {ALL_INSTITUTIONS.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
 
       {error ? (
         <div className="card empty-state">
@@ -175,6 +235,7 @@ export default function PastYear() {
           <div className="dl-result">
             <span>
               {papers.length} paper{papers.length === 1 ? '' : 's'}
+              {mine ? ' shared by you' : ''}
               {papers.length === 100 ? ' (showing the newest 100)' : ''}
             </span>
             {filtered && (
@@ -194,8 +255,8 @@ export default function PastYear() {
           {papers.length === 0 ? (
             <div className="card empty-state notif-empty">
               <GraduationCap size={26} />
-              <h3>{filtered ? 'No paper matches that yet' : 'No papers shared yet'}</h3>
-              <p>Have one? Share it so the next student can find it.</p>
+              <h3>{filtered ? 'No paper matches that yet' : mine ? "You haven't shared a paper yet" : 'No papers shared yet'}</h3>
+              <p>{mine ? 'Papers you share appear here, where you can remove them.' : 'Have one? Share it so the next student can find it.'}</p>
               <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={openUpload}>
                 <Upload size={14} /> Share a paper
               </button>
@@ -257,30 +318,28 @@ export default function PastYear() {
               <input type="file" hidden accept="application/pdf,image/*,.doc,.docx" onChange={pickFile} />
             </label>
           </div>
-          <div className="field">
-            <label htmlFor="py-university">University or college</label>
-            <input
-              id="py-university"
-              className="input"
-              list="py-institutions"
-              value={form.university}
-              onChange={(e) => setForm((f) => ({ ...f, university: e.target.value }))}
-              placeholder="Type to search, e.g. UPM or Kolej Matrikulasi"
-              maxLength={160}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="py-course">Course</label>
-            <input
-              id="py-course"
-              className="input"
-              list="py-courses"
-              value={form.course}
-              onChange={(e) => setForm((f) => ({ ...f, course: e.target.value }))}
-              placeholder="Type to search, e.g. Computer Science"
-              maxLength={120}
-            />
-          </div>
+          <PickOrType
+            id="py-university"
+            label="University or college"
+            groups={INSTITUTIONS}
+            pick={form.universityPick}
+            value={form.university}
+            onChange={(universityPick, value) => setForm((f) => ({ ...f, universityPick, university: value }))}
+            otherLabel="Other: mine isn't listed"
+            placeholder="Type your university or college"
+            maxLength={160}
+          />
+          <PickOrType
+            id="py-course"
+            label="Course"
+            flat={COURSES}
+            pick={form.coursePick}
+            value={form.course}
+            onChange={(coursePick, value) => setForm((f) => ({ ...f, coursePick, course: value }))}
+            otherLabel="Other: add my own course"
+            placeholder="Type your course, e.g. Halal Product Science"
+            maxLength={120}
+          />
           <div className="edit-grid-2 py-subject-row">
             <div className="field">
               <label htmlFor="py-subject">Subject</label>
