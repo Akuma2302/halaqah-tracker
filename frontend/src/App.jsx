@@ -15,6 +15,7 @@ import SubjectList from './pages/SubjectList';
 import Notifications from './pages/Notifications';
 import Mentoring from './pages/Mentoring';
 import Timetable from './pages/Timetable';
+import Deadlines from './pages/Deadlines';
 import MenteeDetail from './pages/MenteeDetail';
 
 // Loaded on demand: the Mathurat text is the largest chunk of the app.
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/study-groups/:id" element={<StudyGroupRoom />} />
           <Route path="/academic-journal" element={<AcademicJournal />} />
           <Route path="/subject-list" element={<SubjectList />} />
+          <Route path="/deadlines" element={<Deadlines />} />
           <Route
             path="/mathurat"
             element={

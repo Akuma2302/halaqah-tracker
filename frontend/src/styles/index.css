@@ -7954,6 +7954,204 @@ a.md-deadline {
   white-space: normal;
 }
 
+button.md-deadline {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.md-deadline:active {
+  transform: scale(0.995);
+}
+
+.md-deadline.done {
+  opacity: 0.7;
+}
+
+/* All deadlines: filters above the list */
+.dl-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.dl-count.warn {
+  background: var(--danger);
+  color: #fff;
+}
+
+.dl-selects {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dl-selects .field {
+  margin-bottom: 0;
+}
+
+.dl-selects .field > span {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.dl-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 2px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.dl-result button {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+/* One assessment in full */
+.as-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.as-hero {
+  --tone: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.as-hero.tone-urgent {
+  --tone: var(--danger);
+}
+
+.as-hero.tone-soon {
+  --tone: var(--gold);
+}
+
+.md-date.as-date {
+  width: 52px;
+}
+
+.md-date.as-date strong {
+  font-size: 22px;
+}
+
+.as-hero-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.as-hero-text strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.as-hero-text > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.as-facts {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.as-fact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.as-fact + .as-fact {
+  border-top: 1px solid var(--border);
+}
+
+.as-fact svg {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.as-fact strong {
+  margin-left: auto;
+  text-align: right;
+  color: var(--ink);
+}
+
+.as-block-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.as-block-title strong {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.as-block p {
+  margin: 5px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.as-block p.as-empty {
+  color: var(--ink-soft);
+}
+
+.md-progress.as-progress {
+  margin: 8px 0 0;
+}
+
+.btn.as-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 4px;
+  text-decoration: none;
+}
+
 /* How far along the work or revision is, on its own line under the item */
 .dl-progress {
   display: flex;

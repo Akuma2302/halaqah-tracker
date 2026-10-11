@@ -22,8 +22,8 @@ import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
-import { daysUntil, isExam, upcomingDeadlines } from '../features/academic/deadlines';
-import { clock } from '../features/timetable/timetable';
+import { daysUntil, upcomingDeadlines } from '../features/academic/deadlines';
+import { AssessmentSheet, DeadlineTile } from '../features/academic/DeadlineTile';
 import SubjectFiles from '../features/academic/SubjectFiles';
 
 const MAX_WEEKS_BACK = 15; // the week picker used to offer this week + 15 previous weeks
@@ -33,7 +33,6 @@ const HOUR_PRESETS = [1, 1.5, 2, 3];
 const QUESTION_PRESETS = [5, 10, 20];
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
 const MAX_DEADLINES = 5;
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function shiftWeek(weekKey, weeks) {
   const [y, m, d] = weekKey.split('-').map(Number);
@@ -146,6 +145,7 @@ export default function AcademicJournal() {
 
   // Assessment due dates set in Subjects, plus any standalone assignments.
   const deadlines = useMemo(() => upcomingDeadlines(subjects, overview?.assignments || []), [subjects, overview]);
+  const [openDeadline, setOpenDeadline] = useState(null);
 
   // ---------- add-entry sheet ----------
   function openSheet(kind) {
@@ -294,48 +294,12 @@ export default function AcademicJournal() {
       {deadlines.length ? (
         <>
           <div className="md-deadlines dl-own">
-            {deadlines.slice(0, MAX_DEADLINES).map((d) => {
-              const days = d.dueDate ? daysUntil(d.dueDate) : null;
-              const tone = days === null ? 'later' : days <= 3 ? 'urgent' : days <= 7 ? 'soon' : 'later';
-              const exam = isExam(d.type);
-              const [, month, day] = d.dueDate ? d.dueDate.split('-').map(Number) : [];
-              const [y, m, dd] = d.dueDate ? d.dueDate.split('-').map(Number) : [];
-              const weekday = d.dueDate ? SHORT_DAYS[new Date(y, m - 1, dd).getDay()] : '';
-              return (
-                <Link to="/subject-list" className={`md-deadline tone-${tone}${days !== null && days < 0 ? ' overdue' : ''}`} key={d.id}>
-                  <span className="md-date" aria-hidden="true">
-                    <small>{d.dueDate ? MONTHS[month - 1] : '–'}</small>
-                    <strong>{d.dueDate ? day : '?'}</strong>
-                  </span>
-                  <div className="md-deadline-body">
-                    <div className="md-deadline-title">
-                      {d.title}
-                      {d.type && <span className={`md-kind${exam ? ' exam' : ''}`}>{exam ? 'Exam' : 'Due'}</span>}
-                    </div>
-                    <div className="md-deadline-meta">{subjectLabel(d.subject)}</div>
-                    <div className="md-deadline-meta">
-                      {[weekday, d.dueTime && clock(d.dueTime), d.weight ? `${d.weight}%` : ''].filter(Boolean).join(' · ') || 'No date set'}
-                    </div>
-                  </div>
-                  <span className="md-countdown">
-                    {days === null ? 'No date' : days < 0 ? `${-days}d late` : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days`}
-                  </span>
-                  {d.type && (
-                    <div className="dl-progress">
-                      <span className="dl-progress-bar">
-                        <span style={{ width: `${d.progress || 0}%` }} />
-                      </span>
-                      <span className="dl-progress-text">
-                        {d.progress || 0}% {exam ? 'revised' : 'done'}
-                      </span>
-                    </div>
-                  )}
-                </Link>
-              );
-            })}
+            {deadlines.slice(0, MAX_DEADLINES).map((d) => (
+              <DeadlineTile key={d.id} deadline={d} onOpen={setOpenDeadline} />
+            ))}
           </div>
-          <Link to="/subject-list" className="log-more">
-            {deadlines.length > MAX_DEADLINES ? `View all ${deadlines.length} in Subjects` : 'Manage in Subjects'}
+          <Link to="/deadlines" className="log-more">
+            {deadlines.length > MAX_DEADLINES ? `View all ${deadlines.length} deadlines` : 'View all deadlines'}
           </Link>
         </>
       ) : (
@@ -626,6 +590,8 @@ export default function AcademicJournal() {
           )}
         </div>
       </div>
+
+      <AssessmentSheet deadline={openDeadline} onClose={() => setOpenDeadline(null)} />
 
       {/* ---------- add-entry sheets ---------- */}
       <Sheet

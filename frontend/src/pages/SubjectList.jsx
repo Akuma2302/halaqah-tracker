@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2, Eye, EyeOff, X, ChevronLeft, MoreVertical, User, CalendarClock, CalendarDays, Check, BookOpen } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
@@ -50,12 +50,14 @@ export default function SubjectList() {
   const [toast, showToast] = useToast();
   // Every class slot in the timetable; each subject's own are shown and edited here.
   const [timetable, setTimetable] = useState([]);
+  const [timetableReady, setTimetableReady] = useState(false);
 
   function loadTimetable() {
     client
       .get('/timetable')
       .then((res) => setTimetable(res.data))
-      .catch(() => setTimetable([]));
+      .catch(() => setTimetable([]))
+      .finally(() => setTimetableReady(true));
   }
 
   const classesOf = (subjectId) => timetable.filter((e) => e.subject?._id === subjectId);
@@ -74,6 +76,17 @@ export default function SubjectList() {
     load();
     loadTimetable();
   }, []);
+
+  // Arriving from a deadline: open that subject's editor straight away.
+  const [params, setParams] = useSearchParams();
+  const editParam = params.get('edit');
+  useEffect(() => {
+    // The class times must be in too, or the editor would open without them.
+    if (!editParam || loading || !timetableReady) return;
+    const subject = subjects.find((s) => s._id === editParam);
+    if (subject) openEdit(subject);
+    setParams({}, { replace: true });
+  }, [editParam, loading, timetableReady, subjects]);
 
   // Close the ⋯ menu on any outside tap.
   useEffect(() => {
