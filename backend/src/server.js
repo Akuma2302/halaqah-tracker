@@ -33,6 +33,7 @@ app.use('/api/widget', require('./routes/widget'));
 app.use('/api/quran', require('./routes/quran'));
 app.use('/api/mentoring', require('./routes/mentoring'));
 app.use('/api/timetable', require('./routes/timetable'));
+app.use('/api/past-papers', require('./routes/pastPapers'));
 app.use('/api/jobs', require('./routes/jobs'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));

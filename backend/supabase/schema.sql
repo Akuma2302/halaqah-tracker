@@ -473,3 +473,24 @@ create table if not exists timetable_participants (
 );
 create index if not exists idx_timetable_participants_user on timetable_participants(user_id);
 alter table timetable_participants enable row level security;
+
+-- Past year papers shared by users with everyone using the app: the file,
+-- and where it is from (university or college, course, subject).
+create table if not exists past_papers (
+  id uuid primary key default gen_random_uuid(),
+  uploader_id uuid references users(id) on delete set null,
+  university text not null,
+  course text not null,
+  subject text not null,
+  subject_code text not null default '',
+  year integer,
+  paper_type text not null default '',
+  file_url text not null,
+  file_name text not null default '',
+  file_size integer not null default 0,
+  mime_type text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_past_papers_created on past_papers(created_at desc);
+create index if not exists idx_past_papers_university on past_papers(university);
+alter table past_papers enable row level security;
