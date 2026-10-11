@@ -760,13 +760,14 @@ function PapersTab({ papers, onRemoved, showToast }) {
 
 // One person in a mentoring tree, with their own mentees (in their groups)
 // nested under them. A mentee who mentors others opens to show their tree too.
-function TreeNode({ person, childrenOf, groupsOf, onOpen, depth, expandAll, path }) {
+function TreeNode({ person, childrenOf, groupsOf, onOpen, depth, expandAll, path, flat = false }) {
   const mentees = childrenOf[person._id] || [];
   const [open, setOpen] = useState(depth === 0);
-  const shown = expandAll || open;
+  const shown = expandAll || open || (flat && depth === 0);
   const p = percent(person.mutabaahDone, WEEK_POSSIBLE);
   // A loop in the data would never end, so a person already above is not opened again.
-  const safe = !path.includes(person._id);
+  // By mentor (`flat`), a card stops at the mentor's own mentees.
+  const safe = !path.includes(person._id) && !(flat && depth > 0);
 
   // Mentees by the mentor's groups, then those in no group.
   const groups = groupsOf[person._id] || [];
@@ -778,7 +779,7 @@ function TreeNode({ person, childrenOf, groupsOf, onOpen, depth, expandAll, path
   return (
     <div className={`adm-node${depth === 0 ? ' root' : ''}`}>
       <div className="adm-node-row">
-        {mentees.length > 0 && safe ? (
+        {flat ? null : mentees.length > 0 && safe ? (
           <button type="button" className="icon-btn adm-node-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={shown} aria-label={`${shown ? 'Hide' : 'Show'} ${person.name}'s mentees`}>
             {shown ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
@@ -825,7 +826,7 @@ function TreeNode({ person, childrenOf, groupsOf, onOpen, depth, expandAll, path
                 <p className="adm-foot adm-branch-empty">Nobody in this group yet.</p>
               ) : (
                 b.people.map((m) => (
-                  <TreeNode key={m._id} person={m} childrenOf={childrenOf} groupsOf={groupsOf} onOpen={onOpen} depth={depth + 1} expandAll={expandAll} path={[...path, person._id]} />
+                  <TreeNode key={m._id} person={m} childrenOf={childrenOf} groupsOf={groupsOf} onOpen={onOpen} depth={depth + 1} expandAll={expandAll} path={[...path, person._id]} flat={flat} />
                 ))
               )}
             </div>
@@ -840,6 +841,9 @@ function TreeNode({ person, childrenOf, groupsOf, onOpen, depth, expandAll, path
 function MentoringTab({ users, mentoringGroups, onOpen }) {
   const [query, setQuery] = useState('');
   const [expandAll, setExpandAll] = useState(false);
+  // 'tree': whole lines from the top mentor down. 'mentor': a card per mentor with their own mentees.
+  const [view, setView] = useState('tree');
+  const byMentor = view === 'mentor';
 
   const { childrenOf, groupsOf, mentors, roots } = useMemo(() => {
     const kids = {};
@@ -862,9 +866,12 @@ function MentoringTab({ users, mentoringGroups, onOpen }) {
 
   // Searching shows the tree of every mentor that matches, wherever they sit.
   const q = query.trim().toLowerCase();
+  const everyMentor = useMemo(() => [...mentors].sort((a, b) => a.name.localeCompare(b.name)), [mentors]);
   const shown = q
     ? mentors.filter((u) => [u.name, u.memberId, u.kampus, u.email].some((t) => (t || '').toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name))
-    : roots;
+    : byMentor
+      ? everyMentor
+      : roots;
   const withMentor = users.filter((u) => u.mentorId).length;
 
   return (
@@ -888,17 +895,32 @@ function MentoringTab({ users, mentoringGroups, onOpen }) {
         </div>
       </div>
 
+      <div className="range-toggle segmented adm-view">
+        <button className={byMentor ? '' : 'active'} onClick={() => setView('tree')}>
+          <Network size={14} /> Tree
+        </button>
+        <button className={byMentor ? 'active' : ''} onClick={() => setView('mentor')}>
+          <Users size={14} /> By mentor
+        </button>
+      </div>
+
       <div className="adm-toolbar">
         <label className="perf-search adm-search adm-search-wide">
           <Search size={16} />
           <input type="search" placeholder="Search a mentor by name, User ID or kampus" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
-        <button type="button" className="btn btn-ghost adm-expand" onClick={() => setExpandAll((v) => !v)} aria-pressed={expandAll}>
-          {expandAll ? 'Collapse all' : 'Expand all'}
-        </button>
+        {!byMentor && (
+          <button type="button" className="btn btn-ghost adm-expand" onClick={() => setExpandAll((v) => !v)} aria-pressed={expandAll}>
+            {expandAll ? 'Collapse all' : 'Expand all'}
+          </button>
+        )}
       </div>
       <div className="dl-result">
-        {q ? `${shown.length} of ${mentors.length} mentors` : `${roots.length} tree${roots.length === 1 ? '' : 's'} · ${mentors.length} mentors`}
+        {q
+          ? `${shown.length} of ${mentors.length} mentors`
+          : byMentor
+            ? `${mentors.length} mentor${mentors.length === 1 ? '' : 's'}, each with their own mentees`
+            : `${roots.length} tree${roots.length === 1 ? '' : 's'} · ${mentors.length} mentors`}
       </div>
 
       {shown.length === 0 ? (
@@ -910,7 +932,7 @@ function MentoringTab({ users, mentoringGroups, onOpen }) {
         <div className="adm-trees">
           {shown.map((m) => (
             <div className="card adm-tree" key={m._id}>
-              <TreeNode person={m} childrenOf={childrenOf} groupsOf={groupsOf} onOpen={onOpen} depth={0} expandAll={expandAll} path={[]} />
+              <TreeNode person={m} childrenOf={childrenOf} groupsOf={groupsOf} onOpen={onOpen} depth={0} expandAll={expandAll && !byMentor} path={[]} flat={byMentor} />
             </div>
           ))}
         </div>

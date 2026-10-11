@@ -10994,6 +10994,11 @@ button.adm-row:hover {
 }
 
 /* Mentoring: one tree per mentor, mentees nested under a line */
+.range-toggle.segmented.adm-view {
+  max-width: 340px;
+  margin-bottom: 12px;
+}
+
 .adm-toolbar .adm-search-wide {
   flex: 1;
 }
