@@ -3095,11 +3095,49 @@ a.perf-row:hover .perf-name {
 
 /* ---------- Academic dashboard ---------- */
 /* The week picker as one bar */
+/* One line on every screen: back, the week, forward, then Export set apart by a rule */
 .week-bar.aj-week-bar {
+  flex-wrap: nowrap;
+  gap: 6px;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
+}
+
+.aj-week-bar .export-menu {
+  order: 0;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.aj-week-bar .export-menu .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.aj-week-bar .week-bar-label {
+  flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  /* Just the icon on a phone, as a round button like the arrows */
+  .aj-week-bar .export-text {
+    display: none;
+  }
+  .aj-week-bar .export-menu .btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
 }
 
 .card.week-summary {

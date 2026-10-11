@@ -331,11 +331,12 @@ export default function AcademicJournal({ focus = null }) {
           <button
             type="button"
             className="btn btn-ghost btn-sm"
+            aria-label="Export this week's report"
             onClick={() => setExportOpen((v) => !v)}
             disabled={downloading}
             aria-expanded={exportOpen}
           >
-            <Download size={13} /> {downloading ? 'Preparing…' : 'Export'}
+            <Download size={14} /> <span className="export-text">{downloading ? 'Preparing…' : 'Export'}</span>
           </button>
           {exportOpen && (
             <div className="export-pop" role="menu">
