@@ -3,8 +3,9 @@ import { X } from 'lucide-react';
 
 // Bottom sheet on mobile, centered dialog on wider screens.
 // With `header`, the title row and that header stay put and only the content
-// below scrolls (for long reading sheets).
-export default function Sheet({ open, onClose, title, header, children }) {
+// below scrolls (for long reading sheets). `stickyHead` keeps just the title
+// row in view while a long form scrolls under it.
+export default function Sheet({ open, onClose, title, header, stickyHead = false, children }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -17,7 +18,7 @@ export default function Sheet({ open, onClose, title, header, children }) {
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div
-        className={`sheet${header ? ' sheet-fixed-head' : ''}`}
+        className={`sheet${header ? ' sheet-fixed-head' : ''}${stickyHead ? ' sheet-sticky-head' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}

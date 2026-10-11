@@ -4191,6 +4191,28 @@ a.perf-row:hover .perf-name {
   font-size: 12.5px;
 }
 
+.edit-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.edit-card-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.edit-card-actions .edit-remove {
+  align-self: center;
+}
+
 .edit-remove {
   display: inline-flex;
   align-items: center;
@@ -5237,6 +5259,33 @@ a.perf-row:hover .perf-name {
 }
 
 /* Sheet whose title row and header stay put while the content scrolls */
+/* A long form: the title row stays in view while the rest scrolls under it.
+   The sheet's top padding moves into the title row (and the drag handle), so
+   the row can sit flush with the top edge and nothing shows above it. */
+.sheet.sheet-sticky-head {
+  padding-top: 0;
+}
+
+.sheet.sheet-sticky-head .sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 -20px 14px;
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+@media (max-width: 720px) {
+  .sheet.sheet-sticky-head .more-handle {
+    margin-top: 10px;
+  }
+  .sheet.sheet-sticky-head .sheet-head {
+    margin: 0 -18px 14px;
+    padding: 10px 18px 10px;
+  }
+}
+
 .sheet.sheet-fixed-head {
   display: flex;
   flex-direction: column;

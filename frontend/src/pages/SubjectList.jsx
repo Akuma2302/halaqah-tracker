@@ -230,13 +230,16 @@ export default function SubjectList() {
       endTime: c.endTime,
       venue: (c.venue || '').trim()
     });
-    await Promise.all([
+    const results = await Promise.all([
       ...removed.map((e) => client.delete(`/timetable/${e._id}`)),
       ...form.classes.map((c) => (c._id ? client.put(`/timetable/${c._id}`, body(c)) : client.post('/timetable', body(c))))
     ]);
+    // The saved id of each class time, in the form's order (new ones get theirs here).
+    return results.slice(removed.length).map((res) => res.data?._id);
   }
 
-  async function save(addAnother) {
+  // `keepOpen` saves from inside a card: the sheet stays up and the cards close.
+  async function save(addAnother, keepOpen = false) {
     if (!form.name.trim()) return setError('Enter the subject name.');
     const missingWeight = form.assessments.findIndex((a) => a.percentage === '');
     if (missingWeight !== -1) {
@@ -276,7 +279,9 @@ export default function SubjectList() {
       // The subject is saved by now; a failure below only concerns its class times.
       if (subjectId && (form.classes.length || classesOf(subjectId).length)) {
         try {
-          await saveClasses(subjectId);
+          const ids = await saveClasses(subjectId);
+          // Staying in the editor: new class times now have ids, so saving again updates them.
+          if (keepOpen) setForm((f) => ({ ...f, classes: f.classes.map((c, i) => ({ ...c, _id: c._id || ids[i] })) }));
         } catch {
           loadTimetable();
           setEditingId(subjectId);
@@ -285,8 +290,11 @@ export default function SubjectList() {
         }
         loadTimetable();
       }
-      showToast(editingId ? 'Subject updated' : 'Subject added');
-      if (addAnother) {
+      showToast(keepOpen ? 'Saved' : editingId ? 'Subject updated' : 'Subject added');
+      if (keepOpen) {
+        setEditingId(subjectId);
+        setOpenKeys(new Set());
+      } else if (addAnother) {
         setForm(emptyForm);
         setEditingId(null);
       } else {
@@ -497,7 +505,7 @@ export default function SubjectList() {
         </div>
       )}
 
-      <Sheet open={sheetOpen} onClose={closeSheet} title={editingId ? 'Edit subject' : 'New subject'}>
+      <Sheet open={sheetOpen} onClose={closeSheet} title={editingId ? 'Edit subject' : 'New subject'} stickyHead>
         <div className="entry-form">
           <div className="field">
             <label>Subject name</label>
@@ -612,9 +620,14 @@ export default function SubjectList() {
                         <span>Venue</span>
                         <input className="input" value={c.venue} onChange={(e) => updateClass(i, { venue: e.target.value })} placeholder="e.g. Dewan Kuliah 3" maxLength={80} />
                       </label>
-                      <button type="button" className="edit-remove" onClick={() => removeClass(i)}>
-                        <Trash2 size={13} /> Remove this class time
-                      </button>
+                      <div className="edit-card-actions">
+                        <button type="button" className="edit-remove" onClick={() => removeClass(i)}>
+                          <Trash2 size={13} /> Remove
+                        </button>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => save(false, true)} disabled={saving}>
+                          <Check size={13} /> {saving ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -834,9 +847,14 @@ export default function SubjectList() {
                           maxLength={300}
                         />
                       </label>
-                      <button type="button" className="edit-remove" onClick={() => removeAssessment(i)}>
-                        <Trash2 size={13} /> Remove this assessment
-                      </button>
+                      <div className="edit-card-actions">
+                        <button type="button" className="edit-remove" onClick={() => removeAssessment(i)}>
+                          <Trash2 size={13} /> Remove
+                        </button>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => save(false, true)} disabled={saving}>
+                          <Check size={13} /> {saving ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
