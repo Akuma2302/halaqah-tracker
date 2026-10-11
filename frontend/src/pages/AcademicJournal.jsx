@@ -65,9 +65,11 @@ const emptyQuestionForm = { subjectId: '', questionCount: '', isValidated: false
 const emptyConsultForm = { subjectId: '', lecturerName: '', detail: '', date: '', venue: '', photoUrl: '' };
 
 // `focus` shows one log on a page of its own (opened from the dashboard):
-// 'question' for practice questions, 'consult' for lecturer consultations.
+// 'study' for study hours, 'question' for practice questions, 'consult' for
+// lecturer consultations.
 // The week chosen on the main page carries over.
 const FOCUS = {
+  study: { title: 'Study hours', subtitle: 'Notes, questions, projects and study groups you worked on' },
   question: { title: 'Practice questions', subtitle: 'Past year, tutorial and exercise questions you did' },
   consult: { title: 'Lecturer consultations', subtitle: 'Questions asked and discussions with your lecturers' }
 };
@@ -388,12 +390,13 @@ export default function AcademicJournal({ focus = null }) {
                 </div>
 
                 <div className="week-stats">
-                  <div className="week-stat">
+                  <Link to="/academic-journal/study" className="week-stat week-stat-link" aria-label={`Study sessions: ${studySessions.length}. Open to add or change.`}>
                     <span className="week-stat-value">{studySessions.length}</span>
                     <span className="week-stat-label">
                       <Clock size={12} /> Sessions
                     </span>
-                  </div>
+                    <ChevronRight size={12} className="week-stat-go" />
+                  </Link>
                   <Link to="/academic-journal/questions" className="week-stat week-stat-link" aria-label={`Practice questions: ${totalQuestions}. Open to add or change.`}>
                     <span className="week-stat-value">{totalQuestions}</span>
                     <span className="week-stat-label">
@@ -417,7 +420,10 @@ export default function AcademicJournal({ focus = null }) {
                 {/* ---------- the semester in numbers, in the same card ---------- */}
                 <SemesterOverview subjects={subjects} timetable={timetable} embedded />
               </div>
-
+            </>
+          )}
+          {focus === 'study' && (
+            <>
               {/* ---------- study hours ---------- */}
               <LogSection
                 icon={Clock}

@@ -52,6 +52,7 @@ export default function App() {
           <Route path="/study-groups" element={<StudyGroups />} />
           <Route path="/study-groups/:id" element={<StudyGroupRoom />} />
           <Route path="/academic-journal" element={<AcademicJournal />} />
+          <Route path="/academic-journal/study" element={<AcademicJournal focus="study" />} />
           <Route path="/academic-journal/questions" element={<AcademicJournal focus="question" />} />
           <Route path="/academic-journal/consultations" element={<AcademicJournal focus="consult" />} />
           <Route path="/subject-list" element={<SubjectList />} />
