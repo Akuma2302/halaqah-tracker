@@ -7563,6 +7563,61 @@ input.input::-webkit-date-and-time-value {
   gap: 10px;
 }
 
+/* Other users on a task: an ID box, then who has been added */
+.field-hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.tt-person-row {
+  display: flex;
+  gap: 8px;
+}
+
+.tt-person-row .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.tt-person-row .btn {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.tt-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.tt-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.tt-person button {
+  display: flex;
+  padding: 3px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.class-meta.class-people {
+  color: var(--primary-dark);
+}
+
 .timetable-clash {
   margin: 0 0 4px;
   padding: 8px 10px;

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Clock, MapPin, Plus, Trash2 } from 'lucide-react';
+import { CalendarDays, Clock, MapPin, Plus, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
-import { DAYS, KINDS, KIND_LABEL, SHORT_DAYS, clock, hueFor, minutes } from '../features/timetable/timetable';
+import { useAuth } from '../hooks/useAuth';
+import { CLASS_KINDS, DAYS, KIND_LABEL, SHORT_DAYS, TASK_KINDS, clock, hueFor, minutes } from '../features/timetable/timetable';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
 import { addDays, toDateKey } from '../features/academic/weekUtils';
 
@@ -14,11 +15,19 @@ function duration(mins) {
 }
 
 function nameOf(entry) {
-  return entry.title || entry.subject?.name || 'Class';
+  return entry.title || entry.subject?.name || KIND_LABEL[entry.kind] || 'Task';
+}
+
+// "d4f8", "8" or "D4F-0008" -> "D4F-0008"; null when it isn't a User ID.
+function tidyMemberId(input) {
+  const digits = String(input || '')
+    .trim()
+    .replace(/^d4f[-\s]*/i, '');
+  return /^\d{1,9}$/.test(digits) ? `D4F-${digits.padStart(4, '0')}` : null;
 }
 
 function emptyForm(day) {
-  return { subjectId: '', title: '', kind: 'lecture', days: [day], startTime: '09:00', endTime: '10:00', venue: '' };
+  return { subjectId: '', title: '', kind: 'study', days: [day], startTime: '09:00', endTime: '10:00', venue: '', people: [] };
 }
 
 // Weekly class timetable: a day at a time or the whole week, with what's on
@@ -35,7 +44,11 @@ export default function Timetable() {
   const [form, setForm] = useState(emptyForm(1));
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [idInput, setIdInput] = useState('');
+  // Someone else's task I was added to, open to look at (it can't be edited).
+  const [viewing, setViewing] = useState(null);
   const [toast, showToast] = useToast();
+  const { user } = useAuth();
 
   function load() {
     setError(false);
@@ -113,11 +126,15 @@ export default function Timetable() {
   function openNew(forDay = day) {
     setForm(emptyForm(forDay));
     setFormError('');
+    setIdInput('');
     setEditing('new');
   }
 
   function openEdit(entry) {
+    if (entry.shared) return setViewing(entry);
+    setIdInput('');
     setForm({
+      people: (entry.participants || []).map((p) => ({ memberId: p.memberId, name: p.name })),
       subjectId: entry.subject?._id || '',
       title: entry.title || '',
       kind: entry.kind || 'lecture',
@@ -142,8 +159,31 @@ export default function Timetable() {
     );
   }, [editing, form, entries]);
 
+  // Add the User ID in the box to the people on this task.
+  function addPerson() {
+    const memberId = tidyMemberId(idInput);
+    if (!memberId) return setFormError('Enter a User ID such as D4F-0008.');
+    setFormError('');
+    setIdInput('');
+    setForm((f) => (f.people.some((p) => p.memberId === memberId) ? f : { ...f, people: [...f.people, { memberId }] }));
+  }
+
+  async function leave() {
+    const left = viewing;
+    setViewing(null);
+    setEntries((list) => list.filter((e) => e._id !== left._id));
+    try {
+      await client.delete(`/timetable/${left._id}`);
+      showToast('Removed from your timetable');
+    } catch {
+      showToast("Couldn't remove it.");
+      load();
+    }
+  }
+
   async function save() {
-    if (!form.subjectId && !form.title.trim()) return setFormError('Choose a subject or give the class a name.');
+    if (!form.subjectId && !form.title.trim()) return setFormError('Choose a subject or give it a name.');
+    if (idInput.trim()) return setFormError('Tap Add to include that User ID, or clear the box.');
     if (!form.days.length) return setFormError('Choose at least one day.');
     if (!form.startTime || !form.endTime) return setFormError('Set the start and end time.');
     if (form.endTime <= form.startTime) return setFormError('The end time must be after the start time.');
@@ -157,7 +197,8 @@ export default function Timetable() {
       dayOfWeek,
       startTime: form.startTime,
       endTime: form.endTime,
-      venue: form.venue.trim()
+      venue: form.venue.trim(),
+      memberIds: form.people.map((p) => p.memberId)
     });
     try {
       if (editing === 'new') {
@@ -167,12 +208,12 @@ export default function Timetable() {
         setEntries((list) => [...(list || []), ...created]);
         // Stay on the day being viewed if the class was added there too.
         if (!created.some((c) => c.dayOfWeek === day)) setDay(created[0].dayOfWeek);
-        showToast(created.length > 1 ? `${created.length} classes added` : 'Class added');
+        showToast(created.length > 1 ? `Added on ${created.length} days` : 'Added to your timetable');
       } else {
         const res = await client.put(`/timetable/${editing._id}`, body(form.days[0]));
         setEntries((list) => list.map((e) => (e._id === res.data._id ? res.data : e)));
         setDay(res.data.dayOfWeek);
-        showToast('Class updated');
+        showToast('Updated');
       }
       setEditing(null);
     } catch (err) {
@@ -190,9 +231,9 @@ export default function Timetable() {
     setEntries((list) => list.filter((e) => e._id !== removed._id));
     try {
       await client.delete(`/timetable/${removed._id}`);
-      showToast('Class removed');
+      showToast('Removed');
     } catch {
-      showToast("Couldn't remove the class.");
+      showToast("Couldn't remove it.");
       load();
     }
   }
@@ -241,6 +282,17 @@ export default function Timetable() {
               {entry.subject?.lecturerName}
             </span>
           )}
+          {entry.shared ? (
+            <span className="class-meta class-people">
+              <Users size={11} /> Added by {entry.owner?.name || 'someone'}
+            </span>
+          ) : (
+            entry.participants?.length > 0 && (
+              <span className="class-meta class-people">
+                <Users size={11} /> With {entry.participants.map((p) => p.name.split(' ')[0]).join(', ')}
+              </span>
+            )
+          )}
         </span>
       </button>
     );
@@ -271,6 +323,9 @@ export default function Timetable() {
   }
 
   const total = entries?.length || 0;
+  const isClassKind = CLASS_KINDS.some(([value]) => value === form.kind);
+  // Who else is on a task someone added me to (not me).
+  const others = (viewing?.participants || []).filter((x) => x._id !== user?._id);
 
   return (
     <div className="page timetable">
@@ -282,7 +337,7 @@ export default function Timetable() {
           </p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => openNew()}>
-          <Plus size={14} /> Add class
+          <Plus size={14} /> Add task
         </button>
       </div>
 
@@ -301,7 +356,7 @@ export default function Timetable() {
           <h3>No classes yet</h3>
           <p>Add your lectures, tutorials and halaqah so you can see your week at a glance.</p>
           <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => openNew()}>
-            <Plus size={14} /> Add your first class
+            <Plus size={14} /> Add your first task
           </button>
         </div>
       ) : (
@@ -376,7 +431,7 @@ export default function Timetable() {
                 <div className="card class-empty">
                   <p>No classes on {DAYS[day]}.</p>
                   <button className="btn btn-ghost btn-sm" onClick={() => openNew(day)}>
-                    <Plus size={13} /> Add a class
+                    <Plus size={13} /> Add a task
                   </button>
                 </div>
               ) : (
@@ -432,7 +487,7 @@ export default function Timetable() {
       )}
 
       {/* ---------- add / edit a class ---------- */}
-      <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add class' : 'Edit class'}>
+      <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add task' : isClassKind ? 'Edit class' : 'Edit task'}>
         <div className="entry-form">
           {subjects.length > 0 && (
             <div className="field">
@@ -453,25 +508,31 @@ export default function Timetable() {
             </div>
           )}
           <div className="field">
-            <label htmlFor="tt-title">{form.subjectId ? 'Name (optional)' : 'Class name'}</label>
+            <label htmlFor="tt-title">{form.subjectId ? 'Title (optional)' : 'Title'}</label>
             <input
               id="tt-title"
               className="input"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              placeholder={form.subjectId ? 'e.g. Lab group B' : 'e.g. Halaqah mingguan'}
+              placeholder={form.subjectId ? 'e.g. Revise chapter 3' : 'e.g. Study group, Halaqah mingguan'}
               maxLength={80}
             />
           </div>
           <div className="field">
             <label>Type</label>
             <div className="chip-row">
-              {KINDS.map(([value, label]) => (
+              {/* Classes are set on the subject; one made earlier keeps its own kind here. */}
+              {[...CLASS_KINDS.filter(([value]) => value === form.kind), ...TASK_KINDS].map(([value, label]) => (
                 <button key={value} type="button" className={`chip${form.kind === value ? ' on' : ''}`} onClick={() => setForm((f) => ({ ...f, kind: value }))}>
                   {label}
                 </button>
               ))}
             </div>
+            {editing === 'new' && (
+              <p className="field-hint">
+                Lectures, tutorials and labs are added as class times in <strong>Subjects</strong>.
+              </p>
+            )}
           </div>
           <div className="field">
             <label>{editing === 'new' ? 'Days (pick one or more)' : 'Day'}</label>
@@ -505,6 +566,49 @@ export default function Timetable() {
             />
           </div>
 
+          <div className="field">
+            <label htmlFor="tt-person">
+              <UserPlus size={12} /> With other users (optional)
+            </label>
+            <div className="tt-person-row">
+              <input
+                id="tt-person"
+                className="input"
+                value={idInput}
+                onChange={(e) => setIdInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addPerson();
+                  }
+                }}
+                placeholder="Their User ID, e.g. D4F-0008"
+                autoCapitalize="characters"
+                autoCorrect="off"
+              />
+              <button type="button" className="btn btn-ghost" onClick={addPerson} disabled={!idInput.trim()}>
+                Add
+              </button>
+            </div>
+            {form.people.length > 0 && (
+              <div className="tt-people">
+                {form.people.map((p) => (
+                  <span className="tt-person" key={p.memberId}>
+                    {p.name ? `${p.name} · ${p.memberId}` : p.memberId}
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, people: f.people.filter((x) => x.memberId !== p.memberId) }))}
+                      aria-label={`Remove ${p.name || p.memberId}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="field-hint">It appears in their timetable too, and they get a notification. They can take themselves off.</p>
+          </div>
+
           {clashes.length > 0 && (
             <p className="timetable-clash">
               Overlaps with {clashes.map((c) => `${nameOf(c)} (${SHORT_DAYS[c.dayOfWeek]} ${clock(c.startTime)})`).join(', ')}. You can still save it.
@@ -520,9 +624,53 @@ export default function Timetable() {
             </button>
           )}
           <button className="btn btn-primary" onClick={save} disabled={saving}>
-            {saving ? 'Saving…' : editing === 'new' ? 'Add class' : 'Save'}
+            {saving ? 'Saving…' : editing === 'new' ? 'Add task' : 'Save'}
           </button>
         </div>
+      </Sheet>
+
+      <Sheet open={!!viewing} onClose={() => setViewing(null)} title={viewing ? nameOf(viewing) : ''}>
+        {viewing && (
+          <div className="as-detail">
+            <div className="as-facts">
+              <div className="as-fact">
+                <CalendarDays size={15} />
+                <span>When</span>
+                <strong>
+                  {DAYS[viewing.dayOfWeek]}s, {clock(viewing.startTime)} to {clock(viewing.endTime)}
+                </strong>
+              </div>
+              <div className="as-fact">
+                <Clock size={15} />
+                <span>Kind</span>
+                <strong>{KIND_LABEL[viewing.kind] || viewing.kind}</strong>
+              </div>
+              {viewing.venue && (
+                <div className="as-fact">
+                  <MapPin size={15} />
+                  <span>Venue</span>
+                  <strong>{viewing.venue}</strong>
+                </div>
+              )}
+              <div className="as-fact">
+                <Users size={15} />
+                <span>Added by</span>
+                <strong>{[viewing.owner?.name, viewing.owner?.memberId].filter(Boolean).join(' · ') || 'Someone'}</strong>
+              </div>
+            </div>
+            {others.length > 0 && (
+              <div className="as-block">
+                <div className="as-block-title">
+                  <Users size={14} /> Also on it
+                </div>
+                <p>{others.map((x) => x.name).join(', ')}</p>
+              </div>
+            )}
+            <button className="btn btn-ghost danger-text as-edit" onClick={leave}>
+              <Trash2 size={14} /> Remove from my timetable
+            </button>
+          </div>
+        )}
       </Sheet>
 
       {toast}

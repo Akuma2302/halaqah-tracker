@@ -6,7 +6,7 @@ import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { ASSESSMENT_TYPES } from '../features/academic/constants';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
-import { KINDS, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
+import { CLASS_KINDS, KINDS, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
 
 const TYPE_LABEL = ASSESSMENT_LABEL;
 const CREDIT_PRESETS = [2, 3, 4];
@@ -526,7 +526,8 @@ export default function SubjectList() {
                 </div>
                 <div className="assess-row">
                   <select className="input class-slot-kind" value={c.kind} onChange={(e) => updateClass(i, { kind: e.target.value })} aria-label="Type">
-                    {KINDS.map(([value, label]) => (
+                    {/* Class kinds only; a slot saved earlier as something else keeps its own. */}
+                    {[...CLASS_KINDS, ...KINDS.filter(([value]) => value === c.kind && !CLASS_KINDS.some(([k]) => k === value))].map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>

@@ -13,6 +13,52 @@ async function findByUser(userId) {
   return data;
 }
 
+async function findById(id) {
+  const { data, error } = await supabase.from('timetable_entries').select(WITH_SUBJECT).eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// Entries other people own that this user has been added to.
+async function findSharedWith(userId) {
+  const { data: links, error: linkError } = await supabase.from('timetable_participants').select('entry_id').eq('user_id', userId);
+  if (linkError) throw linkError;
+  if (!links.length) return [];
+  const { data, error } = await supabase
+    .from('timetable_entries')
+    .select(WITH_SUBJECT)
+    .in(
+      'id',
+      links.map((l) => l.entry_id)
+    )
+    .order('day_of_week', { ascending: true })
+    .order('start_time', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+// { entry_id, user_id } rows for the given entries.
+async function findParticipants(entryIds) {
+  if (!entryIds.length) return [];
+  const { data, error } = await supabase.from('timetable_participants').select('entry_id, user_id').in('entry_id', entryIds);
+  if (error) throw error;
+  return data;
+}
+
+// Make the entry's participants exactly `userIds`.
+async function setParticipants(entryId, userIds) {
+  const { error: clearError } = await supabase.from('timetable_participants').delete().eq('entry_id', entryId);
+  if (clearError) throw clearError;
+  if (!userIds.length) return;
+  const { error } = await supabase.from('timetable_participants').insert(userIds.map((user_id) => ({ entry_id: entryId, user_id })));
+  if (error) throw error;
+}
+
+async function removeParticipant(entryId, userId) {
+  const { error } = await supabase.from('timetable_participants').delete().eq('entry_id', entryId).eq('user_id', userId);
+  if (error) throw error;
+}
+
 function toRow({ subjectId, title, dayOfWeek, startTime, endTime, venue, kind }) {
   return {
     subject_id: subjectId || null,
@@ -68,4 +114,15 @@ function serialize(row) {
   };
 }
 
-module.exports = { findByUser, create, update, remove, serialize };
+module.exports = {
+  findByUser,
+  findById,
+  findSharedWith,
+  findParticipants,
+  setParticipants,
+  removeParticipant,
+  create,
+  update,
+  remove,
+  serialize
+};

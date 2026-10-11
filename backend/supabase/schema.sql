@@ -457,3 +457,14 @@ create table if not exists timetable_entries (
 );
 create index if not exists idx_timetable_entries_user on timetable_entries(user_id);
 alter table timetable_entries enable row level security;
+
+-- Other users the owner has added to a timetable entry (a study hour, a
+-- meeting...). It then shows in their timetable too; they can take themselves off.
+create table if not exists timetable_participants (
+  entry_id uuid not null references timetable_entries(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (entry_id, user_id)
+);
+create index if not exists idx_timetable_participants_user on timetable_participants(user_id);
+alter table timetable_participants enable row level security;

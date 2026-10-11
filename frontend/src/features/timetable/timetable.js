@@ -2,15 +2,22 @@
 export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 export const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Class types, as [value, label]. Matches KINDS in backend/src/routes/timetable.js.
-export const KINDS = [
+// Kinds of timetable entry, as [value, label]. Matches KINDS in
+// backend/src/routes/timetable.js. Class kinds are set on a subject's class
+// times; task kinds are what you add in the Timetable itself.
+export const CLASS_KINDS = [
   ['class', 'Class'],
   ['lecture', 'Lecture'],
   ['tutorial', 'Tutorial'],
-  ['lab', 'Lab'],
+  ['lab', 'Lab']
+];
+export const TASK_KINDS = [
+  ['study', 'Study hour'],
+  ['meeting', 'Meeting'],
   ['halaqah', 'Halaqah'],
   ['other', 'Other']
 ];
+export const KINDS = [...CLASS_KINDS, ...TASK_KINDS];
 export const KIND_LABEL = Object.fromEntries(KINDS);
 
 // "14:30" -> 870
