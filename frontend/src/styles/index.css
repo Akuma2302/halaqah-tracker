@@ -3093,6 +3093,168 @@ a.perf-row:hover .perf-name {
   background: var(--paper);
 }
 
+/* ---------- Academic dashboard ---------- */
+/* The week picker as one bar */
+.week-bar.aj-week-bar {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.card.week-summary {
+  gap: 14px;
+}
+
+/* Study hours for the week: a ring, the figure, and what's left */
+.aj-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.perf-hero-ring.aj-ring {
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
+}
+
+.perf-hero-ring.aj-ring span {
+  font-size: 19px;
+}
+
+.aj-hero-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.aj-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--primary-dark);
+}
+
+.aj-hero .week-summary-hours strong {
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.aj-sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.aj-sub.done {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.day-bars.aj-day-bars {
+  margin-top: 0;
+}
+
+.aj-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.aj-section-title span {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+/* The week's four logs, each a tile that opens its page */
+.aj-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.aj-action {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.aj-action:hover {
+  border-color: var(--primary);
+}
+
+.aj-action:active {
+  transform: scale(0.985);
+}
+
+.aj-action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+.aj-action.ok {
+  border-color: transparent;
+  background: var(--primary-tint);
+}
+
+.aj-action.ok .aj-action-icon {
+  background: var(--primary);
+  color: #fff;
+}
+
+.aj-action-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.aj-action-text strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.aj-action-text > span {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.aj-action-text small {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.aj-action-go {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  color: var(--ink-soft);
+}
+
 /* A figure that opens its own page */
 .week-stat.week-stat-link {
   position: relative;

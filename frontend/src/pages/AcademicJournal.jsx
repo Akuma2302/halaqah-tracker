@@ -298,7 +298,7 @@ export default function AcademicJournal({ focus = null }) {
       </div>
 
       {/* ---------- week bar ---------- */}
-      <div className="week-bar">
+      <div className={`week-bar${focus ? '' : ' aj-week-bar'}`}>
         <button
           type="button"
           className="icon-btn"
@@ -365,61 +365,83 @@ export default function AcademicJournal({ focus = null }) {
             <>
               {/* ---------- weekly summary ---------- */}
               <div className={`card week-summary${weekLoading ? ' loading' : ''}`}>
-                <div className="week-summary-head">
-                  <div>
+                {/* ---------- the week: hours against the target ---------- */}
+                <div className="aj-hero">
+                  <div className={`perf-hero-ring aj-ring tone-${percent >= 80 ? 'good' : percent >= 40 ? 'mid' : 'low'}`} style={{ '--p': percent }}>
+                    <span>{percent}%</span>
+                  </div>
+                  <div className="aj-hero-text">
+                    <div className="aj-label">Study hours {isCurrentWeek ? 'this week' : 'that week'}</div>
                     <div className="week-summary-hours">
                       <strong>{formatHours(totalHours)}</strong> / {WEEKLY_TARGET_HOURS}h
                     </div>
-                    <div className="setup-text">study hours {isCurrentWeek ? 'this week' : 'that week'}</div>
+                    <div className={`aj-sub${percent >= 100 ? ' done' : ''}`}>
+                      {percent >= 100 ? 'Target reached' : `${formatHours(WEEKLY_TARGET_HOURS - totalHours)} to reach the target`}
+                    </div>
                   </div>
-                  <span className={`week-summary-pct${percent >= 100 ? ' done' : ''}`}>{percent}%</span>
                 </div>
-                <span className="hours-bar">
-                  <span className="hours-bar-fill" style={{ width: `${percent}%` }} />
-                </span>
 
-                <div className="day-bars" aria-label="Hours per day">
+                <div className="day-bars md-day-bars aj-day-bars" aria-label="Hours per day">
                   {hoursByDay.map((h, i) => (
-                    <div key={SHORT_DAYS[i]} className={`day-bar${i === todayIndex ? ' today' : ''}`} title={`${SHORT_DAYS[i]}: ${formatHours(h)}`}>
+                    <div key={SHORT_DAYS[i]} className={`day-bar${i === todayIndex ? ' today' : ''}${h ? ' has' : ''}`} title={`${SHORT_DAYS[i]}: ${formatHours(h)}`}>
                       <span className="day-bar-value">{h ? formatHours(h) : ''}</span>
                       <span className="day-bar-track">
                         <span className="day-bar-fill" style={{ height: `${(h / maxDayHours) * 100}%` }} />
                       </span>
-                      <span className="day-bar-label">{SHORT_DAYS[i][0]}</span>
+                      <span className="day-bar-label">{SHORT_DAYS[i]}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="week-stats">
-                  <Link to="/academic-journal/study" className="week-stat week-stat-link" aria-label={`Study sessions: ${studySessions.length}. Open to add or change.`}>
-                    <span className="week-stat-value">{studySessions.length}</span>
-                    <span className="week-stat-label">
-                      <Clock size={12} /> Sessions
+                {/* ---------- the week's four logs: each opens its own page ---------- */}
+                <div className="aj-section-title">
+                  {isCurrentWeek ? "This week's log" : "That week's log"}
+                  <span>Tap one to add or change</span>
+                </div>
+                <div className="aj-actions">
+                  <Link to="/academic-journal/study" className="aj-action">
+                    <span className="aj-action-icon">
+                      <Clock size={16} />
                     </span>
-                    <ChevronRight size={12} className="week-stat-go" />
-                  </Link>
-                  <Link to="/academic-journal/questions" className="week-stat week-stat-link" aria-label={`Practice questions: ${totalQuestions}. Open to add or change.`}>
-                    <span className="week-stat-value">{totalQuestions}</span>
-                    <span className="week-stat-label">
-                      <PenLine size={12} /> Questions
+                    <span className="aj-action-text">
+                      <strong>{studySessions.length}</strong>
+                      <span>Study session{studySessions.length === 1 ? '' : 's'}</span>
+                      <small>{studySessions.length ? `${formatHours(totalHours)} logged` : 'None logged yet'}</small>
                     </span>
-                    <ChevronRight size={12} className="week-stat-go" />
+                    <ChevronRight size={15} className="aj-action-go" />
                   </Link>
-                  <Link to="/academic-journal/consultations" className="week-stat week-stat-link" aria-label={`Lecturer consultations: ${consultations.length}. Open to add or change.`}>
-                    <span className="week-stat-value">{consultations.length}</span>
-                    <span className="week-stat-label">
-                      <UsersIcon size={12} /> Consults
+                  <Link to="/academic-journal/questions" className="aj-action">
+                    <span className="aj-action-icon">
+                      <PenLine size={16} />
                     </span>
-                    <ChevronRight size={12} className="week-stat-go" />
+                    <span className="aj-action-text">
+                      <strong>{totalQuestions}</strong>
+                      <span>Practice question{totalQuestions === 1 ? '' : 's'}</span>
+                      <small>{questionPractice.length ? `${questionPractice.length} set${questionPractice.length === 1 ? '' : 's'}` : 'None logged yet'}</small>
+                    </span>
+                    <ChevronRight size={15} className="aj-action-go" />
                   </Link>
-                  <Link
-                    to="/academic-journal/mentor"
-                    className={`week-stat week-stat-link${validated ? ' ok' : ''}`}
-                    aria-label={`${validated ? 'Validated by mentor' : 'Not validated by mentor yet'}. Open to change.`}
-                  >
-                    <span className="week-stat-value">{validated ? <CheckCircle2 size={18} /> : '–'}</span>
-                    <span className="week-stat-label">Mentor</span>
-                    <ChevronRight size={12} className="week-stat-go" />
+                  <Link to="/academic-journal/consultations" className="aj-action">
+                    <span className="aj-action-icon">
+                      <UsersIcon size={16} />
+                    </span>
+                    <span className="aj-action-text">
+                      <strong>{consultations.length}</strong>
+                      <span>Lecturer consultation{consultations.length === 1 ? '' : 's'}</span>
+                      <small>{consultations.length ? 'Met a lecturer' : 'None logged yet'}</small>
+                    </span>
+                    <ChevronRight size={15} className="aj-action-go" />
+                  </Link>
+                  <Link to="/academic-journal/mentor" className={`aj-action${validated ? ' ok' : ''}`}>
+                    <span className="aj-action-icon">
+                      <CheckCircle2 size={16} />
+                    </span>
+                    <span className="aj-action-text">
+                      <strong>{validated ? 'Yes' : 'Not yet'}</strong>
+                      <span>Mentor validation</span>
+                      <small>{validated ? 'Checked by your mentor' : 'Waiting for your mentor'}</small>
+                    </span>
+                    <ChevronRight size={15} className="aj-action-go" />
                   </Link>
                 </div>
 
