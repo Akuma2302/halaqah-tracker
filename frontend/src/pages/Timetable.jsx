@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Clock, MapPin, Plus, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
@@ -41,6 +41,9 @@ export default function Timetable() {
   const [now, setNow] = useState(() => new Date());
   const [day, setDay] = useState(() => new Date().getDay());
   const [view, setView] = useState('day');
+  // Month view: the month on show (its first day) and the date picked in it.
+  const [monthStart, setMonthStart] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [pickedDate, setPickedDate] = useState(() => toDateKey(new Date()));
 
   const [editing, setEditing] = useState(null); // null = closed, 'new', or the entry being edited
   const [form, setForm] = useState(emptyForm(1));
@@ -119,6 +122,58 @@ export default function Timetable() {
         .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)),
     [subjects, todayKey]
   );
+
+  // Everything with a date, for the month view: exams, due dates and tasks,
+  // whether or not they have a time. Finished ones are left out.
+  const datedByDate = useMemo(() => {
+    const map = {};
+    const add = (item) => (map[item.date] ||= []).push(item);
+    subjects
+      .filter((s) => s.isVisible !== false)
+      .forEach((s) =>
+        (s.assessments || []).forEach((a, i) => {
+          if (a.isDone) return;
+          const id = a._id || `${s._id}-${i}`;
+          if (a.dueDate) {
+            add({
+              id: `m-${id}`,
+              kind: isExam(a.type) ? 'exam' : 'due',
+              type: a.type,
+              date: a.dueDate,
+              time: a.dueTime || '',
+              topics: a.focusTopics || '',
+              progress: Number(a.progressPercentage) || 0,
+              subject: s
+            });
+          }
+          (a.tasks || []).forEach((t, j) => {
+            if (!t.isDone && t.dueDate) add({ id: `m-${id}-task-${j}`, kind: 'task', task: t.title, type: a.type, date: t.dueDate, time: t.dueTime || '', subject: s });
+          });
+        })
+      );
+    Object.values(map).forEach((list) => list.sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00')));
+    return map;
+  }, [subjects]);
+
+  // The weeks of the month on show, Sunday first; days outside it are null.
+  const monthCells = useMemo(() => {
+    const lead = monthStart.getDay();
+    const count = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+    const cells = Array(lead).fill(null);
+    for (let d = 1; d <= count; d += 1) cells.push(toDateKey(new Date(monthStart.getFullYear(), monthStart.getMonth(), d)));
+    while (cells.length % 7) cells.push(null);
+    return cells;
+  }, [monthStart]);
+
+  const shiftMonth = (n) => setMonthStart((m) => new Date(m.getFullYear(), m.getMonth() + n, 1));
+  const goToToday = () => {
+    setMonthStart(new Date(now.getFullYear(), now.getMonth(), 1));
+    setPickedDate(todayKey);
+  };
+  const pickedWeekday = (() => {
+    const [y, m, d] = pickedDate.split('-').map(Number);
+    return new Date(y, m - 1, d).getDay();
+  })();
 
   // The ones in the next 7 days, by weekday, so they sit with that day's classes.
   const examsByDay = useMemo(() => {
@@ -319,8 +374,9 @@ export default function Timetable() {
   function ExamCard({ exam }) {
     const due = dueLabel(exam.date);
     const label = ASSESSMENT_LABEL[exam.type] || exam.type;
+    const kind = exam.kind || (exam.task ? 'task' : 'exam');
     return (
-      <Link to={`/subject-list?edit=${exam.subject._id}`} className={`class-card static dated ${exam.task ? 'task' : 'exam'}`}>
+      <Link to={`/subject-list?edit=${exam.subject._id}`} className={`class-card static dated ${kind === 'exam' ? 'exam' : 'task'}`}>
         <span className="class-time">
           <strong>{exam.time ? clock(exam.time) : 'All day'}</strong>
           <span>{formatDueDate(exam.date)}</span>
@@ -328,12 +384,12 @@ export default function Timetable() {
         <span className="class-body">
           <span className="class-name">
             {exam.task || label}
-            <span className={`badge ${exam.task ? 'badge-primary' : 'badge-gold'}`}>{exam.task ? 'Task' : 'Exam'}</span>
+            <span className={`badge ${kind === 'exam' ? 'badge-gold' : 'badge-primary'}`}>{kind === 'exam' ? 'Exam' : kind === 'due' ? 'Due' : 'Task'}</span>
           </span>
           <span className="class-meta">{[exam.task ? `For ${label}` : '', exam.subject.name, exam.subject.code].filter(Boolean).join(' · ')}</span>
           <span className="class-meta">
             {due.text.replace(/^due /, '')}
-            {exam.task ? '' : ` · ${exam.progress}% revised`}
+            {kind === 'task' ? '' : ` · ${exam.progress}% ${kind === 'exam' ? 'revised' : 'done'}`}
           </span>
           {exam.topics && <span className="class-meta exam-topics">Focus: {exam.topics}</span>}
         </span>
@@ -426,6 +482,9 @@ export default function Timetable() {
             <button className={view === 'week' ? 'active' : ''} onClick={() => setView('week')}>
               Week
             </button>
+            <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>
+              Month
+            </button>
           </div>
 
           {view === 'day' ? (
@@ -464,7 +523,7 @@ export default function Timetable() {
                 </div>
               )}
             </>
-          ) : (
+          ) : view === 'week' ? (
             DAYS.map((label, d) =>
               byDay[d].length + examsByDay[d].length ? (
                 <section key={label} className="week-group">
@@ -486,10 +545,94 @@ export default function Timetable() {
                 </section>
               ) : null
             )
+          ) : (
+            <>
+              {/* ---------- a month at a time ---------- */}
+              <div className="card month-card">
+                <div className="month-head">
+                  <button type="button" className="icon-btn" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+                    <ChevronLeft size={16} />
+                  </button>
+                  <div className="month-title">
+                    <strong>{monthStart.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</strong>
+                    {(monthStart.getMonth() !== now.getMonth() || monthStart.getFullYear() !== now.getFullYear() || pickedDate !== todayKey) && (
+                      <button type="button" className="week-bar-today" onClick={goToToday}>
+                        Back to today
+                      </button>
+                    )}
+                  </div>
+                  <button type="button" className="icon-btn" onClick={() => shiftMonth(1)} aria-label="Next month">
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+                <div className="month-grid" role="grid" aria-label="Month">
+                  {SHORT_DAYS.map((label) => (
+                    <span key={label} className="month-weekday">
+                      {label[0]}
+                    </span>
+                  ))}
+                  {monthCells.map((dateKey, i) => {
+                    if (!dateKey) return <span key={`blank-${i}`} />;
+                    const dated = datedByDate[dateKey] || [];
+                    const classes = byDay[i % 7].length;
+                    return (
+                      <button
+                        key={dateKey}
+                        type="button"
+                        className={`month-day${dateKey === todayKey ? ' today' : ''}${dateKey === pickedDate ? ' picked' : ''}${dateKey < todayKey ? ' past' : ''}`}
+                        onClick={() => setPickedDate(dateKey)}
+                        aria-pressed={dateKey === pickedDate}
+                        aria-label={`${dateKey}: ${classes} classes, ${dated.length} dated`}
+                      >
+                        <span>{Number(dateKey.slice(8))}</span>
+                        <i>
+                          {classes > 0 && <b className="dot-class" />}
+                          {dated.some((x) => x.kind === 'exam') && <b className="dot-exam" />}
+                          {dated.some((x) => x.kind !== 'exam') && <b className="dot-task" />}
+                        </i>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="month-legend">
+                  <span>
+                    <b className="dot-class" /> Class or task
+                  </span>
+                  <span>
+                    <b className="dot-exam" /> Exam
+                  </span>
+                  <span>
+                    <b className="dot-task" /> Due date
+                  </span>
+                </div>
+              </div>
+
+              <h2 className={`week-group-title month-day-title${pickedDate === todayKey ? ' today' : ''}`}>
+                {(() => {
+                  const [y, m, d] = pickedDate.split('-').map(Number);
+                  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+                })()}
+                {pickedDate === todayKey && <span className="badge badge-primary">Today</span>}
+              </h2>
+              {(datedByDate[pickedDate] || []).length + byDay[pickedWeekday].length === 0 ? (
+                <div className="card class-empty">
+                  <p>Nothing on this day.</p>
+                </div>
+              ) : (
+                <div className="class-list">
+                  {(datedByDate[pickedDate] || []).map((x) => (
+                    <ExamCard key={x.id} exam={x} />
+                  ))}
+                  {byDay[pickedWeekday].map((e) => (
+                    <ClassCard key={e._id} entry={e} showState={pickedDate === todayKey} />
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* ---------- every exam still to come, from the subjects ---------- */}
-          {exams.length > 0 && (
+          {view !== 'month' && exams.length > 0 && (
             <section className="week-group exam-list">
               <h2 className="week-group-title">
                 Coming up

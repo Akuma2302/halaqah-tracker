@@ -8,7 +8,6 @@ import {
   CalendarClock,
   Check,
   ChevronRight,
-  Flame,
   MapPin,
   Network,
   NotebookText,
@@ -20,7 +19,7 @@ import MutabaahRing from '../components/MutabaahRing';
 import ProfileSheet from '../components/ProfileSheet';
 import { MUTABAAH_FIELDS, currentPeriodKey, togglePatch } from '../features/mutabaah/mutabaahFields';
 import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
-import { currentStreak, hijriDate } from '../features/mutabaah/streak';
+import { hijriDate } from '../features/mutabaah/streak';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { daysUntil, upcomingDeadlines } from '../features/academic/deadlines';
@@ -155,7 +154,6 @@ export default function Dashboard() {
     }
   }
 
-  const streak = currentStreak(history);
   const hijri = hijriDate();
   const showSetup = !user?.kampus && !setupDismissed;
   const hours = academicSummary?.hours ?? 0;
@@ -194,16 +192,6 @@ export default function Dashboard() {
               </>
             )}
           </p>
-        </div>
-        <div className={`streak-chip${streak > 0 ? ' active' : ''}`} title="Days in a row with at least one amal ticked">
-          <Flame size={16} />
-          {streak > 0 ? (
-            <span>
-              <strong>{streak >= 30 ? '30+' : streak}</strong> day{streak === 1 ? '' : 's'}
-            </span>
-          ) : (
-            <span>Start a streak</span>
-          )}
         </div>
       </div>
 
