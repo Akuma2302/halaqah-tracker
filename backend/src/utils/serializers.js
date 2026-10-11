@@ -151,6 +151,7 @@ function serializeSubject(row) {
       dueTime: a.due_time ? String(a.due_time).slice(0, 5) : null,
       focusTopics: a.focus_topics || '',
       note: a.note || '',
+      tasks: Array.isArray(a.tasks) ? a.tasks : [],
       progressPercentage: a.progress_percentage,
       isDone: a.is_done
     })),

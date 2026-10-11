@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, Check, Clock, NotebookPen, Pencil, Percent, Target } from 'lucide-react';
+import { CalendarDays, Check, Clock, ListChecks, NotebookPen, Pencil, Percent, Target } from 'lucide-react';
 import Sheet from '../../components/Sheet';
 import { DAYS, SHORT_DAYS, clock } from '../timetable/timetable';
 import { daysUntil, isExam } from './deadlines';
@@ -59,6 +59,7 @@ export function DeadlineTile({ deadline: d, onOpen }) {
             <span style={{ width: `${d.progress || 0}%` }} />
           </span>
           <span className="dl-progress-text">
+            {d.tasks?.length ? `${d.tasks.filter((t) => t.isDone).length}/${d.tasks.length} tasks · ` : ''}
             {d.progress || 0}% {exam ? 'revised' : 'done'}
           </span>
         </div>
@@ -120,6 +121,33 @@ export function AssessmentSheet({ deadline: d, onClose }) {
             <div className="md-progress as-progress">
               <span style={{ width: `${d.progress || 0}%` }} />
             </div>
+          </div>
+        )}
+
+        {d.tasks?.length > 0 && (
+          <div className="as-block">
+            <div className="as-block-title">
+              <ListChecks size={14} /> Tasks
+              <strong>
+                {d.tasks.filter((t) => t.isDone).length} of {d.tasks.length}
+              </strong>
+            </div>
+            <ul className="as-tasks">
+              {d.tasks.map((t, i) => {
+                const late = !t.isDone && t.dueDate && daysUntil(t.dueDate) < 0;
+                return (
+                  <li key={i} className={t.isDone ? 'done' : ''}>
+                    <span className="as-task-check">{t.isDone && <Check size={11} strokeWidth={3} />}</span>
+                    <span className="as-task-title">{t.title}</span>
+                    {t.dueDate && (
+                      <span className={`as-task-due${late ? ' late' : ''}`}>
+                        {parts(t.dueDate).d} {MONTHS[parts(t.dueDate).m - 1]}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
 

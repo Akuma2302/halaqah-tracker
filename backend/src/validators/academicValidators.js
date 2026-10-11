@@ -2,6 +2,16 @@ const { z } = require('zod');
 const { ASSESSMENT_TYPES } = require('../models/Subject');
 const { STUDY_CATEGORIES } = require('../models/StudySession');
 
+// One small step towards finishing an assessment.
+const assessmentTaskSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  dueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullish(),
+  isDone: z.boolean().optional()
+});
+
 const assessmentSchema = z.object({
   type: z.enum(ASSESSMENT_TYPES),
   percentage: z.number().min(0).max(100),
@@ -13,6 +23,7 @@ const assessmentSchema = z.object({
     .nullish(),
   focusTopics: z.string().trim().max(300).optional(),
   note: z.string().trim().max(300).optional(),
+  tasks: z.array(assessmentTaskSchema).max(30).optional(),
   progressPercentage: z.number().min(0).max(100).optional(),
   isDone: z.boolean().optional()
 });

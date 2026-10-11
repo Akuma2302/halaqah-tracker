@@ -4010,6 +4010,140 @@ a.perf-row:hover .perf-name {
   color: var(--ink-soft);
 }
 
+/* The small steps towards an assessment, in the editor */
+.assess-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.assess-task-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.assess-task.done .assess-task-check {
+  border-color: transparent;
+  background: var(--primary);
+}
+
+.assess-task .input {
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 9px;
+}
+
+.assess-task-title {
+  flex: 1 1 0;
+}
+
+.assess-task.done .assess-task-title {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+}
+
+.assess-task .assess-task-date {
+  flex: 0 0 132px;
+  height: 40px;
+}
+
+.assess-task .icon-btn {
+  flex-shrink: 0;
+}
+
+.chip.assess-task-add {
+  align-self: flex-start;
+  margin-top: 0;
+}
+
+.assess-progress.locked input[type='range'] {
+  opacity: 0.6;
+}
+
+@media (max-width: 480px) {
+  .assess-task {
+    flex-wrap: wrap;
+  }
+  /* title fills the first line with the tick and remove; the date sits under it */
+  .assess-task-title {
+    flex: 1 1 calc(100% - 80px);
+  }
+  .assess-task .icon-btn {
+    order: 1;
+  }
+  .assess-task .assess-task-date {
+    order: 2;
+    flex: 1 1 100%;
+    margin-left: 30px;
+  }
+}
+
+/* ...and read-only in an assessment's detail */
+.as-tasks {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.as-tasks li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.as-task-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  color: #fff;
+}
+
+.as-tasks li.done .as-task-check {
+  border-color: transparent;
+  background: var(--primary);
+}
+
+.as-task-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.as-tasks li.done .as-task-title {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+}
+
+.as-task-due {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.as-task-due.late {
+  color: var(--danger);
+}
+
 .textarea.assess-note {
   min-height: 0;
   resize: vertical;

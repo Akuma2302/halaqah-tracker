@@ -311,6 +311,8 @@ alter table subject_assessments add column if not exists due_time time;
 -- For exams, the topics to focus on while studying; and a short note for any assessment.
 alter table subject_assessments add column if not exists focus_topics text not null default '';
 alter table subject_assessments add column if not exists note text not null default '';
+-- The small steps towards finishing an assessment: [{ title, dueDate, isDone }].
+alter table subject_assessments add column if not exists tasks jsonb not null default '[]'::jsonb;
 
 -- One row per "7 / 3 / 1 days before" reminder actually sent (services/assessmentReminderService.js),
 -- so repeated job runs never send the same one twice. Assessment rows are

@@ -30,6 +30,11 @@ function nextDue(assessments) {
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
 }
 
+// An assessment's tasks that have been given a name.
+function tasksOf(assessment) {
+  return (assessment.tasks || []).filter((t) => t.title.trim());
+}
+
 function progressTone(value) {
   if (value >= 100) return 'done';
   if (value >= 60) return 'good';
@@ -116,6 +121,7 @@ export default function SubjectList() {
         dueTime: a.dueTime || '',
         focusTopics: a.focusTopics || '',
         note: a.note || '',
+        tasks: (a.tasks || []).map((t) => ({ title: t.title || '', dueDate: t.dueDate || '', isDone: !!t.isDone })),
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: !!a.isDone
       })),
@@ -141,13 +147,32 @@ export default function SubjectList() {
   function addAssessment(type) {
     setForm((f) => ({
       ...f,
-      assessments: [...f.assessments, { type, percentage: '', dueDate: '', dueTime: '', focusTopics: '', note: '', progressPercentage: 0, isDone: false }]
+      assessments: [...f.assessments, { type, percentage: '', dueDate: '', dueTime: '', focusTopics: '', note: '', tasks: [], progressPercentage: 0, isDone: false }]
     }));
   }
 
   function updateAssessment(i, patch) {
     setForm((f) => ({ ...f, assessments: f.assessments.map((a, idx) => (idx === i ? { ...a, ...patch } : a)) }));
   }
+
+  // The small steps towards an assessment. Once it has any, its progress
+  // follows them: the share that is ticked.
+  function setTasks(i, change) {
+    setForm((f) => ({
+      ...f,
+      assessments: f.assessments.map((a, idx) => {
+        if (idx !== i) return a;
+        const tasks = change(a.tasks || []);
+        const named = tasks.filter((t) => t.title.trim());
+        const progress = named.length ? Math.round((named.filter((t) => t.isDone).length / named.length) * 100) : a.progressPercentage;
+        return { ...a, tasks, progressPercentage: a.isDone ? a.progressPercentage : progress };
+      })
+    }));
+  }
+
+  const addTask = (i) => setTasks(i, (tasks) => [...tasks, { title: '', dueDate: '', isDone: false }]);
+  const updateTask = (i, j, patch) => setTasks(i, (tasks) => tasks.map((t, idx) => (idx === j ? { ...t, ...patch } : t)));
+  const removeTask = (i, j) => setTasks(i, (tasks) => tasks.filter((_, idx) => idx !== j));
 
   function removeAssessment(i) {
     setForm((f) => ({ ...f, assessments: f.assessments.filter((_, idx) => idx !== i) }));
@@ -214,6 +239,9 @@ export default function SubjectList() {
         dueTime: (a.dueDate && a.dueTime) || null,
         focusTopics: isExam(a.type) ? (a.focusTopics || '').trim() : '',
         note: (a.note || '').trim(),
+        tasks: (a.tasks || [])
+          .filter((t) => t.title.trim())
+          .map((t) => ({ title: t.title.trim(), dueDate: t.dueDate || null, isDone: !!t.isDone })),
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: a.isDone
       }))
@@ -620,10 +648,17 @@ export default function SubjectList() {
                   <>
                     <div className="assess-when-label">
                       {isExam(a.type) ? 'Study progress' : 'Work progress'}
-                      <span className="assess-hint">{isExam(a.type) ? 'How much you have revised' : 'How much is finished'}</span>
+                      <span className="assess-hint">
+                        {tasksOf(a).length
+                          ? `${tasksOf(a).filter((t) => t.isDone).length} of ${tasksOf(a).length} tasks done`
+                          : isExam(a.type)
+                            ? 'How much you have revised'
+                            : 'How much is finished'}
+                      </span>
                     </div>
-                    <div className="assess-progress">
+                    <div className={`assess-progress${tasksOf(a).length ? ' locked' : ''}`}>
                       <input
+                        disabled={tasksOf(a).length > 0}
                         type="range"
                         min="0"
                         max="100"
@@ -651,6 +686,46 @@ export default function SubjectList() {
                     />
                   </>
                 )}
+                <div className="assess-when-label">
+                  Tasks
+                  <span className="assess-hint">The small steps to finish it</span>
+                </div>
+                {(a.tasks || []).map((t, j) => (
+                  <div className={`assess-task${t.isDone ? ' done' : ''}`} key={j}>
+                    <button
+                      type="button"
+                      className="assess-task-check"
+                      role="checkbox"
+                      aria-checked={t.isDone}
+                      aria-label={`${t.title || 'Task'} done`}
+                      onClick={() => updateTask(i, j, { isDone: !t.isDone })}
+                    >
+                      {t.isDone && <Check size={12} strokeWidth={3} />}
+                    </button>
+                    <input
+                      className="input assess-task-title"
+                      value={t.title}
+                      onChange={(e) => updateTask(i, j, { title: e.target.value })}
+                      placeholder={isExam(a.type) ? 'e.g. Revise chapter 3' : 'e.g. Write the introduction'}
+                      maxLength={120}
+                      aria-label="Task"
+                    />
+                    <input
+                      className="input assess-task-date"
+                      type="date"
+                      value={t.dueDate}
+                      max={a.dueDate || undefined}
+                      onChange={(e) => updateTask(i, j, { dueDate: e.target.value })}
+                      aria-label="Task due date"
+                    />
+                    <button type="button" className="icon-btn" onClick={() => removeTask(i, j)} aria-label="Remove task">
+                      <X size={13} />
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="chip class-slot-add assess-task-add" onClick={() => addTask(i)}>
+                  <Plus size={12} /> Add task
+                </button>
                 <div className="assess-when-label">Note</div>
                 <textarea
                   className="textarea assess-note"

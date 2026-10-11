@@ -46,7 +46,8 @@ export function upcomingDeadlines(subjects = [], assignments = [], { includeDone
         type: a.type,
         isDone: !!a.isDone,
         topics: a.focusTopics || '',
-        note: a.note || ''
+        note: a.note || '',
+        tasks: a.tasks || []
       }))
   );
   const standalone = assignments
