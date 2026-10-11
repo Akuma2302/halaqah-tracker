@@ -11,6 +11,8 @@ const assessmentSchema = z.object({
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
     .nullish(),
+  focusTopics: z.string().trim().max(300).optional(),
+  note: z.string().trim().max(300).optional(),
   progressPercentage: z.number().min(0).max(100).optional(),
   isDone: z.boolean().optional()
 });

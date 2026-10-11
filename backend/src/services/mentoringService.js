@@ -166,6 +166,8 @@ async function upcomingAssessments(userId, date) {
           percentage: a.percentage,
           dueDate: a.due_date,
           dueTime: a.due_time ? String(a.due_time).slice(0, 5) : null,
+          focusTopics: a.focus_topics || '',
+          progressPercentage: a.progress_percentage || 0,
           subject: { _id: s.id, name: s.name, code: s.code }
         }))
     )

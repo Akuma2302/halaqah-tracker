@@ -77,7 +77,15 @@ export default function Timetable() {
         .flatMap((s) =>
           (s.assessments || [])
             .filter((a) => isExam(a.type) && a.dueDate && !a.isDone && a.dueDate >= todayKey)
-            .map((a, i) => ({ id: a._id || `${s._id}-${i}`, type: a.type, date: a.dueDate, time: a.dueTime || '', subject: s }))
+            .map((a, i) => ({
+              id: a._id || `${s._id}-${i}`,
+              type: a.type,
+              date: a.dueDate,
+              time: a.dueTime || '',
+              topics: a.focusTopics || '',
+              progress: Number(a.progressPercentage) || 0,
+              subject: s
+            }))
         )
         .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)),
     [subjects, todayKey]
@@ -253,7 +261,10 @@ export default function Timetable() {
             <span className="badge badge-gold">Exam</span>
           </span>
           <span className="class-meta">{[exam.subject.name, exam.subject.code].filter(Boolean).join(' · ')}</span>
-          <span className="class-meta">{due.text.replace(/^due /, '')}</span>
+          <span className="class-meta">
+            {due.text.replace(/^due /, '')} · {exam.progress}% revised
+          </span>
+          {exam.topics && <span className="class-meta exam-topics">Focus: {exam.topics}</span>}
         </span>
       </div>
     );

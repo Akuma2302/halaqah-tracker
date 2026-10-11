@@ -3567,6 +3567,22 @@ a.perf-row:hover .perf-name {
   color: var(--gold-ink);
 }
 
+.assess-when-label .assess-hint {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.textarea.assess-note {
+  min-height: 0;
+  resize: vertical;
+}
+
+.class-meta.exam-topics,
+.md-deadline-meta.md-focus {
+  white-space: normal;
+  color: var(--ink);
+}
+
 .assess-done {
   display: inline-flex;
   align-items: center;

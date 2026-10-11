@@ -304,8 +304,9 @@ export default function MenteeDetail() {
                         <span className={`md-kind${isExam(d.type) ? ' exam' : ''}`}>{isExam(d.type) ? 'Exam' : 'Due'}</span>
                       </div>
                       <div className="md-deadline-meta">{subjectLabel(d.subject)}</div>
+                      {isExam(d.type) && d.focusTopics && <div className="md-deadline-meta md-focus">Focus: {d.focusTopics}</div>}
                       <div className="md-deadline-meta">
-                        {[weekdayOf(d.dueDate), d.dueTime && clock(d.dueTime), d.percentage ? `${d.percentage}%` : ''].filter(Boolean).join(' · ')}
+                        {[weekdayOf(d.dueDate), d.dueTime && clock(d.dueTime), d.percentage ? `${d.percentage}%` : '', `${d.progressPercentage || 0}% ${isExam(d.type) ? 'revised' : 'done'}`].filter(Boolean).join(' · ')}
                       </div>
                     </div>
                     <span className="md-countdown">{days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days`}</span>

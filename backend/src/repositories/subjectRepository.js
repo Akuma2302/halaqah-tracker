@@ -7,6 +7,8 @@ function toAssessmentRow(subjectId, a) {
     percentage: a.percentage,
     due_date: a.dueDate || null,
     due_time: (a.dueDate && a.dueTime) || null,
+    focus_topics: a.focusTopics || '',
+    note: a.note || '',
     progress_percentage: a.progressPercentage || 0,
     is_done: !!a.isDone
   };

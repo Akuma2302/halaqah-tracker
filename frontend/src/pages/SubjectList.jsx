@@ -101,6 +101,8 @@ export default function SubjectList() {
         percentage: a.percentage === null || a.percentage === undefined ? '' : String(a.percentage),
         dueDate: a.dueDate || '',
         dueTime: a.dueTime || '',
+        focusTopics: a.focusTopics || '',
+        note: a.note || '',
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: !!a.isDone
       })),
@@ -126,7 +128,7 @@ export default function SubjectList() {
   function addAssessment(type) {
     setForm((f) => ({
       ...f,
-      assessments: [...f.assessments, { type, percentage: '', dueDate: '', dueTime: '', progressPercentage: 0, isDone: false }]
+      assessments: [...f.assessments, { type, percentage: '', dueDate: '', dueTime: '', focusTopics: '', note: '', progressPercentage: 0, isDone: false }]
     }));
   }
 
@@ -197,6 +199,8 @@ export default function SubjectList() {
         percentage: Math.max(0, Math.min(100, Number(a.percentage))),
         dueDate: a.dueDate || null,
         dueTime: (a.dueDate && a.dueTime) || null,
+        focusTopics: isExam(a.type) ? (a.focusTopics || '').trim() : '',
+        note: (a.note || '').trim(),
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: a.isDone
       }))
@@ -568,21 +572,50 @@ export default function SubjectList() {
                   </label>
                 </div>
                 {!a.isDone && (
-                  <div className="assess-progress">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={a.progressPercentage}
-                      onChange={(e) => updateAssessment(i, { progressPercentage: Number(e.target.value) })}
-                      aria-label="Progress"
-                    />
-                    <span className={`assess-progress-value tone-${progressTone(Number(a.progressPercentage))}`}>
-                      {a.progressPercentage}%
-                    </span>
-                  </div>
+                  <>
+                    <div className="assess-when-label">
+                      {isExam(a.type) ? 'Study progress' : 'Work progress'}
+                      <span className="assess-hint">{isExam(a.type) ? 'How much you have revised' : 'How much is finished'}</span>
+                    </div>
+                    <div className="assess-progress">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={a.progressPercentage}
+                        onChange={(e) => updateAssessment(i, { progressPercentage: Number(e.target.value) })}
+                        aria-label={isExam(a.type) ? 'Study progress' : 'Work progress'}
+                      />
+                      <span className={`assess-progress-value tone-${progressTone(Number(a.progressPercentage))}`}>
+                        {a.progressPercentage}%
+                      </span>
+                    </div>
+                  </>
                 )}
+                {isExam(a.type) && (
+                  <>
+                    <div className="assess-when-label">Topics to focus on</div>
+                    <input
+                      className="input"
+                      value={a.focusTopics}
+                      onChange={(e) => updateAssessment(i, { focusTopics: e.target.value })}
+                      placeholder="e.g. Chapter 3 graphs, dynamic programming"
+                      maxLength={300}
+                      aria-label="Topics to focus on"
+                    />
+                  </>
+                )}
+                <div className="assess-when-label">Note</div>
+                <textarea
+                  className="textarea assess-note"
+                  rows={2}
+                  value={a.note}
+                  onChange={(e) => updateAssessment(i, { note: e.target.value })}
+                  placeholder={isExam(a.type) ? 'e.g. Open book, bring a calculator' : 'e.g. Submit on the portal, group of 3'}
+                  maxLength={300}
+                  aria-label="Note"
+                />
               </div>
             ))}
 

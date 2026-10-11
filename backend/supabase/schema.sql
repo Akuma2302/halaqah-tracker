@@ -308,6 +308,9 @@ alter table subject_assessments add column if not exists progress_percentage num
 alter table subject_assessments add column if not exists is_done boolean not null default false;
 -- The time of an exam, or the time an assignment is due (optional).
 alter table subject_assessments add column if not exists due_time time;
+-- For exams, the topics to focus on while studying; and a short note for any assessment.
+alter table subject_assessments add column if not exists focus_topics text not null default '';
+alter table subject_assessments add column if not exists note text not null default '';
 
 -- One row per "7 / 3 / 1 days before" reminder actually sent (services/assessmentReminderService.js),
 -- so repeated job runs never send the same one twice. Assessment rows are
