@@ -24,6 +24,7 @@ import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/cons
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
 import { daysUntil, upcomingDeadlines } from '../features/academic/deadlines';
 import { AssessmentSheet, DeadlineTile } from '../features/academic/DeadlineTile';
+import SemesterOverview from '../features/academic/SemesterOverview';
 import SubjectFiles from '../features/academic/SubjectFiles';
 
 const MAX_WEEKS_BACK = 15; // the week picker used to offer this week + 15 previous weeks
@@ -92,6 +93,15 @@ export default function AcademicJournal() {
 
   // Subject whose files are expanded in "Subjects & files".
   const [openFilesFor, setOpenFilesFor] = useState(null);
+
+  // The weekly timetable, for the semester dashboard's class counts.
+  const [timetable, setTimetable] = useState([]);
+  useEffect(() => {
+    client
+      .get('/timetable')
+      .then((res) => setTimetable(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setTimetable([]));
+  }, []);
 
   useEffect(() => {
     Promise.all([client.get('/academic/overview'), client.get('/academic/subjects')])
@@ -441,6 +451,9 @@ export default function AcademicJournal() {
 
           {/* ---------- upcoming deadlines ---------- */}
           {deadlinesCard}
+
+          {/* ---------- the semester in numbers ---------- */}
+          <SemesterOverview subjects={subjects} timetable={timetable} />
 
           {/* ---------- study hours ---------- */}
           <LogSection

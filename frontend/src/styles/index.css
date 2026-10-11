@@ -8819,6 +8819,171 @@ a.md-deadline {
   background: color-mix(in srgb, var(--danger) 7%, var(--paper));
 }
 
+/* ---------- Academic: the semester in numbers ---------- */
+.sem-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sem-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.sem-tile:hover {
+  border-color: var(--primary);
+}
+
+.sem-tile svg {
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+
+.sem-tile strong {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.sem-tile strong em {
+  font-style: normal;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.sem-tile span {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.sem-tile small {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.sem-tile small.warn {
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.sem-heading {
+  margin: 16px 0 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.sem-types {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sem-type {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 10px;
+}
+
+/* A dot says which kind it is: gold for exams, green for work with a due date */
+.sem-type-name i {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.sem-type-name i.exam {
+  background: var(--gold);
+}
+
+.sem-type-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The bar's length is how many there are; the filled part, how many are done */
+.sem-type-bar {
+  display: block;
+}
+
+.sem-type-total {
+  display: block;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 22%, var(--paper));
+  overflow: hidden;
+}
+
+.sem-type-total span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.sem-type-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+.sem-type-count strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.sem-type-count small {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.sem-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sem-kind {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.sem-kind strong {
+  font-family: var(--font-display);
+  color: var(--ink);
+}
+
+@media (max-width: 420px) {
+  .sem-type {
+    grid-template-columns: minmax(0, 118px) minmax(0, 1fr) 48px;
+  }
+}
+
 /* Subject names wrap here instead of being cut off */
 .dl-own .md-deadline {
   align-items: flex-start;
