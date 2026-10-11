@@ -275,8 +275,10 @@ function Overview({ data, users, onOpen }) {
 }
 
 function UsersTab({ users, onOpen }) {
-  const [params] = useSearchParams();
+  // The search is kept in the address (?q=), shared with the box in the top bar.
+  const [params, setParams] = useSearchParams();
   const query = params.get('q') || '';
+  const setQuery = (text) => setParams(text ? { q: text } : {}, { replace: true });
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('id');
 
@@ -300,7 +302,7 @@ function UsersTab({ users, onOpen }) {
     }[sort];
     return users
       .filter(match)
-      .filter((u) => !q || [u.name, u.email, u.memberId, u.kampus, u.mentorName].some((text) => (text || '').toLowerCase().includes(q)))
+      .filter((u) => !q || [u.name, u.email, u.memberId, u.kampus].some((text) => (text || '').toLowerCase().includes(q)))
       .sort(by);
   }, [users, query, filter, sort]);
 
@@ -317,6 +319,15 @@ function UsersTab({ users, onOpen }) {
 
   return (
     <>
+      <label className="perf-search adm-search adm-search-wide adm-user-search">
+        <Search size={16} />
+        <input type="search" placeholder="Search a user by name, email, User ID or kampus" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search users by name" />
+        {query && (
+          <button type="button" onClick={() => setQuery('')} aria-label="Clear search">
+            <X size={13} />
+          </button>
+        )}
+      </label>
       <div className="adm-toolbar">
         <div className="chip-row adm-filters">
         {FILTERS.map(([key, label]) => (

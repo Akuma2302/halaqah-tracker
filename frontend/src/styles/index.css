@@ -11563,3 +11563,8 @@ button.adm-group:hover {
     flex-wrap: wrap;
   }
 }
+
+/* Users: the search box above the filters */
+.perf-search.adm-user-search {
+  margin-bottom: 12px;
+}
