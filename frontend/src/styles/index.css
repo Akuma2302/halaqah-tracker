@@ -5885,6 +5885,38 @@ a.perf-row:hover .perf-name {
   font-size: 12.5px;
 }
 
+.range-toggle.segmented.widget-what {
+  margin-bottom: 8px;
+}
+
+.widget-heading {
+  margin: 16px 0 4px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.widget-lead {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.widget-step-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.widget-step-action a.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
 .widget-link {
   padding-top: 14px;
   border-top: 1px solid var(--border);

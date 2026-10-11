@@ -8,5 +8,7 @@ router.get('/token', requireAuth, asyncHandler(widgetController.getToken));
 router.post('/token', requireAuth, asyncHandler(widgetController.rotateToken));
 router.delete('/token', requireAuth, asyncHandler(widgetController.disable));
 router.get('/:token', asyncHandler(widgetController.data));
+router.get('/:token/agenda', asyncHandler(widgetController.agenda));
+router.get('/:token/calendar.ics', asyncHandler(widgetController.calendar));
 
 module.exports = router;

@@ -73,10 +73,15 @@ function streakFrom(rowsByDate, today) {
   return streak;
 }
 
+// The user a widget link belongs to, or null when it matches nobody.
+async function userForToken(token) {
+  if (!TOKEN_PATTERN.test(token || '')) return null;
+  return userRepository.findByWidgetToken(token);
+}
+
 // Returns null when the token doesn't match anyone (caller sends 404).
 async function getWidgetData(token, tz) {
-  if (!TOKEN_PATTERN.test(token || '')) return null;
-  const user = await userRepository.findByWidgetToken(token);
+  const user = await userForToken(token);
   if (!user) return null;
 
   const timeZone = resolveTimeZone(tz);
@@ -111,4 +116,4 @@ async function getWidgetData(token, tz) {
   };
 }
 
-module.exports = { getToken, rotateToken, disable, getWidgetData };
+module.exports = { getToken, rotateToken, disable, getWidgetData, userForToken, resolveTimeZone, localDate, shiftDate };
