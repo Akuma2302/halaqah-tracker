@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Activity,
@@ -12,9 +12,11 @@ import {
   Download,
   FileStack,
   FileText,
+  GraduationCap,
   LayoutDashboard,
   ListChecks,
   LogOut,
+  MessageSquare,
   Network,
   RefreshCw,
   Search,
@@ -43,6 +45,7 @@ const WEEK_POSSIBLE = 49;
 const SECTIONS = [
   { key: 'dashboard', to: '/admin', label: 'Dashboard', icon: LayoutDashboard, title: 'Dashboard', sub: "Here's how everyone on Double 4 Flat is doing today." },
   { key: 'users', to: '/admin/users', label: 'Users', icon: Users, title: 'Users', sub: 'Everyone who has signed in, with this week beside each name.' },
+  { key: 'groups', to: '/admin/groups', label: 'Groups', icon: GraduationCap, title: 'Groups', sub: 'Every study group that has been created. Open one to read its chat.' },
   { key: 'papers', to: '/admin/papers', label: 'Past papers', icon: FileStack, title: 'Past papers', sub: 'Every paper users have shared. Remove one that should not be there.' }
 ];
 
@@ -138,7 +141,12 @@ function Overview({ data, users, onOpen }) {
         <Stat icon={Activity} value={data.activeToday} label="Active today" sub={`${data.activeThisWeek} in the last 7 days`} tint="blue" />
         <Stat icon={ListChecks} value={data.mutabaahToday} label="Marked mutabaah today" sub={`of ${data.users} users`} tint="gold" />
         <Stat icon={Clock} value={hours(data.studyHoursThisWeek)} label="Study hours this week" sub={`logged by ${data.studyingThisWeek} users`} tint="purple" />
-        <Stat icon={Network} value={data.withMentor} label="Have a mentor" sub={`${data.mentors} mentors`} />
+        <Stat
+          icon={GraduationCap}
+          value={data.studyGroups}
+          label="Groups created"
+          sub={`${data.groupsThisWeek} new · ${data.messagesThisWeek} messages in 7 days`}
+        />
         <Stat
           icon={AlertTriangle}
           value={data.overdueAssessments}
@@ -146,8 +154,8 @@ function Overview({ data, users, onOpen }) {
           sub={`across ${data.subjects} subjects`}
           tint={data.overdueAssessments > 0 ? 'danger' : 'primary'}
         />
-        <Stat icon={FileStack} value={data.pastPapers} label="Past papers shared" sub={`${data.studyGroups} study groups`} tint="blue" />
-        <Stat icon={Ban} value={data.suspended} label="Suspended" sub="Accounts switched off" tint={data.suspended > 0 ? 'danger' : 'primary'} />
+        <Stat icon={FileStack} value={data.pastPapers} label="Past papers shared" sub="Open to every user" tint="blue" />
+        <Stat icon={Network} value={data.withMentor} label="Have a mentor" sub={`${data.mentors} mentors · ${data.suspended} suspended`} tint="purple" />
       </div>
 
       <div className="adm-split">
@@ -747,6 +755,191 @@ function PapersTab({ papers, onRemoved, showToast }) {
   );
 }
 
+// Every study group, as cards; opening one shows its members and chat.
+function GroupsTab({ groups, onOpen }) {
+  const [query, setQuery] = useState('');
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return groups.filter((g) => !q || [g.name, g.subject, g.owner?.name].some((t) => (t || '').toLowerCase().includes(q)));
+  }, [groups, query]);
+  const messages = groups.reduce((sum, g) => sum + g.messages, 0);
+
+  return (
+    <>
+      <div className="adm-mini adm-group-totals">
+        <div>
+          <strong>{groups.length}</strong>
+          <span>Groups created</span>
+        </div>
+        <div>
+          <strong>{groups.reduce((sum, g) => sum + g.members, 0)}</strong>
+          <span>Memberships</span>
+        </div>
+        <div>
+          <strong>{messages}</strong>
+          <span>Messages sent</span>
+        </div>
+        <div>
+          <strong>{groups.filter((g) => g.messagesThisWeek > 0).length}</strong>
+          <span>Active in 7 days</span>
+        </div>
+      </div>
+
+      <label className="perf-search adm-search adm-search-wide">
+        <Search size={16} />
+        <input type="search" placeholder="Search group name, subject or who made it" value={query} onChange={(e) => setQuery(e.target.value)} />
+      </label>
+      <div className="dl-result">
+        {shown.length} of {groups.length} groups
+      </div>
+
+      {shown.length === 0 ? (
+        <div className="card empty-state">
+          <h3>{groups.length ? 'No group matches that' : 'No groups created yet'}</h3>
+        </div>
+      ) : (
+        <div className="adm-papers">
+          {shown.map((g) => (
+            <button type="button" className="card adm-paper adm-group" key={g._id} onClick={() => onOpen(g._id)}>
+              <span className="py-icon">
+                <GraduationCap size={18} />
+              </span>
+              <span className="adm-paper-body">
+                <span className="adm-user-name">{g.name}</span>
+                <span className="adm-user-sub">
+                  {g.subject || 'No subject'} · made by {g.owner?.name || 'a deleted user'} · {dayjs(g.createdAt).format('D MMM YYYY')}
+                </span>
+                <span className="adm-group-facts">
+                  <span>
+                    <Users size={12} /> {g.members} member{g.members === 1 ? '' : 's'}
+                  </span>
+                  <span>
+                    <MessageSquare size={12} /> {g.messages} message{g.messages === 1 ? '' : 's'}
+                  </span>
+                  <span>{g.lastMessageAt ? `Last message ${dayjs(g.lastMessageAt).fromNow()}` : 'No messages yet'}</span>
+                </span>
+              </span>
+              <ChevronRight size={16} className="adm-go" />
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// One group: its members, and its chat to read without joining. Read-only.
+function GroupSheet({ groupId, onClose }) {
+  const [group, setGroup] = useState(null);
+  const [failed, setFailed] = useState(false);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const chatRef = useRef(null);
+
+  // A chat opens at its latest message.
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [group?._id]);
+
+  const load = useCallback(() => {
+    if (!groupId) return;
+    setFailed(false);
+    client
+      .get(`/admin/groups/${groupId}`)
+      .then((res) => setGroup(res.data))
+      .catch(() => setFailed(true));
+  }, [groupId]);
+
+  useEffect(() => {
+    setGroup(null);
+    load();
+  }, [load]);
+
+  if (!groupId) return <Sheet open={false} onClose={onClose} title="" />;
+
+  async function loadEarlier() {
+    setLoadingEarlier(true);
+    try {
+      const res = await client.get(`/admin/groups/${groupId}`, { params: { before: group.messages[0].createdAt } });
+      setGroup((g) => ({ ...g, messages: [...res.data.messages, ...g.messages], hasEarlier: res.data.hasEarlier }));
+    } catch {
+      // Left as it is; the button can be tapped again.
+    } finally {
+      setLoadingEarlier(false);
+    }
+  }
+
+  return (
+    <Sheet open onClose={onClose} title={group?.name || 'Group'} stickyHead>
+      {failed ? (
+        <div className="empty-state">
+          <h3>Couldn't load this group</h3>
+          <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={load}>
+            Try again
+          </button>
+        </div>
+      ) : !group ? (
+        <div className="spinner" style={{ margin: '24px auto' }} />
+      ) : (
+        <div className="adm-detail">
+          <p className="adm-foot" style={{ marginTop: 0 }}>
+            {group.subject || 'No subject'} · created {dayjs(group.createdAt).format('D MMM YYYY')}
+          </p>
+
+          <div className="adm-section">Members ({group.members.length})</div>
+          <div className="adm-amal">
+            {group.members.map((m) => (
+              <span key={m._id} className={m.role === 'admin' ? 'good' : ''}>
+                <strong>{m.name}</strong> {m.memberId || ''}
+                {m.role === 'admin' ? ' · group admin' : ''}
+              </span>
+            ))}
+          </div>
+
+          <div className="adm-section">Chat · read only</div>
+          {group.messages.length === 0 ? (
+            <p className="log-empty">Nobody has written in this group yet.</p>
+          ) : (
+            <div className="adm-chat" ref={chatRef}>
+              {group.hasEarlier && (
+                <button type="button" className="btn btn-ghost btn-sm adm-chat-earlier" onClick={loadEarlier} disabled={loadingEarlier}>
+                  {loadingEarlier ? 'Loading…' : 'Show earlier messages'}
+                </button>
+              )}
+              {group.messages.map((m, i) => {
+                const prev = group.messages[i - 1];
+                const newDay = !prev || !dayjs(prev.createdAt).isSame(m.createdAt, 'day');
+                return (
+                  <div key={m._id}>
+                    {newDay && <div className="adm-chat-day">{dayjs(m.createdAt).format('ddd, D MMM YYYY')}</div>}
+                    <div className="adm-chat-msg">
+                      <div className="adm-chat-who">
+                        <strong>{m.sender?.name || 'Deleted user'}</strong>
+                        <span>{dayjs(m.createdAt).format('h:mm a')}</span>
+                      </div>
+                      {m.content && <p>{m.content}</p>}
+                      {m.attachmentType === 'image' && m.attachmentUrl && (
+                        <a href={m.attachmentUrl} target="_blank" rel="noreferrer">
+                          <img src={m.attachmentUrl} alt="Shared in the chat" loading="lazy" />
+                        </a>
+                      )}
+                      {m.attachmentType === 'file' && m.attachmentUrl && (
+                        <a className="file-link" href={m.attachmentUrl} target="_blank" rel="noreferrer">
+                          <FileText size={13} /> Open the shared file
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="adm-foot">You are reading as an admin. The group is not told, and you can't post from here.</p>
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
 // The users table as a spreadsheet file (opens in Excel).
 function downloadUsers(users) {
   const cell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -791,6 +984,8 @@ export default function Admin() {
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState(null);
   const [papers, setPapers] = useState(null);
+  const [groups, setGroups] = useState(null);
+  const [openGroup, setOpenGroup] = useState(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [openUser, setOpenUser] = useState(null);
@@ -807,12 +1002,14 @@ export default function Admin() {
     Promise.all([
       client.get('/admin/overview', { params: period }),
       client.get('/admin/users', { params: period }),
-      client.get('/admin/past-papers')
+      client.get('/admin/past-papers'),
+      client.get('/admin/groups')
     ])
-      .then(([o, u, p]) => {
+      .then(([o, u, p, g]) => {
         setOverview(o.data);
         setUsers(u.data);
         setPapers(p.data);
+        setGroups(g.data);
       })
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
@@ -831,7 +1028,7 @@ export default function Admin() {
 
   if (!user?.isAdmin) return <Navigate to="/" replace />;
 
-  const counts = { users: users?.length, papers: papers?.length };
+  const counts = { users: users?.length, groups: groups?.length, papers: papers?.length };
 
   return (
     <div className="adm-shell">
@@ -916,22 +1113,26 @@ export default function Admin() {
                 Try again
               </button>
             </div>
-          ) : !overview || !users || !papers ? (
+          ) : !overview || !users || !papers || !groups ? (
             <div className="spinner" style={{ margin: '40px auto' }} />
           ) : section.key === 'dashboard' ? (
             <Overview data={overview} users={users} onOpen={setOpenUser} />
           ) : section.key === 'users' ? (
             <UsersTab users={users} onOpen={setOpenUser} />
+          ) : section.key === 'groups' ? (
+            <GroupsTab groups={groups} onOpen={setOpenGroup} />
           ) : (
             <PapersTab papers={papers} showToast={showToast} onRemoved={(id) => setPapers((list) => list.filter((p) => p._id !== id))} />
           )}
 
           <p className="mentor-note adm-privacy">
-            <ShieldCheck size={13} /> This dashboard shows activity and counts only. It never shows what people wrote: their notes, messages or files.
+            <ShieldCheck size={13} /> This dashboard shows activity and counts, and lets admins read study group chats. It never shows what people wrote for themselves: their
+            journal notes, tadabbur notes or files.
           </p>
         </main>
       </div>
 
+      <GroupSheet groupId={openGroup} onClose={() => setOpenGroup(null)} />
       <UserSheet userId={openUser} users={users || []} period={period} me={user} onClose={() => setOpenUser(null)} onChanged={load} showToast={showToast} />
       {toast}
     </div>

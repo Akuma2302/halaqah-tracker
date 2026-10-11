@@ -10995,6 +10995,129 @@ button.adm-row:hover {
   text-decoration: none;
 }
 
+/* Groups: totals, then a card per group; a group's chat is read in the sheet */
+.adm-mini.adm-group-totals {
+  margin: 0 0 14px;
+}
+
+.adm-group-totals div {
+  background: var(--surface);
+}
+
+.perf-search.adm-search.adm-search-wide {
+  max-width: none;
+  background: var(--surface);
+}
+
+button.adm-group {
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.adm-group:hover {
+  border-color: var(--primary);
+}
+
+.adm-group .adm-paper-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.adm-group-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.adm-group-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.adm-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 52vh;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  overflow-y: auto;
+}
+
+.adm-chat-earlier {
+  align-self: center;
+}
+
+.adm-chat-day {
+  margin: 4px 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.adm-chat-msg {
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.adm-chat-who {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.adm-chat-who strong {
+  color: var(--primary-dark);
+}
+
+.adm-chat-who span {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.adm-chat-msg p {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.adm-chat-msg img {
+  display: block;
+  max-width: 220px;
+  max-height: 220px;
+  margin-top: 6px;
+  border-radius: 10px;
+}
+
+.adm-chat-msg .file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
 .mentor-note.adm-privacy {
   display: flex;
   align-items: center;

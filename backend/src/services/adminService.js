@@ -2,8 +2,8 @@ const pool = require('../config/db');
 const { isOwner, isAdmin, setSuspended } = require('../utils/accountState');
 
 // The admin dashboard: everyone who uses the app, in numbers. It reads
-// activity and counts only — never what people wrote (journal notes, tadabbur
-// notes, messages, files).
+// activity and counts, plus the study groups and their chats (read-only) —
+// never what people wrote for themselves (journal notes, tadabbur notes, files).
 
 function fail(status, message) {
   const err = new Error(message);
@@ -43,6 +43,8 @@ async function getOverview({ date, weekStart }) {
          (select count(*) from users where mentor_id is not null)::int as "withMentor",
          (select count(distinct mentor_id) from users where mentor_id is not null)::int as mentors,
          (select count(*) from study_groups)::int as "studyGroups",
+         (select count(*) from study_groups where created_at >= now() - interval '7 days')::int as "groupsThisWeek",
+         (select count(*) from messages where created_at >= now() - interval '7 days')::int as "messagesThisWeek",
          (select count(*) from subjects)::int as subjects,
          (select count(*) from subject_assessments a where not a.is_done and a.due_date < $1::date)::int as "overdueAssessments",
          (select count(*) from past_papers)::int as "pastPapers",
@@ -322,4 +324,83 @@ async function removePastPaper(id) {
   if (!rowCount) throw fail(404, 'Paper not found');
 }
 
-module.exports = { getOverview, listUsers, getUser, updateUser, deleteUser, listPastPapers, removePastPaper };
+// Every study group: who made it, how big it is and how busy its chat is.
+async function listGroups() {
+  const { rows } = await pool.query(
+    `select g.id, g.name, g.subject, g.created_at, u.id as owner_id, u.name as owner_name, u.member_no,
+            (select count(*) from study_group_members m where m.study_group_id = g.id)::int as members,
+            coalesce(ms.total, 0)::int as messages, coalesce(ms.week, 0)::int as messages_week, ms.last_at
+       from study_groups g
+       left join users u on u.id = g.admin_id
+       left join (
+         select study_group_id, count(*) as total, max(created_at) as last_at,
+                count(*) filter (where created_at >= now() - interval '7 days') as week
+           from messages group by study_group_id
+       ) ms on ms.study_group_id = g.id
+      order by g.created_at desc`
+  );
+  return rows.map((g) => ({
+    _id: g.id,
+    name: g.name,
+    subject: g.subject || '',
+    createdAt: g.created_at,
+    owner: g.owner_id ? { _id: g.owner_id, name: g.owner_name, memberId: memberId(g.member_no) } : null,
+    members: g.members,
+    messages: g.messages,
+    messagesThisWeek: g.messages_week,
+    lastMessageAt: g.last_at
+  }));
+}
+
+const MESSAGE_PAGE = 100;
+
+// One group's members and its chat, newest page first, to read without
+// joining. `before` (a timestamp) pages back through older messages.
+async function getGroup(id, { before } = {}) {
+  const { rows: groups } = await pool.query('select id, name, subject, created_at, admin_id from study_groups where id = $1', [id]);
+  const group = groups[0];
+  if (!group) throw fail(404, 'Group not found');
+  const cutoff = before && !Number.isNaN(Date.parse(before)) ? new Date(before) : null;
+  const [members, messages] = await Promise.all([
+    pool.query(
+      `select u.id, u.name, u.member_no, u.avatar_url, m.role, m.joined_at
+         from study_group_members m join users u on u.id = m.user_id
+        where m.study_group_id = $1 order by (m.role = 'admin') desc, u.name`,
+      [id]
+    ),
+    pool.query(
+      `select ms.id, ms.content, ms.attachment_url, ms.attachment_type, ms.created_at, u.id as sender_id, u.name as sender_name
+         from messages ms left join users u on u.id = ms.sender_id
+        where ms.study_group_id = $1 and ($2::timestamptz is null or ms.created_at < $2::timestamptz)
+        order by ms.created_at desc limit ${MESSAGE_PAGE + 1}`,
+      [id, cutoff]
+    )
+  ]);
+  const page = messages.rows.slice(0, MESSAGE_PAGE);
+  return {
+    _id: group.id,
+    name: group.name,
+    subject: group.subject || '',
+    createdAt: group.created_at,
+    members: members.rows.map((m) => ({
+      _id: m.id,
+      name: m.name,
+      memberId: memberId(m.member_no),
+      avatarUrl: m.avatar_url || '',
+      role: m.role,
+      joinedAt: m.joined_at
+    })),
+    // Oldest first, as a chat reads.
+    messages: page.reverse().map((ms) => ({
+      _id: ms.id,
+      content: ms.content,
+      attachmentUrl: ms.attachment_url,
+      attachmentType: ms.attachment_type,
+      createdAt: ms.created_at,
+      sender: ms.sender_id ? { _id: ms.sender_id, name: ms.sender_name } : null
+    })),
+    hasEarlier: messages.rows.length > MESSAGE_PAGE
+  };
+}
+
+module.exports = { getOverview, listUsers, getUser, updateUser, deleteUser, listPastPapers, removePastPaper, listGroups, getGroup };

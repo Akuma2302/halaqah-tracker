@@ -90,4 +90,19 @@ router.delete(
   })
 );
 
+// Study groups, and one group's chat to read without joining it.
+router.get(
+  '/groups',
+  asyncHandler(async (req, res) => {
+    res.json(await adminService.listGroups());
+  })
+);
+
+router.get(
+  '/groups/:id',
+  asyncHandler(async (req, res) => {
+    res.json(await adminService.getGroup(req.params.id, { before: req.query.before }));
+  })
+);
+
 module.exports = router;
