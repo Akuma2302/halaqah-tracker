@@ -7,7 +7,7 @@ import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../features/academic/weekUtils';
 import { DAYS, KIND_LABEL, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
-import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
+import { ASSESSMENT_LABEL, isExam } from '../features/academic/deadlines';
 import { useToast } from '../hooks/useToast';
 
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
@@ -21,6 +21,20 @@ function shiftWeek(weekKey, weeks) {
 
 function formatHours(h) {
   return `${Math.round(h * 10) / 10}h`;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Whole days from today to a YYYY-MM-DD date.
+function daysUntil(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const now = new Date();
+  return Math.round((new Date(y, m - 1, d) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+}
+
+function weekdayOf(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return DAYS[new Date(y, m - 1, d).getDay()];
 }
 
 function shortDate(dateKey) {
@@ -146,6 +160,7 @@ export default function MenteeDetail() {
   const timetable = data.timetable || [];
   const deadlines = data.deadlines || [];
   const isMentor = data.relation === 'mentee';
+  const examCount = deadlines.filter((d) => isExam(d.type)).length;
   const weekday = new Date().getDay();
   const classesOn = (day) => timetable.filter((e) => e.dayOfWeek === day);
   const firstClassDay = DAYS.findIndex((_, day) => classesOn(day).length);
@@ -251,44 +266,58 @@ export default function MenteeDetail() {
         <Section
           icon={CalendarClock}
           title="Exams and deadlines"
-          sub={isMentor ? 'Send a reminder to their phone' : 'From their subjects'}
+          sub={
+            deadlines.length === 0
+              ? 'From their subjects'
+              : `${examCount} exam${examCount === 1 ? '' : 's'} · ${deadlines.length - examCount} due date${deadlines.length - examCount === 1 ? '' : 's'}`
+          }
           aside={<span className="md-figure">{deadlines.length}</span>}
         >
           {deadlines.length === 0 ? (
             <p className="log-empty">Nothing coming up in their subjects.</p>
           ) : (
-            deadlines.map((d) => {
-              const due = dueLabel(d.dueDate);
-              const state = alerts[d._id];
-              return (
-                <div className="log-row md-deadline" key={d._id}>
-                  <span className="log-day">{formatDueDate(d.dueDate)}</span>
-                  <div className="log-body">
-                    <div className="log-title">
-                      {ASSESSMENT_LABEL[d.type] || d.type}
-                      {d.percentage ? ` · ${d.percentage}%` : ''}
+            <div className="md-deadlines">
+              {deadlines.map((d) => {
+                const days = daysUntil(d.dueDate);
+                const tone = days <= 3 ? 'urgent' : days <= 7 ? 'soon' : 'later';
+                const state = alerts[d._id];
+                const [, month, day] = d.dueDate.split('-').map(Number);
+                return (
+                  <div className={`md-deadline tone-${tone}`} key={d._id}>
+                    <span className="md-date" aria-hidden="true">
+                      <small>{MONTHS[month - 1]}</small>
+                      <strong>{day}</strong>
+                    </span>
+                    <div className="md-deadline-body">
+                      <div className="md-deadline-title">
+                        {ASSESSMENT_LABEL[d.type] || d.type}
+                        <span className={`md-kind${isExam(d.type) ? ' exam' : ''}`}>{isExam(d.type) ? 'Exam' : 'Due'}</span>
+                      </div>
+                      <div className="md-deadline-meta">{subjectLabel(d.subject)}</div>
+                      <div className="md-deadline-meta">
+                        {[weekdayOf(d.dueDate), d.dueTime && clock(d.dueTime), d.percentage ? `${d.percentage}%` : ''].filter(Boolean).join(' · ')}
+                      </div>
                     </div>
-                    <div className="log-meta">{subjectLabel(d.subject)}</div>
-                    <div className={`log-meta md-due${due.soon ? ' soon' : ''}`}>
-                      {due.text.replace(/^due /, '')}
-                      {d.dueTime ? ` · ${clock(d.dueTime)}` : ''}
-                    </div>
+                    <span className="md-countdown">{days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days`}</span>
+                    {isMentor && (
+                      <div className="md-deadline-actions">
+                        <span>{state === 'sent' ? `${user.name.split(' ')[0]} has been notified` : 'Notify their phone'}</span>
+                        <button
+                          type="button"
+                          className={`btn btn-sm md-alert${state === 'sent' ? ' sent' : ''}`}
+                          onClick={() => sendAlert(d)}
+                          disabled={!!state}
+                          aria-label={`Remind ${user.name} about this`}
+                        >
+                          {state === 'sent' ? <Check size={13} strokeWidth={3} /> : <BellRing size={13} />}
+                          {state === 'sent' ? 'Sent' : state === 'sending' ? 'Sending…' : 'Remind'}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {isMentor && (
-                    <button
-                      type="button"
-                      className={`btn btn-sm md-alert${state === 'sent' ? ' sent' : ''}`}
-                      onClick={() => sendAlert(d)}
-                      disabled={!!state}
-                      aria-label={`Remind ${user.name} about this`}
-                    >
-                      {state === 'sent' ? <Check size={13} strokeWidth={3} /> : <BellRing size={13} />}
-                      {state === 'sent' ? 'Sent' : state === 'sending' ? 'Sending…' : 'Remind'}
-                    </button>
-                  )}
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </Section>
 
