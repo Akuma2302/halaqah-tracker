@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, ListChecks, MapPin, MessagesSquare, Minus, PencilLine } from 'lucide-react';
+import { BellRing, CalendarClock, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, Clock, ListChecks, MapPin, MessagesSquare, Minus, PencilLine } from 'lucide-react';
 import client from '../services/apiClient';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../features/academic/weekUtils';
 import { DAYS, KIND_LABEL, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
+import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
+import { useToast } from '../hooks/useToast';
 
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
 const todayKey = toDateKey(new Date());
@@ -61,7 +63,26 @@ export default function MenteeDetail() {
   // The timetable day picked by hand; until then it follows today.
   const [pickedDay, setPickedDay] = useState(null);
 
-  useEffect(() => setPickedDay(null), [id]);
+  // Exam reminders sent from this visit: assessment id -> 'sending' | 'sent'.
+  const [alerts, setAlerts] = useState({});
+  const [toast, showToast] = useToast();
+
+  useEffect(() => {
+    setPickedDay(null);
+    setAlerts({});
+  }, [id]);
+
+  async function sendAlert(deadline) {
+    setAlerts((a) => ({ ...a, [deadline._id]: 'sending' }));
+    try {
+      await client.post(`/mentoring/mentees/${id}/alerts`, { assessmentId: deadline._id, date: todayKey });
+      setAlerts((a) => ({ ...a, [deadline._id]: 'sent' }));
+      showToast('Reminder sent');
+    } catch (err) {
+      setAlerts((a) => ({ ...a, [deadline._id]: undefined }));
+      showToast(err.response?.data?.error || "Couldn't send the reminder");
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -123,6 +144,8 @@ export default function MenteeDetail() {
   const consultations = academic.consultations;
   const validated = academic.mentorValidation?.isValidated;
   const timetable = data.timetable || [];
+  const deadlines = data.deadlines || [];
+  const isMentor = data.relation === 'mentee';
   const weekday = new Date().getDay();
   const classesOn = (day) => timetable.filter((e) => e.dayOfWeek === day);
   const firstClassDay = DAYS.findIndex((_, day) => classesOn(day).length);
@@ -222,6 +245,48 @@ export default function MenteeDetail() {
               );
             })}
           </div>
+        </Section>
+
+        {/* ---------- exams and deadlines still to come ---------- */}
+        <Section
+          icon={CalendarClock}
+          title="Exams and deadlines"
+          sub={isMentor ? 'Send a reminder to their phone' : 'From their subjects'}
+          aside={<span className="md-figure">{deadlines.length}</span>}
+        >
+          {deadlines.length === 0 ? (
+            <p className="log-empty">Nothing coming up in their subjects.</p>
+          ) : (
+            deadlines.map((d) => {
+              const due = dueLabel(d.dueDate);
+              const state = alerts[d._id];
+              return (
+                <div className="log-row md-deadline" key={d._id}>
+                  <span className="log-day">{formatDueDate(d.dueDate)}</span>
+                  <div className="log-body">
+                    <div className="log-title">
+                      {ASSESSMENT_LABEL[d.type] || d.type}
+                      {d.percentage ? ` · ${d.percentage}%` : ''}
+                    </div>
+                    <div className="log-meta">{subjectLabel(d.subject)}</div>
+                    <div className={`log-meta md-due${due.soon ? ' soon' : ''}`}>{due.text.replace(/^due /, '')}</div>
+                  </div>
+                  {isMentor && (
+                    <button
+                      type="button"
+                      className={`btn btn-sm md-alert${state === 'sent' ? ' sent' : ''}`}
+                      onClick={() => sendAlert(d)}
+                      disabled={!!state}
+                      aria-label={`Remind ${user.name} about this`}
+                    >
+                      {state === 'sent' ? <Check size={13} strokeWidth={3} /> : <BellRing size={13} />}
+                      {state === 'sent' ? 'Sent' : state === 'sending' ? 'Sending…' : 'Remind'}
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
         </Section>
 
         {/* ---------- week picker: everything below follows it ---------- */}
@@ -436,6 +501,7 @@ export default function MenteeDetail() {
           )}
         </Section>
       </div>
+      {toast}
     </div>
   );
 }

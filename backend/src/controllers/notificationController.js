@@ -11,4 +11,9 @@ async function markRead(req, res) {
   res.json(notification);
 }
 
-module.exports = { list, markRead };
+async function markAllRead(req, res) {
+  await notificationService.markAllRead(req.userId);
+  res.json({ ok: true });
+}
+
+module.exports = { list, markRead, markAllRead };

@@ -46,6 +46,8 @@ app.use((err, req, res, next) => {
 });
 
 registerSocketHandlers(io);
+// Routes reach the sockets through the app, to push a notification live.
+app.set('io', io);
 startReminderJob();
 
 // In production the frontend is deployed separately on Netlify, so this backend

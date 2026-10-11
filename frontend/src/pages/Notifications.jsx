@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Bell, Users, Calendar, Clock, MessageCircle } from 'lucide-react';
+import { AlarmClock, Bell, CalendarClock, CheckCheck, MessageCircle, Users } from 'lucide-react';
 import client from '../services/apiClient';
 import socket from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
@@ -9,17 +9,28 @@ import MutabaahReminderCard from '../components/MutabaahReminderCard';
 
 dayjs.extend(relativeTime);
 
-const ICONS = {
-  reminder: Clock,
-  group_invite: Users,
-  session_scheduled: Calendar,
-  message: MessageCircle
-};
+// Every notification type falls into one of these, which is how the list is
+// filtered and coloured.
+const CATEGORIES = [
+  { key: 'exam', label: 'Exams', icon: CalendarClock, types: ['exam_alert'], empty: 'No exam reminders from your mentor yet.' },
+  { key: 'reminder', label: 'Reminders', icon: AlarmClock, types: ['reminder'], empty: 'No reminders yet.' },
+  { key: 'group', label: 'Groups', icon: Users, types: ['group_invite', 'session_scheduled'], empty: 'No group invites or sessions yet.' },
+  { key: 'message', label: 'Messages', icon: MessageCircle, types: ['message'], empty: 'No messages yet.' }
+];
+const CATEGORY_OF = Object.fromEntries(CATEGORIES.flatMap((c) => c.types.map((t) => [t, c])));
+const OTHER = { key: 'other', icon: Bell };
+
+// "Today", "Yesterday" or "Earlier", for the headings in the list.
+function dayGroup(createdAt) {
+  const days = dayjs().startOf('day').diff(dayjs(createdAt).startOf('day'), 'day');
+  return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : 'Earlier';
+}
 
 export default function Notifications() {
   const { setUnreadCount } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     client
@@ -54,45 +65,114 @@ export default function Notifications() {
     }
   }
 
+  async function markAllRead() {
+    const before = notifications;
+    const unreadBefore = before.filter((n) => !n.isRead).length;
+    setNotifications((prev) => prev.map((x) => ({ ...x, isRead: true })));
+    setUnreadCount(0);
+    try {
+      await client.patch('/notifications/read-all');
+    } catch {
+      setNotifications(before);
+      setUnreadCount(unreadBefore);
+    }
+  }
+
+  const unread = notifications.filter((n) => !n.isRead).length;
+  const unreadIn = (category) => notifications.filter((n) => !n.isRead && category.types.includes(n.type)).length;
+  const active = CATEGORIES.find((c) => c.key === filter);
+  const shown = active ? notifications.filter((n) => active.types.includes(n.type)) : notifications;
+
+  // Newest first already; split under Today / Yesterday / Earlier.
+  const groups = useMemo(() => {
+    const out = [];
+    shown.forEach((n) => {
+      const label = dayGroup(n.createdAt);
+      const last = out[out.length - 1];
+      if (last?.label === label) last.items.push(n);
+      else out.push({ label, items: [n] });
+    });
+    return out;
+  }, [shown]);
+
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <h1 className="page-title">Notifications</h1>
-          <p className="page-subtitle">Reminders, invites, messages, and scheduled sessions</p>
+          <p className="page-subtitle">{unread > 0 ? `${unread} unread` : "You're all caught up"}</p>
         </div>
+        {unread > 0 && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={markAllRead}>
+            <CheckCheck size={14} /> Mark all read
+          </button>
+        )}
       </div>
 
-      <MutabaahReminderCard />
+      <div className="notif-filters" role="tablist" aria-label="Kind of notification">
+        <button type="button" role="tab" aria-selected={filter === 'all'} className={`notif-filter${filter === 'all' ? ' active' : ''}`} onClick={() => setFilter('all')}>
+          All
+          {unread > 0 && <span className="notif-count">{unread}</span>}
+        </button>
+        {CATEGORIES.map((c) => {
+          const count = unreadIn(c);
+          return (
+            <button
+              key={c.key}
+              type="button"
+              role="tab"
+              aria-selected={filter === c.key}
+              className={`notif-filter${filter === c.key ? ' active' : ''}`}
+              onClick={() => setFilter(c.key)}
+            >
+              <c.icon size={13} />
+              {c.label}
+              {count > 0 && <span className="notif-count">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
 
       {loading ? (
         <div className="spinner" />
-      ) : notifications.length === 0 ? (
-        <div className="card empty-state">
-          <Bell size={26} style={{ marginBottom: 8, color: 'var(--ink-soft)' }} />
-          <h3>You're all caught up</h3>
-          <p>Nothing new right now.</p>
+      ) : shown.length === 0 ? (
+        <div className="card empty-state notif-empty">
+          {(() => {
+            const Icon = active?.icon || Bell;
+            return <Icon size={24} />;
+          })()}
+          <h3>{active ? active.empty : 'Nothing here yet'}</h3>
+          {!active && <p>Reminders, exam alerts, group invites and messages will show up here.</p>}
         </div>
       ) : (
-        <div className="card">
-          {notifications.map((n) => {
-            const Icon = ICONS[n.type] || Bell;
-            return (
-              <div className={`notif-item${n.isRead ? ' read' : ''}`} key={n._id} onClick={() => markRead(n)}>
-                <span className="notif-dot" />
-                <div style={{ flex: 1 }}>
-                  <div className="notif-title">
-                    <Icon size={13} style={{ verticalAlign: -2, marginRight: 5, color: 'var(--ink-soft)' }} />
-                    {n.title}
-                  </div>
-                  {n.body && <div className="notif-body">{n.body}</div>}
-                  <div className="notif-time">{dayjs(n.createdAt).fromNow()}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        groups.map((g) => (
+          <div className="notif-group" key={g.label}>
+            <div className="notif-group-title">{g.label}</div>
+            <div className="card notif-list">
+              {g.items.map((n) => {
+                const category = CATEGORY_OF[n.type] || OTHER;
+                const Icon = category.icon;
+                return (
+                  <button type="button" className={`notif-item tone-${category.key}${n.isRead ? ' read' : ''}`} key={n._id} onClick={() => markRead(n)}>
+                    <span className="notif-icon">
+                      <Icon size={16} />
+                    </span>
+                    <span className="notif-text">
+                      <span className="notif-title">{n.title}</span>
+                      {n.body && <span className="notif-body">{n.body}</span>}
+                      <span className="notif-time">{dayjs(n.createdAt).fromNow()}</span>
+                    </span>
+                    {!n.isRead && <span className="notif-dot" aria-label="Unread" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))
       )}
+
+      <div className="notif-group-title notif-settings-title">Reminder settings</div>
+      <MutabaahReminderCard />
     </div>
   );
 }

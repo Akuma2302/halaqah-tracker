@@ -34,4 +34,8 @@ async function markRead(id, userId) {
   return row ? serializeNotification(row) : null;
 }
 
-module.exports = { notify, notifyMany, listForUser, markRead };
+async function markAllRead(userId) {
+  await notificationRepository.markAllRead(userId);
+}
+
+module.exports = { notify, notifyMany, listForUser, markRead, markAllRead };

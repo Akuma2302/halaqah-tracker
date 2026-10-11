@@ -6928,38 +6928,157 @@ input.input::-webkit-date-and-time-value {
 
 /* ---------- notifications ---------- */
 
-.notif-item {
+/* Kinds of notification, as a row of filters that scrolls sideways on phones */
+.notif-filters {
   display: flex;
-  gap: 12px;
-  padding: 14px 4px;
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  margin: 0 0 14px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.notif-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.notif-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.notif-filter.active {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.notif-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1b1403;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.notif-group + .notif-group {
+  margin-top: 14px;
+}
+
+.notif-group-title {
+  margin: 0 4px 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.notif-settings-title {
+  margin-top: 22px;
+}
+
+.card.notif-list {
+  padding: 4px 12px;
+}
+
+.notif-item {
+  --tone: var(--ink-soft);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 2px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .notif-item:last-child {
   border-bottom: none;
 }
 
+.notif-item.tone-exam {
+  --tone: var(--danger);
+}
+
+.notif-item.tone-reminder {
+  --tone: var(--gold);
+}
+
+.notif-item.tone-group {
+  --tone: var(--primary);
+}
+
+.notif-item.tone-message {
+  --tone: hsl(210 70% 58%);
+}
+
+.notif-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--tone) 16%, var(--surface));
+  color: var(--tone);
+}
+
+.notif-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .notif-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--gold);
+  width: 9px;
+  height: 9px;
   margin-top: 6px;
   flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--gold);
 }
 
-.notif-item.read .notif-dot {
-  background: var(--border);
+.notif-item.read .notif-text {
+  opacity: 0.62;
 }
 
-.notif-item.read {
-  opacity: 0.65;
+.notif-item.read .notif-icon {
+  background: var(--paper);
+  color: var(--ink-soft);
 }
 
 .notif-title {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
+}
+
+.notif-item.read .notif-title {
+  font-weight: 600;
 }
 
 .notif-body {
@@ -6972,4 +7091,40 @@ input.input::-webkit-date-and-time-value {
   font-size: 11px;
   color: var(--ink-soft);
   margin-top: 4px;
+}
+
+.card.notif-empty {
+  padding: 28px 20px;
+  color: var(--ink-soft);
+}
+
+.card.notif-empty h3 {
+  margin-top: 8px;
+}
+
+/* Exam reminders on a mentee's page */
+.md-deadline {
+  align-items: center;
+}
+
+.md-due.soon {
+  color: var(--gold-ink);
+  font-weight: 600;
+}
+
+.btn.md-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+}
+
+.btn.md-alert.sent {
+  border-color: transparent;
+  background: var(--paper);
+  color: var(--ink-soft);
 }

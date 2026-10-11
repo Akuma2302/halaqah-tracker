@@ -1,6 +1,8 @@
 const userRepository = require('../repositories/userRepository');
 const mutabaahRepository = require('../repositories/mutabaahRepository');
 const timetableRepository = require('../repositories/timetableRepository');
+const subjectRepository = require('../repositories/subjectRepository');
+const notificationService = require('./notificationService');
 const mutabaahService = require('./mutabaahService');
 const weeklyLogService = require('./weeklyLogService');
 const { CAMEL_FIELDS } = require('../models/MutabaahEntry');
@@ -113,11 +115,12 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart }) {
   if (!relation) throw fail(403, "You can't view this person's updates");
 
   const weekEnd = addDays(weekStart, 6);
-  const [todayEntry, weekRows, academic, timetableRows] = await Promise.all([
+  const [todayEntry, weekRows, academic, timetableRows, deadlines] = await Promise.all([
     mutabaahService.getEntry(menteeId, date),
     mutabaahRepository.findBoundedRangeForUser(menteeId, weekStart, weekEnd),
     weeklyLogService.getWeek(menteeId, weekStart),
-    timetableRepository.findByUser(menteeId)
+    timetableRepository.findByUser(menteeId),
+    upcomingAssessments(menteeId, date)
   ]);
   const rowByDate = Object.fromEntries(weekRows.map((r) => [r.date, r]));
   const week = Array.from({ length: 7 }, (_, i) => {
@@ -133,8 +136,63 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart }) {
     mutabaah: { today: todayEntry, week },
     academic,
     // Their weekly class timetable (the same every week).
-    timetable: timetableRows.map(timetableRepository.serialize)
+    timetable: timetableRows.map(timetableRepository.serialize),
+    // Their exams and other assessments still to come; a mentor can send a reminder for one.
+    deadlines
   };
+}
+
+const ASSESSMENT_LABEL = {
+  quiz: 'Quiz',
+  test: 'Test',
+  assignment: 'Assignment',
+  project: 'Project',
+  presentation: 'Presentation',
+  final_exam: 'Final Exam'
+};
+
+// A person's quizzes, tests, exams and other assessments still to come:
+// unfinished, dated from `date` on, soonest first.
+async function upcomingAssessments(userId, date) {
+  const subjects = await subjectRepository.findVisibleForUser(userId);
+  return subjects
+    .flatMap((s) =>
+      (s.subject_assessments || [])
+        .filter((a) => !a.is_done && a.due_date && a.due_date >= date)
+        .map((a) => ({
+          _id: a.id,
+          type: a.type,
+          percentage: a.percentage,
+          dueDate: a.due_date,
+          subject: { _id: s.id, name: s.name, code: s.code }
+        }))
+    )
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+// A mentor reminds a mentee about one of the mentee's upcoming assessments:
+// an in-app notification plus a push. Only a mentor may do this.
+async function alertMentee(mentorId, menteeId, { assessmentId, date, note }) {
+  const [mentor, mentee] = await Promise.all([userRepository.findById(mentorId), userRepository.findById(menteeId)]);
+  if (relationTo(mentor, mentee) !== 'mentee') throw fail(403, 'Only their mentor can send this reminder');
+
+  const assessment = (await upcomingAssessments(menteeId, date)).find((a) => a._id === assessmentId);
+  if (!assessment) throw fail(404, 'That exam or deadline is no longer coming up');
+
+  const label = ASSESSMENT_LABEL[assessment.type] || assessment.type;
+  const due = new Date(`${assessment.dueDate}T00:00:00Z`);
+  const days = Math.round((due - new Date(`${date}T00:00:00Z`)) / 86400000);
+  const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
+  const onDate = due.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const subject = assessment.subject.code ? `${assessment.subject.name} (${assessment.subject.code})` : assessment.subject.name;
+
+  return notificationService.notify({
+    userId: menteeId,
+    type: 'exam_alert',
+    title: `${label} ${when}: ${assessment.subject.name}`,
+    body: `${mentor.name} is reminding you: ${label} for ${subject} is on ${onDate}.${note ? ` "${note}"` : ''}`,
+    relatedId: assessment._id
+  });
 }
 
 // One person's numbers for a week, from their mutabaah rows and academic log.
@@ -245,4 +303,4 @@ async function getDashboard(userId, { date, weekStart }) {
   };
 }
 
-module.exports = { getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, groupSummary };
+module.exports = { getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, groupSummary, alertMentee };

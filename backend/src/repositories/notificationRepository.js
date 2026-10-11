@@ -51,4 +51,9 @@ async function markRead(id, userId) {
   return data;
 }
 
-module.exports = { create, createMany, findByUser, markRead };
+async function markAllRead(userId) {
+  const { error } = await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false);
+  if (error) throw error;
+}
+
+module.exports = { create, createMany, findByUser, markRead, markAllRead };

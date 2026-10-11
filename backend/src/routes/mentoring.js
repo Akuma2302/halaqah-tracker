@@ -7,6 +7,11 @@ const mentoringService = require('../services/mentoringService');
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const setMentorSchema = z.object({ memberId: z.string().trim().max(20) });
+const alertSchema = z.object({
+  assessmentId: z.string().uuid(),
+  date: z.string().regex(DATE),
+  note: z.string().trim().max(200).optional()
+});
 
 // The client sends its own "today" and week start, as elsewhere in the API,
 // so days line up with the user's timezone rather than the server's.
@@ -50,6 +55,17 @@ router.get(
     const date = dateParam(req, res, 'date');
     const weekStart = date && dateParam(req, res, 'weekStart');
     if (weekStart) res.json(await mentoringService.getMenteeDetail(req.userId, req.params.id, { date, weekStart }));
+  })
+);
+
+// A mentor reminds a mentee of an upcoming exam or deadline.
+router.post(
+  '/mentees/:id/alerts',
+  validate(alertSchema),
+  asyncHandler(async (req, res) => {
+    const notification = await mentoringService.alertMentee(req.userId, req.params.id, req.body);
+    req.app.get('io')?.to(`user:${notification.userId}`).emit('new-notification', notification);
+    res.status(201).json({ ok: true });
   })
 );
 

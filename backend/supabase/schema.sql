@@ -105,7 +105,7 @@ create table if not exists mutabaah_entries (
 create table if not exists notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
-  type text not null check (type in ('reminder', 'group_invite', 'session_scheduled', 'message')),
+  type text not null check (type in ('reminder', 'group_invite', 'session_scheduled', 'message', 'exam_alert')),
   title text not null,
   body text not null default '',
   related_id uuid,
@@ -301,7 +301,7 @@ alter table push_subscriptions enable row level security;
 -- Safe to run every boot: it just re-asserts the same (or newer) rule.
 alter table notifications drop constraint if exists notifications_type_check;
 alter table notifications add constraint notifications_type_check
-  check (type in ('reminder', 'group_invite', 'session_scheduled', 'message'));
+  check (type in ('reminder', 'group_invite', 'session_scheduled', 'message', 'exam_alert'));
 
 alter table subject_assessments add column if not exists due_date date;
 alter table subject_assessments add column if not exists progress_percentage numeric not null default 0;
