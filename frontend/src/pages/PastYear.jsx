@@ -129,7 +129,8 @@ export default function PastYear() {
 
   function openUpload() {
     // Start from your own kampus when it matches one of the places listed.
-    const myPlace = ALL_INSTITUTIONS.find((name) => user?.kampus && shortName(name).toLowerCase() === user.kampus.trim().toLowerCase());
+    const mine = (user?.kampus || '').trim().toLowerCase();
+    const myPlace = ALL_INSTITUTIONS.find((name) => mine && (name.toLowerCase() === mine || shortName(name).toLowerCase() === mine));
     setForm({ ...emptyForm, university: myPlace || '', universityPick: myPlace || '' });
     setFormError('');
     setSheetOpen(true);

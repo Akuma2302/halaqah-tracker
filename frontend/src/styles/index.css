@@ -11258,3 +11258,92 @@ button.adm-group:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ---------- Kampus: a dropdown that narrows as you type ---------- */
+.kampus-picker {
+  position: relative;
+}
+
+.kampus-picker .input {
+  padding-right: 40px;
+  text-overflow: ellipsis;
+}
+
+.kampus-picker-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 100%;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.kampus-picker-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 260px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.kampus-picker-group {
+  padding: 8px 10px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kampus-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kampus-picker-option:hover,
+.kampus-picker-option.active {
+  background: var(--paper);
+}
+
+.kampus-picker-option.chosen {
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+.kampus-picker-option svg {
+  flex-shrink: 0;
+}
+
+.kampus-picker-none {
+  margin: 0;
+  padding: 12px 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}

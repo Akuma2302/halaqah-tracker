@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Instagram, MessageCircle, Music2 } from 'lucide-react';
 import Sheet from './Sheet';
+import KampusPicker from './KampusPicker';
 import { useAuth } from '../hooks/useAuth';
 
 export default function ProfileSheet({ open, onClose, title = 'Your profile' }) {
@@ -71,13 +72,8 @@ export default function ProfileSheet({ open, onClose, title = 'Your profile' }) 
           <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
         </div>
         <div className="field">
-          <label>Kampus</label>
-          <input
-            className="input"
-            value={kampus}
-            onChange={(e) => setKampus(e.target.value)}
-            placeholder="e.g. UTM Skudai"
-          />
+          <label htmlFor="profile-kampus">Kampus</label>
+          <KampusPicker id="profile-kampus" value={kampus} onChange={setKampus} />
         </div>
         <div className="profile-links-title">
           Contact links <span>Optional. Your mentor, mentees and mentoring mates can see these.</span>
