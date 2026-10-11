@@ -22,7 +22,8 @@ import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
-import { dueLabel, formatDueDate, upcomingDeadlines } from '../features/academic/deadlines';
+import { daysUntil, isExam, upcomingDeadlines } from '../features/academic/deadlines';
+import { clock } from '../features/timetable/timetable';
 import SubjectFiles from '../features/academic/SubjectFiles';
 
 const MAX_WEEKS_BACK = 15; // the week picker used to offer this week + 15 previous weeks
@@ -32,6 +33,7 @@ const HOUR_PRESETS = [1, 1.5, 2, 3];
 const QUESTION_PRESETS = [5, 10, 20];
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
 const MAX_DEADLINES = 5;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function shiftWeek(weekKey, weeks) {
   const [y, m, d] = weekKey.split('-').map(Number);
@@ -271,6 +273,8 @@ export default function AcademicJournal() {
   // Upcoming deadlines sit second, right under the week's summary. While the
   // week is still loading (or failed) they stay with the subjects further down.
   const weekShown = !(weekLoading && !weekData) && !weekError;
+  const overdueCount = deadlines.filter((d) => d.dueDate && daysUntil(d.dueDate) < 0).length;
+  const weekCount = deadlines.filter((d) => d.dueDate && daysUntil(d.dueDate) >= 0 && daysUntil(d.dueDate) <= 7).length;
   const deadlinesCard = (
     <div className="card">
       <div className="log-section-head">
@@ -279,29 +283,57 @@ export default function AcademicJournal() {
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="log-section-title">Upcoming deadlines</div>
-          <div className="log-section-sub">From your subjects' assessments</div>
+          <div className="log-section-sub">
+            {deadlines.length === 0
+              ? "From your subjects' assessments"
+              : [overdueCount ? `${overdueCount} overdue` : '', `${weekCount} in the next 7 days`].filter(Boolean).join(' · ')}
+          </div>
         </div>
+        {deadlines.length > 0 && <span className="md-figure">{deadlines.length}</span>}
       </div>
       {deadlines.length ? (
         <>
-          {deadlines.slice(0, MAX_DEADLINES).map((d) => {
-            const due = d.dueDate ? dueLabel(d.dueDate) : null;
-            return (
-              <div className="log-row" key={d.id}>
-                <div className="log-body">
-                  <div className="log-title">
-                    {d.title}
-                    {d.weight ? <span className="log-weight"> · {d.weight}%</span> : null}
+          <div className="md-deadlines dl-own">
+            {deadlines.slice(0, MAX_DEADLINES).map((d) => {
+              const days = d.dueDate ? daysUntil(d.dueDate) : null;
+              const tone = days === null ? 'later' : days <= 3 ? 'urgent' : days <= 7 ? 'soon' : 'later';
+              const exam = isExam(d.type);
+              const [, month, day] = d.dueDate ? d.dueDate.split('-').map(Number) : [];
+              const [y, m, dd] = d.dueDate ? d.dueDate.split('-').map(Number) : [];
+              const weekday = d.dueDate ? SHORT_DAYS[new Date(y, m - 1, dd).getDay()] : '';
+              return (
+                <Link to="/subject-list" className={`md-deadline tone-${tone}${days !== null && days < 0 ? ' overdue' : ''}`} key={d.id}>
+                  <span className="md-date" aria-hidden="true">
+                    <small>{d.dueDate ? MONTHS[month - 1] : '–'}</small>
+                    <strong>{d.dueDate ? day : '?'}</strong>
+                  </span>
+                  <div className="md-deadline-body">
+                    <div className="md-deadline-title">
+                      {d.title}
+                      {d.type && <span className={`md-kind${exam ? ' exam' : ''}`}>{exam ? 'Exam' : 'Due'}</span>}
+                    </div>
+                    <div className="md-deadline-meta">{subjectLabel(d.subject)}</div>
+                    <div className="md-deadline-meta">
+                      {[weekday, d.dueTime && clock(d.dueTime), d.weight ? `${d.weight}%` : ''].filter(Boolean).join(' · ') || 'No date set'}
+                    </div>
                   </div>
-                  <div className="log-meta">{subjectLabel(d.subject)}</div>
-                </div>
-                <div className={`log-due${due?.overdue ? ' overdue' : due?.soon ? ' soon' : ''}`}>
-                  <span>{d.dueDate ? formatDueDate(d.dueDate) : 'No date'}</span>
-                  {due && <span className="log-due-rel">{due.text}</span>}
-                </div>
-              </div>
-            );
-          })}
+                  <span className="md-countdown">
+                    {days === null ? 'No date' : days < 0 ? `${-days}d late` : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days`}
+                  </span>
+                  {d.type && (
+                    <div className="dl-progress">
+                      <span className="dl-progress-bar">
+                        <span style={{ width: `${d.progress || 0}%` }} />
+                      </span>
+                      <span className="dl-progress-text">
+                        {d.progress || 0}% {exam ? 'revised' : 'done'}
+                      </span>
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
           <Link to="/subject-list" className="log-more">
             {deadlines.length > MAX_DEADLINES ? `View all ${deadlines.length} in Subjects` : 'Manage in Subjects'}
           </Link>

@@ -7,7 +7,8 @@ export const ASSESSMENT_LABEL = Object.fromEntries(ASSESSMENT_TYPES.map((t) => [
 export const EXAM_TYPES = ['quiz', 'test', 'final_exam'];
 export const isExam = (type) => EXAM_TYPES.includes(type);
 
-function daysUntil(dateKey) {
+// Whole days from today to a YYYY-MM-DD date (negative once it has passed).
+export function daysUntil(dateKey) {
   const [y, m, d] = dateKey.split('-').map(Number);
   const today = new Date();
   return Math.round((new Date(y, m - 1, d) - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);

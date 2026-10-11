@@ -7934,6 +7934,56 @@ input.input::-webkit-date-and-time-value {
   color: var(--ink-soft);
 }
 
+/* The same tile as a link (your own deadlines on the Academic tab) */
+a.md-deadline {
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.md-deadline.overdue {
+  background: color-mix(in srgb, var(--danger) 7%, var(--paper));
+}
+
+/* Subject names wrap here instead of being cut off */
+.dl-own .md-deadline {
+  align-items: flex-start;
+}
+
+.dl-own .md-deadline-meta {
+  white-space: normal;
+}
+
+/* How far along the work or revision is, on its own line under the item */
+.dl-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 100%;
+}
+
+.dl-progress-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.dl-progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.dl-progress-text {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
 /* A mentor's Remind, on its own line under the item */
 .md-deadline-actions {
   display: flex;
