@@ -8,6 +8,7 @@ import { toDateKey } from '../features/academic/weekUtils';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
 import { DAYS, SHORT_DAYS, clock } from '../features/timetable/timetable';
 import Sheet from '../components/Sheet';
+import SocialLinks from '../components/SocialLinks';
 
 // A steady colour per person (from their name), so faces in the tree are easy
 // to tell apart when there is no photo.
@@ -332,6 +333,7 @@ export default function Mentoring() {
                   <div className="tree-role">My mentor</div>
                   <div className="mentor-name">{tree.mentor.name}</div>
                   <div className="mentor-meta">{[tree.mentor.memberId, tree.mentor.kampus].filter(Boolean).join(' · ')}</div>
+                  <SocialLinks person={tree.mentor} />
                   {tree.myGroup && (
                     <div className="mentor-meta tree-my-group">
                       <Clock size={11} /> {[tree.myGroup.name, meetingText(tree.myGroup)].filter(Boolean).join(' · ')}

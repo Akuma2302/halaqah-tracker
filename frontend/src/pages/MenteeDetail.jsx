@@ -9,6 +9,7 @@ import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../features/a
 import { DAYS, KIND_LABEL, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
 import { ASSESSMENT_LABEL, isExam } from '../features/academic/deadlines';
 import { useToast } from '../hooks/useToast';
+import SocialLinks from '../components/SocialLinks';
 
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
 const todayKey = toDateKey(new Date());
@@ -211,6 +212,7 @@ export default function MenteeDetail() {
                 <span className="badge badge-gold">{data.relation === 'mate' ? 'Mentoring mate' : 'Your mentee'}</span>
                 {[user.memberId, user.kampus].filter(Boolean).join(' · ')}
               </div>
+              <SocialLinks person={user} />
             </div>
             <div className="md-ring-wrap">
               <span className={`today-ring md-ring tone-${ringTone}`} style={{ '--p': todayPercent }}>

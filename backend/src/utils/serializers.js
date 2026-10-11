@@ -18,6 +18,9 @@ function serializeUser(row) {
     name: row.name,
     kampus: row.kampus,
     avatarUrl: row.avatar_url,
+    whatsappUrl: row.whatsapp_url || '',
+    instagramUrl: row.instagram_url || '',
+    tiktokUrl: row.tiktok_url || '',
     mutabaahReminders: row.mutabaah_reminders !== false,
     createdAt: row.created_at,
     updatedAt: row.updated_at

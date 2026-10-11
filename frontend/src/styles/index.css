@@ -1927,6 +1927,74 @@ a {
   color: var(--ink-soft);
 }
 
+/* Contact links: on the profile sheet, and as round buttons on a person */
+.profile-links-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 6px 0 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.profile-links-title span {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.profile-link label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.social-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.social-link {
+  --tone: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 16%, var(--surface));
+  color: color-mix(in srgb, var(--tone) 78%, var(--ink));
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.social-link.tone-whatsapp {
+  --tone: hsl(142 62% 45%);
+}
+
+.social-link.tone-instagram {
+  --tone: hsl(330 75% 58%);
+}
+
+.social-link.tone-tiktok {
+  --tone: hsl(190 85% 50%);
+}
+
+.social-links.with-labels .social-link {
+  padding: 0 11px;
+}
+
 /* A mentor's groupings of their mentees, each with when it meets */
 .tree-caption.tree-caption-row {
   display: flex;

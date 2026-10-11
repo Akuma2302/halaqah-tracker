@@ -18,8 +18,8 @@ function fail(status, message) {
 
 // What a mentor and mentee see of each other: no email or Google id.
 function publicUser(row) {
-  const { _id, memberId, name, kampus, avatarUrl } = serializeUser(row);
-  return { _id, memberId, name, kampus, avatarUrl };
+  const { _id, memberId, name, kampus, avatarUrl, whatsappUrl, instagramUrl, tiktokUrl } = serializeUser(row);
+  return { _id, memberId, name, kampus, avatarUrl, whatsappUrl, instagramUrl, tiktokUrl };
 }
 
 // "D4F-0007", "d4f7" or plain "7" -> 7. Null when it isn't a User ID.

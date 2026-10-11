@@ -433,6 +433,12 @@ create table if not exists mentoring_groups (
 create index if not exists idx_mentoring_groups_mentor on mentoring_groups(mentor_id);
 alter table mentoring_groups enable row level security;
 alter table users add column if not exists mentoring_group_id uuid references mentoring_groups(id) on delete set null;
+
+-- Ways to reach someone, shown to their mentor, mentees and mentoring mates.
+-- Always a full https link to that service, built by utils/socialLinks.js.
+alter table users add column if not exists whatsapp_url text not null default '';
+alter table users add column if not exists instagram_url text not null default '';
+alter table users add column if not exists tiktok_url text not null default '';
 create index if not exists idx_users_mentor on users(mentor_id);
 
 -- Weekly class timetable: one row per class slot. day_of_week 0 = Sunday.
