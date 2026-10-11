@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, Eye, EyeOff, X, ChevronLeft, MoreVertical, User, CalendarClock, Check, BookOpen, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, X, ChevronDown, ChevronLeft, Clock, MoreVertical, User, CalendarClock, Check, BookOpen, AlertTriangle } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { ASSESSMENT_TYPES } from '../features/academic/constants';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
-import { CLASS_KINDS, KINDS, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
+import { CLASS_KINDS, DAYS, KINDS, KIND_LABEL, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
 
 const TYPE_LABEL = ASSESSMENT_LABEL;
 const CREDIT_PRESETS = [2, 3, 4];
 const emptyForm = { name: '', code: '', lecturerName: '', creditHour: '', assessments: [], classes: [] };
+// A stable id for each card in the editor, so it stays open or closed as others are added and removed.
+let nextKey = 0;
+const newKey = () => `k${(nextKey += 1)}`;
+
 const emptyClass = { dayOfWeek: 1, startTime: '09:00', endTime: '10:00', venue: '', kind: 'lecture' };
 
 // Overall progress weighted by each assessment's percentage (done = 100%).
@@ -52,6 +56,15 @@ export default function SubjectList() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [menuFor, setMenuFor] = useState(null);
+  // Which class-time and assessment cards are opened out in the editor.
+  const [openKeys, setOpenKeys] = useState(() => new Set());
+  const toggleOpen = (key) =>
+    setOpenKeys((keys) => {
+      const next = new Set(keys);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   const [toast, showToast] = useToast();
   // Every class slot in the timetable; each subject's own are shown and edited here.
   const [timetable, setTimetable] = useState([]);
@@ -102,6 +115,7 @@ export default function SubjectList() {
   }, [menuFor]);
 
   function openNew() {
+    setOpenKeys(new Set());
     setForm(emptyForm);
     setEditingId(null);
     setError('');
@@ -115,6 +129,7 @@ export default function SubjectList() {
       lecturerName: subject.lecturerName || '',
       creditHour: subject.creditHour ? String(subject.creditHour) : '',
       assessments: subject.assessments.map((a) => ({
+        _key: newKey(),
         type: a.type,
         percentage: a.percentage === null || a.percentage === undefined ? '' : String(a.percentage),
         dueDate: a.dueDate || '',
@@ -126,6 +141,7 @@ export default function SubjectList() {
         isDone: !!a.isDone
       })),
       classes: classesOf(subject._id).map((e) => ({
+        _key: newKey(),
         _id: e._id,
         title: e.title || '',
         dayOfWeek: e.dayOfWeek,
@@ -135,6 +151,7 @@ export default function SubjectList() {
         kind: e.kind || 'lecture'
       }))
     });
+    setOpenKeys(new Set());
     setEditingId(subject._id);
     setError('');
     setSheetOpen(true);
@@ -145,9 +162,11 @@ export default function SubjectList() {
   }
 
   function addAssessment(type) {
+    const _key = newKey();
+    setOpenKeys((keys) => new Set(keys).add(_key));
     setForm((f) => ({
       ...f,
-      assessments: [...f.assessments, { type, percentage: '', dueDate: '', dueTime: '', focusTopics: '', note: '', tasks: [], progressPercentage: 0, isDone: false }]
+      assessments: [...f.assessments, { _key, type, percentage: '', dueDate: '', dueTime: '', focusTopics: '', note: '', tasks: [], progressPercentage: 0, isDone: false }]
     }));
   }
 
@@ -180,9 +199,11 @@ export default function SubjectList() {
 
   // Class times: a new slot starts from the last one's times, on the next day.
   function addClass() {
+    const _key = newKey();
+    setOpenKeys((keys) => new Set(keys).add(_key));
     setForm((f) => {
       const last = f.classes[f.classes.length - 1];
-      const next = last ? { ...emptyClass, ...last, _id: undefined, title: '', dayOfWeek: (last.dayOfWeek + 1) % 7 } : emptyClass;
+      const next = last ? { ...emptyClass, ...last, _key, _id: undefined, title: '', dayOfWeek: (last.dayOfWeek + 1) % 7 } : { ...emptyClass, _key };
       return { ...f, classes: [...f.classes, next] };
     });
   }
@@ -223,6 +244,7 @@ export default function SubjectList() {
     }
     const badClass = form.classes.findIndex((c) => !c.startTime || !c.endTime || c.endTime <= c.startTime);
     if (badClass !== -1) {
+      setOpenKeys((keys) => new Set(keys).add(form.classes[badClass]._key));
       return setError(`Class time ${badClass + 1}: the end time must be after the start time.`);
     }
     setSaving(true);
@@ -535,36 +557,69 @@ export default function SubjectList() {
               {form.classes.length > 0 && <span className="assess-total">Shown in your Timetable</span>}
             </div>
 
-            {form.classes.map((c, i) => (
-              <div key={c._id || `new-${i}`} className="assess-card class-slot">
-                <div className="assess-row">
-                  <select className="input class-slot-day" value={c.dayOfWeek} onChange={(e) => updateClass(i, { dayOfWeek: Number(e.target.value) })} aria-label="Day">
-                    {SHORT_DAYS.map((label, d) => (
-                      <option key={label} value={d}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  <input className="input" type="time" value={c.startTime} onChange={(e) => updateClass(i, { startTime: e.target.value })} aria-label="Start time" />
-                  <span className="class-slot-to">to</span>
-                  <input className="input" type="time" value={c.endTime} onChange={(e) => updateClass(i, { endTime: e.target.value })} aria-label="End time" />
-                  <button type="button" className="icon-btn" onClick={() => removeClass(i)} aria-label="Remove class time">
-                    <X size={14} />
+            {form.classes.map((c, i) => {
+              const open = openKeys.has(c._key);
+              return (
+                <div key={c._key} className={`edit-card${open ? ' open' : ''}`}>
+                  <button type="button" className="edit-card-head" onClick={() => toggleOpen(c._key)} aria-expanded={open}>
+                    <span className="edit-card-icon">
+                      <Clock size={15} />
+                    </span>
+                    <span className="edit-card-text">
+                      <strong>
+                        {SHORT_DAYS[c.dayOfWeek]} · {c.startTime ? clock(c.startTime) : '–'} to {c.endTime ? clock(c.endTime) : '–'}
+                      </strong>
+                      <span>{[KIND_LABEL[c.kind] || c.kind, c.venue].filter(Boolean).join(' · ')}</span>
+                    </span>
+                    <ChevronDown size={16} className="edit-card-chevron" />
                   </button>
+                  {open && (
+                    <div className="edit-card-body">
+                      <div className="edit-grid-2">
+                        <label className="edit-field">
+                          <span>Day</span>
+                          <select className="input" value={c.dayOfWeek} onChange={(e) => updateClass(i, { dayOfWeek: Number(e.target.value) })}>
+                            {DAYS.map((label, d) => (
+                              <option key={label} value={d}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="edit-field">
+                          <span>Type</span>
+                          <select className="input" value={c.kind} onChange={(e) => updateClass(i, { kind: e.target.value })}>
+                            {/* Class kinds only; a slot saved earlier as something else keeps its own. */}
+                            {[...CLASS_KINDS, ...KINDS.filter(([value]) => value === c.kind && !CLASS_KINDS.some(([k]) => k === value))].map(([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <div className="edit-grid-2">
+                        <label className="edit-field">
+                          <span>Starts</span>
+                          <input className="input" type="time" value={c.startTime} onChange={(e) => updateClass(i, { startTime: e.target.value })} />
+                        </label>
+                        <label className="edit-field">
+                          <span>Ends</span>
+                          <input className="input" type="time" value={c.endTime} onChange={(e) => updateClass(i, { endTime: e.target.value })} />
+                        </label>
+                      </div>
+                      <label className="edit-field">
+                        <span>Venue</span>
+                        <input className="input" value={c.venue} onChange={(e) => updateClass(i, { venue: e.target.value })} placeholder="e.g. Dewan Kuliah 3" maxLength={80} />
+                      </label>
+                      <button type="button" className="edit-remove" onClick={() => removeClass(i)}>
+                        <Trash2 size={13} /> Remove this class time
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="assess-row">
-                  <select className="input class-slot-kind" value={c.kind} onChange={(e) => updateClass(i, { kind: e.target.value })} aria-label="Type">
-                    {/* Class kinds only; a slot saved earlier as something else keeps its own. */}
-                    {[...CLASS_KINDS, ...KINDS.filter(([value]) => value === c.kind && !CLASS_KINDS.some(([k]) => k === value))].map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  <input className="input class-slot-venue" value={c.venue} onChange={(e) => updateClass(i, { venue: e.target.value })} placeholder="Venue, e.g. Dewan Kuliah 3" maxLength={80} aria-label="Venue" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             <button type="button" className="chip class-slot-add" onClick={addClass}>
               <Plus size={12} /> Add class time
@@ -581,163 +636,204 @@ export default function SubjectList() {
               )}
             </div>
 
-            {form.assessments.map((a, i) => (
-              <div key={i} className={`assess-card${a.isDone ? ' done' : ''}`}>
-                <div className="assess-row">
-                  <select className="input assess-type" value={a.type} onChange={(e) => updateAssessment(i, { type: e.target.value })}>
-                    {ASSESSMENT_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="assess-weight">
-                    <input
-                      className="input"
-                      type="number"
-                      inputMode="numeric"
-                      min="0"
-                      max="100"
-                      placeholder="Weight"
-                      value={a.percentage}
-                      onChange={(e) => updateAssessment(i, { percentage: e.target.value })}
-                      aria-label="Weight percentage"
-                    />
-                    <span>%</span>
-                  </div>
-                  <button type="button" className="icon-btn" onClick={() => removeAssessment(i)} aria-label="Remove assessment">
-                    <X size={14} />
+            {form.assessments.map((a, i) => {
+              const open = openKeys.has(a._key);
+              const exam = isExam(a.type);
+              const named = tasksOf(a);
+              const progressLabel = exam ? 'Study progress' : 'Work progress';
+              return (
+                <div key={a._key} className={`edit-card${open ? ' open' : ''}${a.isDone ? ' done' : ''}`}>
+                  <button type="button" className="edit-card-head" onClick={() => toggleOpen(a._key)} aria-expanded={open}>
+                    <span className={`edit-card-icon${exam ? ' exam' : ''}`}>{a.isDone ? <Check size={15} strokeWidth={3} /> : <CalendarClock size={15} />}</span>
+                    <span className="edit-card-text">
+                      <strong>
+                        {TYPE_LABEL[a.type] || a.type}
+                        <span className={`md-kind${exam ? ' exam' : ''}`}>{exam ? 'Exam' : 'Due'}</span>
+                        {a.percentage !== '' && <em>{a.percentage}%</em>}
+                      </strong>
+                      <span>
+                        {[
+                          a.dueDate ? `${formatDueDate(a.dueDate)}${a.dueTime ? `, ${clock(a.dueTime)}` : ''}` : 'No date yet',
+                          a.isDone ? 'Done' : `${a.progressPercentage}% ${exam ? 'revised' : 'done'}`,
+                          named.length ? `${named.filter((t) => t.isDone).length}/${named.length} tasks` : ''
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    </span>
+                    <ChevronDown size={16} className="edit-card-chevron" />
                   </button>
-                </div>
-                <div className="assess-when-label">
-                  {isExam(a.type) ? 'Exam date and time' : 'Due date and time'}
-                  {isExam(a.type) && <span>Shown in your Timetable</span>}
-                </div>
-                <div className="assess-row">
-                  <input
-                    className="input assess-date"
-                    type="date"
-                    value={a.dueDate}
-                    onChange={(e) => updateAssessment(i, { dueDate: e.target.value })}
-                    aria-label={isExam(a.type) ? 'Exam date' : 'Due date'}
-                  />
-                  <input
-                    className="input assess-time"
-                    type="time"
-                    value={a.dueTime}
-                    onChange={(e) => updateAssessment(i, { dueTime: e.target.value })}
-                    disabled={!a.dueDate}
-                    aria-label={isExam(a.type) ? 'Exam time' : 'Due time'}
-                  />
-                </div>
-                <div className="assess-row">
-                  <label className="assess-done">
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={a.isDone}
-                      className={`switch${a.isDone ? ' on' : ''}`}
-                      onClick={() => updateAssessment(i, { isDone: !a.isDone, progressPercentage: !a.isDone ? 100 : a.progressPercentage })}
-                    >
-                      <span className="switch-knob" />
-                    </button>
-                    Done
-                  </label>
-                </div>
-                {!a.isDone && (
-                  <>
-                    <div className="assess-when-label">
-                      {isExam(a.type) ? 'Study progress' : 'Work progress'}
-                      <span className="assess-hint">
-                        {tasksOf(a).length
-                          ? `${tasksOf(a).filter((t) => t.isDone).length} of ${tasksOf(a).length} tasks done`
-                          : isExam(a.type)
-                            ? 'How much you have revised'
-                            : 'How much is finished'}
-                      </span>
+
+                  {open && (
+                    <div className="edit-card-body">
+                      <div className="edit-grid-2 edit-grid-type">
+                        <label className="edit-field">
+                          <span>Type</span>
+                          <select className="input" value={a.type} onChange={(e) => updateAssessment(i, { type: e.target.value })}>
+                            {ASSESSMENT_TYPES.map((t) => (
+                              <option key={t.value} value={t.value}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="edit-field">
+                          <span>Weight</span>
+                          <span className="assess-weight">
+                            <input
+                              className="input"
+                              type="number"
+                              inputMode="numeric"
+                              min="0"
+                              max="100"
+                              placeholder="0"
+                              value={a.percentage}
+                              onChange={(e) => updateAssessment(i, { percentage: e.target.value })}
+                              aria-label="Weight percentage"
+                            />
+                            <span>%</span>
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="edit-grid-2 edit-grid-when">
+                        <label className="edit-field">
+                          <span>{exam ? 'Exam date' : 'Due date'}</span>
+                          <input className="input" type="date" value={a.dueDate} onChange={(e) => updateAssessment(i, { dueDate: e.target.value })} />
+                        </label>
+                        <label className="edit-field">
+                          <span>Time</span>
+                          <input
+                            className="input"
+                            type="time"
+                            value={a.dueTime}
+                            onChange={(e) => updateAssessment(i, { dueTime: e.target.value })}
+                            disabled={!a.dueDate}
+                          />
+                        </label>
+                      </div>
+                      {exam && <p className="edit-note">Exams are shown in your Timetable on their date.</p>}
+
+                      <div className="edit-section">
+                        <div className="edit-section-head">
+                          <span>
+                            {progressLabel}
+                            {!a.isDone && (
+                              <small>
+                                {named.length
+                                  ? `${named.filter((t) => t.isDone).length} of ${named.length} tasks done`
+                                  : exam
+                                    ? 'How much you have revised'
+                                    : 'How much is finished'}
+                              </small>
+                            )}
+                          </span>
+                          <label className="assess-done">
+                            Done
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={a.isDone}
+                              className={`switch${a.isDone ? ' on' : ''}`}
+                              onClick={() => updateAssessment(i, { isDone: !a.isDone, progressPercentage: !a.isDone ? 100 : a.progressPercentage })}
+                            >
+                              <span className="switch-knob" />
+                            </button>
+                          </label>
+                        </div>
+                        {!a.isDone && (
+                          <div className={`assess-progress${named.length ? ' locked' : ''}`}>
+                            <input
+                              disabled={named.length > 0}
+                              type="range"
+                              min="0"
+                              max="100"
+                              step="5"
+                              value={a.progressPercentage}
+                              onChange={(e) => updateAssessment(i, { progressPercentage: Number(e.target.value) })}
+                              aria-label={progressLabel}
+                            />
+                            <span className={`assess-progress-value tone-${progressTone(Number(a.progressPercentage))}`}>{a.progressPercentage}%</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="edit-section">
+                        <div className="edit-section-head">
+                          <span>
+                            Tasks
+                            <small>The small steps to finish it</small>
+                          </span>
+                        </div>
+                        {(a.tasks || []).map((t, j) => (
+                          <div className={`assess-task${t.isDone ? ' done' : ''}`} key={j}>
+                            <button
+                              type="button"
+                              className="assess-task-check"
+                              role="checkbox"
+                              aria-checked={t.isDone}
+                              aria-label={`${t.title || 'Task'} done`}
+                              onClick={() => updateTask(i, j, { isDone: !t.isDone })}
+                            >
+                              {t.isDone && <Check size={12} strokeWidth={3} />}
+                            </button>
+                            <input
+                              className="input assess-task-title"
+                              value={t.title}
+                              onChange={(e) => updateTask(i, j, { title: e.target.value })}
+                              placeholder={exam ? 'e.g. Revise chapter 3' : 'e.g. Write the introduction'}
+                              maxLength={120}
+                              aria-label="Task"
+                            />
+                            <input
+                              className="input assess-task-date"
+                              type="date"
+                              value={t.dueDate}
+                              max={a.dueDate || undefined}
+                              onChange={(e) => updateTask(i, j, { dueDate: e.target.value })}
+                              aria-label="Task due date"
+                            />
+                            <button type="button" className="icon-btn" onClick={() => removeTask(i, j)} aria-label="Remove task">
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ))}
+                        <button type="button" className="chip class-slot-add assess-task-add" onClick={() => addTask(i)}>
+                          <Plus size={12} /> Add task
+                        </button>
+                      </div>
+
+                      {exam && (
+                        <label className="edit-field">
+                          <span>Topics to focus on</span>
+                          <input
+                            className="input"
+                            value={a.focusTopics}
+                            onChange={(e) => updateAssessment(i, { focusTopics: e.target.value })}
+                            placeholder="e.g. Chapter 3 graphs, dynamic programming"
+                            maxLength={300}
+                          />
+                        </label>
+                      )}
+                      <label className="edit-field">
+                        <span>Note</span>
+                        <textarea
+                          className="textarea assess-note"
+                          rows={2}
+                          value={a.note}
+                          onChange={(e) => updateAssessment(i, { note: e.target.value })}
+                          placeholder={exam ? 'e.g. Open book, bring a calculator' : 'e.g. Submit on the portal, group of 3'}
+                          maxLength={300}
+                        />
+                      </label>
+                      <button type="button" className="edit-remove" onClick={() => removeAssessment(i)}>
+                        <Trash2 size={13} /> Remove this assessment
+                      </button>
                     </div>
-                    <div className={`assess-progress${tasksOf(a).length ? ' locked' : ''}`}>
-                      <input
-                        disabled={tasksOf(a).length > 0}
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={a.progressPercentage}
-                        onChange={(e) => updateAssessment(i, { progressPercentage: Number(e.target.value) })}
-                        aria-label={isExam(a.type) ? 'Study progress' : 'Work progress'}
-                      />
-                      <span className={`assess-progress-value tone-${progressTone(Number(a.progressPercentage))}`}>
-                        {a.progressPercentage}%
-                      </span>
-                    </div>
-                  </>
-                )}
-                {isExam(a.type) && (
-                  <>
-                    <div className="assess-when-label">Topics to focus on</div>
-                    <input
-                      className="input"
-                      value={a.focusTopics}
-                      onChange={(e) => updateAssessment(i, { focusTopics: e.target.value })}
-                      placeholder="e.g. Chapter 3 graphs, dynamic programming"
-                      maxLength={300}
-                      aria-label="Topics to focus on"
-                    />
-                  </>
-                )}
-                <div className="assess-when-label">
-                  Tasks
-                  <span className="assess-hint">The small steps to finish it</span>
+                  )}
                 </div>
-                {(a.tasks || []).map((t, j) => (
-                  <div className={`assess-task${t.isDone ? ' done' : ''}`} key={j}>
-                    <button
-                      type="button"
-                      className="assess-task-check"
-                      role="checkbox"
-                      aria-checked={t.isDone}
-                      aria-label={`${t.title || 'Task'} done`}
-                      onClick={() => updateTask(i, j, { isDone: !t.isDone })}
-                    >
-                      {t.isDone && <Check size={12} strokeWidth={3} />}
-                    </button>
-                    <input
-                      className="input assess-task-title"
-                      value={t.title}
-                      onChange={(e) => updateTask(i, j, { title: e.target.value })}
-                      placeholder={isExam(a.type) ? 'e.g. Revise chapter 3' : 'e.g. Write the introduction'}
-                      maxLength={120}
-                      aria-label="Task"
-                    />
-                    <input
-                      className="input assess-task-date"
-                      type="date"
-                      value={t.dueDate}
-                      max={a.dueDate || undefined}
-                      onChange={(e) => updateTask(i, j, { dueDate: e.target.value })}
-                      aria-label="Task due date"
-                    />
-                    <button type="button" className="icon-btn" onClick={() => removeTask(i, j)} aria-label="Remove task">
-                      <X size={13} />
-                    </button>
-                  </div>
-                ))}
-                <button type="button" className="chip class-slot-add assess-task-add" onClick={() => addTask(i)}>
-                  <Plus size={12} /> Add task
-                </button>
-                <div className="assess-when-label">Note</div>
-                <textarea
-                  className="textarea assess-note"
-                  rows={2}
-                  value={a.note}
-                  onChange={(e) => updateAssessment(i, { note: e.target.value })}
-                  placeholder={isExam(a.type) ? 'e.g. Open book, bring a calculator' : 'e.g. Submit on the portal, group of 3'}
-                  maxLength={300}
-                  aria-label="Note"
-                />
-              </div>
-            ))}
+              );
+            })}
 
             <div className="chip-row assess-add">
               {ASSESSMENT_TYPES.map((t) => (

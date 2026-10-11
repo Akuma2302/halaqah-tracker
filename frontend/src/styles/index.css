@@ -4010,6 +4010,202 @@ a.perf-row:hover .perf-name {
   color: var(--ink-soft);
 }
 
+/* ---------- subject editor: class times and assessments as cards that open out ---------- */
+.edit-card {
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.edit-card.open {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+
+.edit-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.edit-card.open .edit-card-head {
+  background: var(--paper);
+}
+
+.edit-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+.edit-card-icon.exam {
+  background: var(--gold-tint);
+  color: var(--gold);
+}
+
+.edit-card.done .edit-card-icon {
+  background: var(--primary);
+  color: #fff;
+}
+
+.edit-card-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.edit-card-text strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 7px;
+  font-size: 14.5px;
+}
+
+.edit-card-text strong em {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-style: normal;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.edit-card-text > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.edit-card-chevron {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+  transition: transform 0.15s ease;
+}
+
+.edit-card.open .edit-card-chevron {
+  transform: rotate(180deg);
+}
+
+.edit-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 10px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.edit-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.edit-grid-2.edit-grid-type {
+  grid-template-columns: minmax(0, 1fr) 104px;
+}
+
+.edit-grid-2.edit-grid-when {
+  grid-template-columns: minmax(0, 1fr) 138px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.edit-field > span:first-child,
+.edit-section-head > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.edit-field .input {
+  min-width: 0;
+  padding-left: 9px;
+  padding-right: 6px;
+}
+
+.edit-field .assess-weight .input {
+  width: 100%;
+}
+
+.edit-note {
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--gold-ink);
+}
+
+.edit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.edit-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.edit-section-head > span {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.edit-section-head small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.edit-section-head .assess-done {
+  font-size: 12.5px;
+}
+
+.edit-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--danger);
+  cursor: pointer;
+}
+
 /* The small steps towards an assessment, in the editor */
 .assess-task {
   display: flex;
