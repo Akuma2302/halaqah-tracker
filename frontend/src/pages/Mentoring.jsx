@@ -5,7 +5,7 @@ import MentoringDashboard from '../features/mentoring/MentoringDashboard';
 import client from '../services/apiClient';
 import { useToast } from '../hooks/useToast';
 import { toDateKey } from '../features/academic/weekUtils';
-import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
+import { ASSESSMENT_LABEL, daysUntil } from '../features/academic/deadlines';
 import { DAYS, SHORT_DAYS, clock } from '../features/timetable/timetable';
 import Sheet from '../components/Sheet';
 import SocialLinks from '../components/SocialLinks';
@@ -72,6 +72,8 @@ function meetingText(group, days = SHORT_DAYS) {
 
 // Mates and mentees open their detail; a mentor's own detail is never shown
 // to their mentees.
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export default function Mentoring() {
   const [params, setParams] = useSearchParams();
   const view = params.get('view') === 'dashboard' ? 'dashboard' : 'tree';
@@ -135,6 +137,7 @@ export default function Mentoring() {
 
   const mates = tree?.mates || [];
   const mentees = tree?.mentees || [];
+  const examsThisWeek = (tree?.menteeExams || []).filter((x) => daysUntil(x.dueDate) <= 7).length;
   const groups = tree?.groups || [];
   const ungrouped = mentees.filter((m) => !groups.some((g) => g._id === m.groupId));
 
@@ -417,28 +420,51 @@ export default function Mentoring() {
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="log-section-title">My mentees' exams</div>
-                  <div className="log-section-sub">Quizzes, tests and finals still to come</div>
+                  <div className="log-section-sub">
+                    {examsThisWeek
+                      ? `${examsThisWeek} in the next 7 days · ${tree.menteeExams.length} to come`
+                      : 'Quizzes, tests and finals still to come'}
+                  </div>
                 </div>
               </div>
-              {tree.menteeExams.map((x) => {
-                const due = dueLabel(x.dueDate);
-                return (
-                  <Link to={`/mentoring/${x.mentee._id}`} className="log-row mentee-exam" key={`${x.mentee._id}-${x._id}`}>
-                    <span className="log-day">{formatDueDate(x.dueDate)}</span>
-                    <div className="log-body">
-                      <div className="log-title">
-                        {x.mentee.name} · {ASSESSMENT_LABEL[x.type] || x.type}
+              {/* The same tile as your own deadlines; tapping one opens that mentee */}
+              <div className="md-deadlines">
+                {tree.menteeExams.map((x) => {
+                  const days = daysUntil(x.dueDate);
+                  const [, month, day] = x.dueDate.split('-').map(Number);
+                  const weekday = SHORT_DAYS[new Date(`${x.dueDate}T00:00:00`).getDay()];
+                  const subject = x.subject?.code ? `${x.subject.name} (${x.subject.code})` : x.subject?.name;
+                  return (
+                    <Link
+                      to={`/mentoring/${x.mentee._id}`}
+                      className={`md-deadline tone-${days <= 3 ? 'urgent' : days <= 7 ? 'soon' : 'later'}`}
+                      key={`${x.mentee._id}-${x._id}`}
+                    >
+                      <span className="md-date" aria-hidden="true">
+                        <small>{MONTHS[month - 1]}</small>
+                        <strong>{day}</strong>
+                      </span>
+                      <div className="md-deadline-body">
+                        <div className="md-deadline-title">
+                          {x.mentee.name}
+                          <span className="md-kind exam">{ASSESSMENT_LABEL[x.type] || x.type}</span>
+                        </div>
+                        <div className="md-deadline-meta">{subject || 'No subject'}</div>
+                        <div className="md-deadline-meta">{[weekday, x.dueTime && clock(x.dueTime)].filter(Boolean).join(' · ')}</div>
                       </div>
-                      <div className="log-meta">{[x.subject.name, x.subject.code].filter(Boolean).join(' · ')}</div>
-                      <div className={`log-meta md-due${due.soon ? ' soon' : ''}`}>
-                        {due.text.replace(/^due /, '')}
-                        {x.dueTime ? ` · ${clock(x.dueTime)}` : ''}
-                      </div>
-                    </div>
-                    <ChevronRight size={16} className="mentee-chevron" />
-                  </Link>
-                );
-              })}
+                      <span className="md-countdown">{days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days`}</span>
+                      {typeof x.progressPercentage === 'number' && (
+                        <div className="dl-progress">
+                          <span className="dl-progress-bar">
+                            <span style={{ width: `${x.progressPercentage}%` }} />
+                          </span>
+                          <span className="dl-progress-text">{x.progressPercentage}% revised</span>
+                        </div>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           )}
           {(mates.length > 0 || mentees.length > 0) && (
