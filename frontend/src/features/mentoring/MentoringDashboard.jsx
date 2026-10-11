@@ -1,19 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowDownRight, ArrowUpRight, CheckCircle2, ChevronLeft, ChevronRight, Minus } from 'lucide-react';
+import { AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, Clock, GraduationCap, Minus, Search, Timer, X } from 'lucide-react';
 import client from '../../services/apiClient';
 import { WEEKLY_TARGET_HOURS } from '../academic/constants';
 import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../academic/weekUtils';
+import { MUTABAAH_FIELDS } from '../mutabaah/mutabaahFields';
+import { MUTABAAH_ICONS } from '../mutabaah/mutabaahIcons';
+import { hueFor } from '../timetable/timetable';
 
 const todayKey = toDateKey(new Date());
 const currentWeekKey = toDateKey(getWeekStart());
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const SORTS = [
-  ['mutabaah', 'Mutabaah'],
-  ['study', 'Study'],
-  ['name', 'Name']
-];
+const AMAL_LABEL = Object.fromEntries(MUTABAAH_FIELDS.map((f) => [f.key, f.label]));
+
+// The amal a person has skipped most on the days so far, or null if none was skipped.
+function mostMissed(person) {
+  if (!person.items || !person.daysElapsed) return null;
+  const [key, done] = Object.entries(person.items).sort((a, b) => a[1] - b[1])[0] || [];
+  return key && done < person.daysElapsed ? { label: AMAL_LABEL[key] || key, missed: person.daysElapsed - done } : null;
+}
 
 function shiftWeek(weekKey, weeks) {
   const [y, m, d] = weekKey.split('-').map(Number);
@@ -70,9 +76,21 @@ function DayStrip({ days, total }) {
 
 function PersonRow({ person, rank, isThisWeek }) {
   const hoursPercent = Math.min(100, Math.round((person.studyHours / WEEKLY_TARGET_HOURS) * 100));
+  const missed = mostMissed(person);
   const body = (
     <>
-      {rank !== null && <span className="perf-rank">{rank}</span>}
+      <span className="perf-avatar-wrap">
+        {person.avatarUrl ? (
+          <img className="avatar perf-avatar" src={person.avatarUrl} alt="" />
+        ) : (
+          <span className="avatar perf-avatar mentor-avatar-letter" style={{ '--hue': hueFor(person.name) }}>
+            {(person.name || '?').trim()[0]?.toUpperCase()}
+          </span>
+        )}
+        <span className="perf-rank" title={`Number ${rank} by mutabaah`}>
+          {rank}
+        </span>
+      </span>
       <div className="perf-body">
         <div className="perf-head">
           <span className="perf-name">{person.name}</span>
@@ -103,6 +121,11 @@ function PersonRow({ person, rank, isThisWeek }) {
           {isThisWeek && <span className={`perf-chip${person.studiedToday ? ' ok' : ''}`}>{person.studiedToday ? 'Studied today' : 'No study yet today'}</span>}
           {person.questions > 0 && <span className="perf-chip">{person.questions} questions</span>}
           {person.consultations > 0 && <span className="perf-chip ok">Met lecturer ×{person.consultations}</span>}
+          {missed && (
+            <span className="perf-chip warn" title={`Not done on ${missed.missed} of ${person.daysElapsed} day${person.daysElapsed === 1 ? '' : 's'}`}>
+              Misses {missed.label} most
+            </span>
+          )}
         </div>
       </div>
       {!person.isMe && <ChevronRight size={16} className="mentee-chevron" />}
@@ -126,7 +149,7 @@ export default function MentoringDashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
   const [groupKey, setGroupKey] = useState(null); // chosen by the user; null = pick a sensible default
-  const [sort, setSort] = useState('mutabaah');
+  const [query, setQuery] = useState('');
   const isThisWeek = week === currentWeekKey;
 
   useEffect(() => {
@@ -145,13 +168,25 @@ export default function MentoringDashboard() {
   const active = groupKey || (data && data.mentees.people.length === 0 && data.mates.people.length > 0 ? 'mates' : 'mentees');
   const group = data?.[active];
 
+  // Best mutabaah first, as the server sends them; the search narrows by name or User ID.
   const people = useMemo(() => {
     if (!group) return [];
-    const list = [...group.people];
-    if (sort === 'study') list.sort((a, b) => b.studyHours - a.studyHours || b.mutabaahPercent - a.mutabaahPercent);
-    else if (sort === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
-    return list; // 'mutabaah' is the order the server sends
-  }, [group, sort]);
+    const q = query.trim().toLowerCase();
+    return group.people
+      .map((p, i) => ({ person: p, rank: i + 1 }))
+      .filter(({ person }) => !q || person.name.toLowerCase().includes(q) || (person.memberId || '').toLowerCase().includes(q));
+  }, [group, query]);
+
+  // Each amal across the whole group for the days so far, least done first.
+  const amal = useMemo(() => {
+    if (!group) return [];
+    const possible = group.people.reduce((sum, p) => sum + (p.daysElapsed || 0), 0);
+    if (!possible || !group.people.some((p) => p.items)) return [];
+    return MUTABAAH_FIELDS.map((f) => {
+      const done = group.people.reduce((sum, p) => sum + (p.items?.[f.key] || 0), 0);
+      return { key: f.key, label: f.label, done, possible, percent: Math.round((done / possible) * 100) };
+    }).sort((a, b) => a.percent - b.percent);
+  }, [group]);
 
   const attention = useMemo(
     () => (group && isThisWeek ? group.people.filter((p) => !p.isMe).map((p) => ({ person: p, why: concerns(p) })).filter((x) => x.why.length) : []),
@@ -237,23 +272,72 @@ export default function MentoringDashboard() {
                 )}
               </div>
             </div>
-            <div className="week-stats perf-summary">
-              <div className="week-stat">
-                <span className="week-stat-value">{summary.avgStudyHours}h</span>
-                <span className="week-stat-label">Avg study</span>
-              </div>
-              <div className="week-stat">
-                <span className="week-stat-value">{isThisWeek ? `${summary.studiedToday}/${summary.count}` : '–'}</span>
-                <span className="week-stat-label">Studied today</span>
-              </div>
-              <div className="week-stat">
-                <span className="week-stat-value">
-                  {summary.metLecturer}/{summary.count}
+            <div className="perf-facts">
+              <div className="perf-fact">
+                <span className="perf-fact-icon">
+                  <Timer size={15} />
                 </span>
-                <span className="week-stat-label">Met lecturer</span>
+                <strong>{summary.avgStudyHours}h</strong>
+                <span>Avg study</span>
+              </div>
+              <div className="perf-fact">
+                <span className="perf-fact-icon">
+                  <Clock size={15} />
+                </span>
+                <strong>{isThisWeek ? `${summary.studiedToday}/${summary.count}` : '–'}</strong>
+                <span>Studied today</span>
+              </div>
+              <div className="perf-fact">
+                <span className="perf-fact-icon">
+                  <GraduationCap size={15} />
+                </span>
+                <strong>
+                  {summary.metLecturer}/{summary.count}
+                </strong>
+                <span>Met lecturer</span>
               </div>
             </div>
           </div>
+
+          {/* ---------- mutabaah, amal by amal: which is skipped most ---------- */}
+          {amal.length > 0 && (
+            <div className="card perf-amal">
+              <div className="log-section-head">
+                <span className="log-section-icon">
+                  <BarChart3 size={16} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="log-section-title">Mutabaah by amal</div>
+                  <div className="log-section-sub">Least done first, {isThisWeek ? 'this week so far' : 'that week'}</div>
+                </div>
+              </div>
+              {amal[0].percent < 100 && (
+                <p className="perf-amal-lead">
+                  <strong>{amal[0].label}</strong> is missed the most: done {amal[0].done} of {amal[0].possible} time{amal[0].possible === 1 ? '' : 's'}.
+                </p>
+              )}
+              <div className="perf-amal-list">
+                {amal.map((a, i) => {
+                  const Icon = MUTABAAH_ICONS[a.key];
+                  return (
+                    <div className={`perf-amal-row tone-${tone(a.percent)}${i === 0 && a.percent < 100 ? ' worst' : ''}`} key={a.key}>
+                      <span className="perf-amal-icon">{Icon && <Icon size={14} />}</span>
+                      <span className="perf-amal-name">{a.label}</span>
+                      <span className="perf-bar">
+                        <span className={`perf-bar-fill tone-${tone(a.percent)}`} style={{ width: `${a.percent}%` }} />
+                      </span>
+                      <span className="perf-amal-value">
+                        {a.percent}%
+                        <small>
+                          {a.done}/{a.possible}
+                        </small>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ---------- who to follow up with ---------- */}
           {isThisWeek && others > 0 && (
@@ -276,17 +360,30 @@ export default function MentoringDashboard() {
           <div className="card perf-group">
             <div className="perf-list-head">
               <span className="log-section-title">{active === 'mates' ? 'Mentoring mates' : 'Mentees'}</span>
-              <span className="perf-sort" role="group" aria-label="Sort by">
-                {SORTS.map(([key, label]) => (
-                  <button key={key} type="button" className={`chip${sort === key ? ' on' : ''}`} onClick={() => setSort(key)}>
-                    {label}
-                  </button>
-                ))}
+              <span className="perf-count">
+                {query.trim() ? `${people.length} of ${group.people.length}` : `${group.people.length}`}
               </span>
             </div>
-            {people.map((p, i) => (
-              <PersonRow key={p._id} person={p} rank={sort === 'name' ? null : i + 1} isThisWeek={isThisWeek} />
-            ))}
+            <label className="perf-search">
+              <Search size={15} />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name or User ID"
+                aria-label="Search by name or User ID"
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery('')} aria-label="Clear search">
+                  <X size={14} />
+                </button>
+              )}
+            </label>
+            {people.length === 0 ? (
+              <p className="log-empty">Nobody matches "{query.trim()}".</p>
+            ) : (
+              people.map(({ person, rank }) => <PersonRow key={person._id} person={person} rank={rank} isThisWeek={isThisWeek} />)
+            )}
           </div>
 
           <p className="mentor-note">

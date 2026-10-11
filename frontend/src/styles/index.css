@@ -1266,6 +1266,214 @@ a {
   color: var(--primary-dark);
 }
 
+/* ---------- mentoring dashboard: overview facts, amal analysis, search ---------- */
+.perf-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.perf-fact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  text-align: center;
+}
+
+.perf-fact-icon {
+  display: flex;
+  color: var(--primary);
+}
+
+.perf-fact strong {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.perf-fact > span:last-child {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.card.perf-amal {
+  margin-bottom: 12px;
+}
+
+.perf-amal-lead {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.perf-amal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.perf-amal-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 104px) minmax(0, 1fr) 58px;
+  align-items: center;
+  gap: 8px;
+}
+
+.perf-amal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+.perf-amal-row.worst .perf-amal-icon {
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface));
+  color: var(--danger);
+}
+
+.perf-amal-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.perf-amal-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.perf-amal-value small {
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.perf-count {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.perf-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 4px;
+  padding: 0 10px;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+.perf-search:focus-within {
+  border-color: var(--primary);
+}
+
+.perf-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.perf-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.perf-search button {
+  display: flex;
+  padding: 4px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.perf-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.perf-avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+}
+
+.perf-row .perf-avatar-wrap .perf-rank {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  min-width: 0;
+  height: 19px;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* The name gets the whole line; the day strip sits under it */
+.perf-row .perf-head {
+  flex-wrap: wrap;
+  row-gap: 5px;
+}
+
+.perf-row .perf-days {
+  flex: 0 0 100%;
+  margin-left: 0;
+  justify-content: flex-start;
+}
+
+.perf-chip.warn {
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  color: var(--danger);
+}
+
 /* Lecturer consultations: who, when and where, then what was discussed */
 .md-consults {
   display: flex;

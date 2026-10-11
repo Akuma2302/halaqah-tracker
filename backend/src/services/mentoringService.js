@@ -224,9 +224,19 @@ function weekStats(mutabaahRows, academic, { date, weekStart }) {
   const prevDone = prevRows.reduce((sum, r) => sum + doneByDate[r.date], 0);
   const prevMutabaahPercent = prevRows.length ? Math.round((prevDone / (7 * CAMEL_FIELDS.length)) * 100) : null;
 
+  // How many of the days so far each amal was done, e.g. { tahajud: 2, dhuha: 5 }.
+  const items = Object.fromEntries(CAMEL_FIELDS.map((key) => [key, 0]));
+  counted.forEach((r) => {
+    const entry = mutabaahService.toApiShapePublic(r, r.user_id, r.date);
+    CAMEL_FIELDS.forEach((key) => {
+      if (entry[key]) items[key] += 1;
+    });
+  });
+
   const hours = academic.studySessions.reduce((sum, s) => sum + s.hours, 0);
   return {
     days,
+    items,
     daysElapsed,
     prevMutabaahPercent,
     mutabaahPercent: possible ? Math.round((done / possible) * 100) : 0,
