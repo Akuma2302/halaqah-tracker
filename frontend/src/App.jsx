@@ -54,6 +54,7 @@ export default function App() {
           <Route path="/academic-journal" element={<AcademicJournal />} />
           <Route path="/academic-journal/study" element={<AcademicJournal focus="study" />} />
           <Route path="/academic-journal/questions" element={<AcademicJournal focus="question" />} />
+          <Route path="/academic-journal/mentor" element={<AcademicJournal focus="mentor" />} />
           <Route path="/academic-journal/consultations" element={<AcademicJournal focus="consult" />} />
           <Route path="/subject-list" element={<SubjectList />} />
           <Route path="/deadlines" element={<Deadlines />} />

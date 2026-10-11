@@ -66,11 +66,12 @@ const emptyConsultForm = { subjectId: '', lecturerName: '', detail: '', date: ''
 
 // `focus` shows one log on a page of its own (opened from the dashboard):
 // 'study' for study hours, 'question' for practice questions, 'consult' for
-// lecturer consultations.
+// lecturer consultations, 'mentor' for the mentor's validation of the week.
 // The week chosen on the main page carries over.
 const FOCUS = {
   study: { title: 'Study hours', subtitle: 'Notes, questions, projects and study groups you worked on' },
   question: { title: 'Practice questions', subtitle: 'Past year, tutorial and exercise questions you did' },
+  mentor: { title: 'Mentor validation', subtitle: 'Mark the week once your mentor has checked it' },
   consult: { title: 'Lecturer consultations', subtitle: 'Questions asked and discussions with your lecturers' }
 };
 
@@ -411,10 +412,15 @@ export default function AcademicJournal({ focus = null }) {
                     </span>
                     <ChevronRight size={12} className="week-stat-go" />
                   </Link>
-                  <div className={`week-stat${validated ? ' ok' : ''}`} title={validated ? 'Validated by mentor' : 'Not validated by mentor yet'}>
+                  <Link
+                    to="/academic-journal/mentor"
+                    className={`week-stat week-stat-link${validated ? ' ok' : ''}`}
+                    aria-label={`${validated ? 'Validated by mentor' : 'Not validated by mentor yet'}. Open to change.`}
+                  >
                     <span className="week-stat-value">{validated ? <CheckCircle2 size={18} /> : '–'}</span>
                     <span className="week-stat-label">Mentor</span>
-                  </div>
+                    <ChevronRight size={12} className="week-stat-go" />
+                  </Link>
                 </div>
 
                 {/* ---------- the semester in numbers, in the same card ---------- */}
@@ -523,7 +529,7 @@ export default function AcademicJournal({ focus = null }) {
             </>
           )}
 
-          {!focus && (
+          {focus === 'mentor' && (
             <>
               {/* ---------- mentor validation ---------- */}
               <div className="card mentor-card">
