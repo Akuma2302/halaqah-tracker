@@ -6017,6 +6017,24 @@ input.input::-webkit-date-and-time-value {
   margin-top: 12px;
 }
 
+/* The hero and, under it, the deadlines: one column of the top row */
+.home-today-col {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.home-deadlines-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  text-decoration: none;
+}
+
 @media (min-width: 900px) {
   .home-today {
     grid-template-columns: minmax(0, 340px) minmax(0, 1fr);

@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BookMarked,
   BookOpenText,
+  CalendarClock,
   Check,
   ChevronRight,
   Flame,
@@ -22,6 +23,8 @@ import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
 import { currentStreak, hijriDate } from '../features/mutabaah/streak';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
+import { daysUntil, upcomingDeadlines } from '../features/academic/deadlines';
+import { AssessmentSheet, DeadlineTile } from '../features/academic/DeadlineTile';
 import { lastReadPath, readLastRead } from '../services/quranApi';
 
 const SETUP_DISMISSED_KEY = 'mutabaah_setup_dismissed';
@@ -82,6 +85,19 @@ export default function Dashboard() {
   useEffect(() => {
     client.get(`/mutabaah/${todayStr}`).then((res) => setToday(res.data)).catch(() => {});
   }, [todayStr]);
+
+  // Unfinished exams and due dates from the subjects, soonest first.
+  const [subjects, setSubjects] = useState([]);
+  const [openDeadline, setOpenDeadline] = useState(null);
+  useEffect(() => {
+    client
+      .get('/academic/subjects')
+      .then((res) => setSubjects(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setSubjects([]));
+  }, []);
+  const deadlines = useMemo(() => upcomingDeadlines(subjects), [subjects]);
+  const overdueCount = deadlines.filter((d) => daysUntil(d.dueDate) < 0).length;
+  const weekCount = deadlines.filter((d) => daysUntil(d.dueDate) >= 0 && daysUntil(d.dueDate) <= 7).length;
 
   useEffect(() => {
     client
@@ -212,36 +228,64 @@ export default function Dashboard() {
       )}
 
       <ProfileSheet open={profileOpen} onClose={() => setProfileOpen(false)} title="Set up your profile" />
+      <AssessmentSheet deadline={openDeadline} onClose={() => setOpenDeadline(null)} />
 
       <div className="home-today">
-        {/* ---------- today at a glance ---------- */}
-        <div className={`card today-hero${today && left === 0 ? ' complete' : ''}`}>
-          <MutabaahRing entry={today} size={124} caption={false} />
-          <div className="today-hero-text">
-            <div className="today-hero-label">Today's mutabaah</div>
-            <div className="today-hero-status">
-              {!today ? 'Loading…' : left === 0 ? 'All done. Alhamdulillah.' : done === 0 ? `${TOTAL} to go` : `${left} left today`}
-            </div>
-            <div className="today-hero-sub">
-              {done} of {TOTAL} completed
-            </div>
-            {nextUp && (
-              <div className="today-next">
-                <span className="today-next-text">
-                  Next up: <strong>{nextUp.label}</strong>
-                </span>
-                {nextShortcut ? (
-                  <Link to={nextShortcut.to} className="today-next-link">
-                    {nextShortcut.label} <ArrowRight size={13} />
-                  </Link>
-                ) : (
-                  <button type="button" className="today-next-link" onClick={() => toggle(nextUp.key)}>
-                    Mark done <Check size={13} />
-                  </button>
-                )}
+        <div className="home-today-col">
+          {/* ---------- today at a glance ---------- */}
+          <div className={`card today-hero${today && left === 0 ? ' complete' : ''}`}>
+            <MutabaahRing entry={today} size={124} caption={false} />
+            <div className="today-hero-text">
+              <div className="today-hero-label">Today's mutabaah</div>
+              <div className="today-hero-status">
+                {!today ? 'Loading…' : left === 0 ? 'All done. Alhamdulillah.' : done === 0 ? `${TOTAL} to go` : `${left} left today`}
               </div>
-            )}
+              <div className="today-hero-sub">
+                {done} of {TOTAL} completed
+              </div>
+              {nextUp && (
+                <div className="today-next">
+                  <span className="today-next-text">
+                    Next up: <strong>{nextUp.label}</strong>
+                  </span>
+                  {nextShortcut ? (
+                    <Link to={nextShortcut.to} className="today-next-link">
+                      {nextShortcut.label} <ArrowRight size={13} />
+                    </Link>
+                  ) : (
+                    <button type="button" className="today-next-link" onClick={() => toggle(nextUp.key)}>
+                      Mark done <Check size={13} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* ---------- exams and due dates coming up ---------- */}
+          {deadlines.length > 0 && (
+            <div className="card home-deadlines">
+              <div className="log-section-head">
+                <span className="log-section-icon">
+                  <CalendarClock size={16} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="log-section-title">Deadlines</div>
+                  <div className="log-section-sub">
+                    {[overdueCount ? `${overdueCount} overdue` : '', `${weekCount} in the next 7 days`].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+                <Link to="/deadlines" className="home-deadlines-all">
+                  View all {deadlines.length} <ChevronRight size={14} />
+                </Link>
+              </div>
+              <div className="md-deadlines dl-own">
+                {deadlines.slice(0, 3).map((d) => (
+                  <DeadlineTile key={d.id} deadline={d} onOpen={setOpenDeadline} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ---------- tick today's items ---------- */}
