@@ -24,6 +24,8 @@ const Mathurat = lazy(() => import('./pages/Mathurat'));
 const QuranIndex = lazy(() => import('./pages/QuranIndex'));
 const QuranSurah = lazy(() => import('./pages/QuranSurah'));
 const QuranRange = lazy(() => import('./pages/QuranRange'));
+// Only admins ever open it, so it stays out of everyone else's download.
+const Admin = lazy(() => import('./pages/Admin'));
 
 const pageFallback = (
   <div className="page">
@@ -105,6 +107,14 @@ export default function App() {
           <Route path="/mentoring" element={<Mentoring />} />
           <Route path="/mentoring/:id" element={<MenteeDetail />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route
+            path="/admin"
+            element={
+              <Suspense fallback={pageFallback}>
+                <Admin />
+              </Suspense>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

@@ -32,9 +32,10 @@ export default function Login() {
               onSuccess={(credentialResponse) => {
                 setError('');
                 setSigningIn(true);
-                loginWithGoogle(credentialResponse.credential).catch(() => {
+                loginWithGoogle(credentialResponse.credential).catch((err) => {
                   setSigningIn(false);
-                  setError('Sign-in failed. Please try again.');
+                  // A suspended account is told so, rather than "try again".
+                  setError(err.response?.data?.suspended ? err.response.data.error : 'Sign-in failed. Please try again.');
                 });
               }}
               onError={() => setError('Sign-in failed. Please try again.')}

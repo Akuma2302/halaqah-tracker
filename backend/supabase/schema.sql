@@ -521,3 +521,10 @@ create table if not exists quran_tadabbur (
 );
 create index if not exists idx_quran_tadabbur_user on quran_tadabbur(user_id);
 alter table quran_tadabbur enable row level security;
+
+-- The admin dashboard. is_admin: may supervise everyone (the owner is named by
+-- email in ADMIN_EMAILS and needs no flag). suspended_at: the account is
+-- switched off and cannot sign in. last_active_at: stamped as the app is used.
+alter table users add column if not exists is_admin boolean not null default false;
+alter table users add column if not exists suspended_at timestamptz;
+alter table users add column if not exists last_active_at timestamptz;

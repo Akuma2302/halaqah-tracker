@@ -1,4 +1,5 @@
 const { verifyToken } = require('../utils/authToken');
+const accountState = require('../utils/accountState');
 
 module.exports = function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
@@ -8,6 +9,11 @@ module.exports = function requireAuth(req, res, next) {
   if (!userId) {
     return res.status(401).json({ error: 'Not logged in' });
   }
+  // An account an admin has switched off is signed out everywhere.
+  if (accountState.isSuspended(userId)) {
+    return res.status(403).json({ error: 'This account has been suspended. Contact the admin.', suspended: true });
+  }
   req.userId = userId;
+  accountState.touch(userId);
   next();
 };

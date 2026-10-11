@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, BookOpenText, Bell, NotebookText, ClipboardList, BookOpen, CalendarDays, FileStack, Network } from 'lucide-react';
+import { LayoutDashboard, ListChecks, GraduationCap, BookMarked, BookOpenText, Bell, NotebookText, ClipboardList, BookOpen, CalendarDays, FileStack, Network, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const TABS = [
@@ -17,7 +17,9 @@ const TABS = [
 ];
 
 export default function SideNav() {
-  const { unreadCount } = useAuth();
+  const { unreadCount, user } = useAuth();
+  // The admin dashboard is listed for admins only.
+  const tabs = user?.isAdmin ? [...TABS, { to: '/admin', label: 'Admin', icon: ShieldCheck }] : TABS;
 
   return (
     <nav className="side-nav">
@@ -29,7 +31,7 @@ export default function SideNav() {
       </div>
 
       <div className="side-nav-links">
-        {TABS.map(({ to, label, icon: Icon, end }) => (
+        {tabs.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

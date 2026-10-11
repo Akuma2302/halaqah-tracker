@@ -1,4 +1,5 @@
 const { verifyToken } = require('../utils/authToken');
+const accountState = require('../utils/accountState');
 const studyGroupService = require('../services/studyGroupService');
 
 function messagePreview(content, attachmentType) {
@@ -15,7 +16,7 @@ function registerSocketHandlers(io) {
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     const userId = token && verifyToken(token);
-    if (!userId) return next(new Error('Not logged in'));
+    if (!userId || accountState.isSuspended(userId)) return next(new Error('Not logged in'));
     socket.userId = userId;
     next();
   });

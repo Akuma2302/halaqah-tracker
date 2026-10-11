@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, ListChecks, GraduationCap, NotebookText, Menu, ClipboardList, BookMarked, BookOpenText, Bell, CalendarDays, ChevronRight, FileStack, Network } from 'lucide-react';
+import { Home, ListChecks, GraduationCap, NotebookText, Menu, ClipboardList, BookMarked, BookOpenText, Bell, CalendarDays, ChevronRight, FileStack, Network, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 // Mobile-only navigation (hidden above 720px, where SideNav takes over).
@@ -23,11 +23,13 @@ const MORE = [
 ];
 
 export default function BottomNav() {
-  const { unreadCount } = useAuth();
+  const { unreadCount, user } = useAuth();
+  // The admin dashboard is listed for admins only.
+  const more = user?.isAdmin ? [...MORE, { to: '/admin', label: 'Admin', icon: ShieldCheck }] : MORE;
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const moreActive = MORE.some((m) => pathname.startsWith(m.to));
+  const moreActive = more.some((m) => pathname.startsWith(m.to));
   const badge = unreadCount > 9 ? '9+' : unreadCount;
 
   useEffect(() => setMoreOpen(false), [pathname]);
@@ -45,7 +47,7 @@ export default function BottomNav() {
         <div className="more-backdrop" onClick={() => setMoreOpen(false)}>
           <div className="more-sheet" role="dialog" aria-label="More" onClick={(e) => e.stopPropagation()}>
             <span className="more-handle" />
-            {MORE.map(({ to, label, icon: Icon }) => (
+            {more.map(({ to, label, icon: Icon }) => (
               <NavLink key={to} to={to} className={({ isActive }) => `more-link${isActive ? ' active' : ''}`}>
                 <span className="more-link-icon">
                   <Icon size={18} />
