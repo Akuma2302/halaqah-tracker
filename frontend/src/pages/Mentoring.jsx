@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BarChart3, CalendarClock, Check, ChevronRight, Copy, Network, Share2, UserMinus, UserPlus } from 'lucide-react';
+import { BarChart3, CalendarClock, Check, ChevronRight, Clock, Copy, MapPin, Network, Pencil, Plus, Share2, Trash2, UserMinus, UserPlus } from 'lucide-react';
 import MentoringDashboard from '../features/mentoring/MentoringDashboard';
 import client from '../services/apiClient';
 import { useToast } from '../hooks/useToast';
 import { toDateKey } from '../features/academic/weekUtils';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
-import { clock } from '../features/timetable/timetable';
+import { DAYS, SHORT_DAYS, clock } from '../features/timetable/timetable';
+import Sheet from '../components/Sheet';
 
 // A steady colour per person (from their name), so faces in the tree are easy
 // to tell apart when there is no photo.
@@ -57,6 +58,17 @@ function PersonNode({ person }) {
 
 // Mentoring Tree, drawn as one: my mentor at the top, then me and my
 // mentoring mates on the branch below them, then my mentees under me.
+// "Thu · 8:30 pm · Surau" for a mentoring group; empty when nothing is set.
+function meetingText(group, days = SHORT_DAYS) {
+  return [
+    group.dayOfWeek === null || group.dayOfWeek === undefined ? '' : days[group.dayOfWeek],
+    group.startTime ? clock(group.startTime) : '',
+    group.venue
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
 // Mates and mentees open their detail; a mentor's own detail is never shown
 // to their mentees.
 export default function Mentoring() {
@@ -69,6 +81,10 @@ export default function Mentoring() {
   const [formError, setFormError] = useState('');
   const [copied, setCopied] = useState(false);
   const [toast, showToast] = useToast();
+  // The mentoring group being added or edited: null, or its form.
+  const [groupForm, setGroupForm] = useState(null);
+  const [groupSaving, setGroupSaving] = useState(false);
+  const [groupError, setGroupError] = useState('');
 
   function load() {
     setError(false);
@@ -118,6 +134,67 @@ export default function Mentoring() {
 
   const mates = tree?.mates || [];
   const mentees = tree?.mentees || [];
+  const groups = tree?.groups || [];
+  const ungrouped = mentees.filter((m) => !groups.some((g) => g._id === m.groupId));
+
+  function openGroup(group) {
+    setGroupError('');
+    setGroupForm(
+      group
+        ? {
+            _id: group._id,
+            name: group.name,
+            dayOfWeek: group.dayOfWeek === null || group.dayOfWeek === undefined ? '' : String(group.dayOfWeek),
+            startTime: group.startTime || '',
+            venue: group.venue || '',
+            memberIds: mentees.filter((m) => m.groupId === group._id).map((m) => m._id)
+          }
+        : { name: `Mentoring ${groups.length + 1}`, dayOfWeek: '', startTime: '', venue: '', memberIds: ungrouped.map((m) => m._id) }
+    );
+  }
+
+  function toggleMember(id) {
+    setGroupForm((f) => ({ ...f, memberIds: f.memberIds.includes(id) ? f.memberIds.filter((x) => x !== id) : [...f.memberIds, id] }));
+  }
+
+  async function saveGroup() {
+    if (!groupForm.name.trim()) return setGroupError('Give the group a name.');
+    setGroupSaving(true);
+    setGroupError('');
+    const body = {
+      name: groupForm.name.trim(),
+      dayOfWeek: groupForm.dayOfWeek === '' ? null : Number(groupForm.dayOfWeek),
+      startTime: groupForm.startTime || null,
+      venue: groupForm.venue.trim(),
+      memberIds: groupForm.memberIds
+    };
+    try {
+      if (groupForm._id) await client.put(`/mentoring/groups/${groupForm._id}`, body);
+      else await client.post('/mentoring/groups', body);
+      setGroupForm(null);
+      load();
+      showToast(groupForm._id ? 'Group updated' : 'Group added');
+    } catch (err) {
+      setGroupError(err.response?.data?.error || "Couldn't save the group. Please try again.");
+    } finally {
+      setGroupSaving(false);
+    }
+  }
+
+  async function deleteGroup() {
+    if (!window.confirm(`Delete "${groupForm.name}"? Its mentees stay your mentees; they just won't be in a group.`)) return;
+    setGroupSaving(true);
+    try {
+      await client.delete(`/mentoring/groups/${groupForm._id}`);
+      setGroupForm(null);
+      load();
+      showToast('Group deleted');
+    } catch {
+      setGroupError("Couldn't delete the group. Please try again.");
+    } finally {
+      setGroupSaving(false);
+    }
+  }
 
   // "You", with your mentees branching underneath.
   const youNode = tree && (
@@ -138,8 +215,48 @@ export default function Mentoring() {
       </div>
 
       <div className="tree-branch">
-        <div className="tree-caption">My mentees ({mentees.length})</div>
-        {mentees.map((m) => (
+        <div className="tree-caption tree-caption-row">
+          <span>My mentees ({mentees.length})</span>
+          {mentees.length > 0 && (
+            <button type="button" className="tree-group-add" onClick={() => openGroup(null)}>
+              <Plus size={12} /> New group
+            </button>
+          )}
+        </div>
+
+        {/* Each mentoring group, with when it meets, then anyone not in one. */}
+        {groups.map((g) => {
+          const members = mentees.filter((m) => m.groupId === g._id);
+          const meeting = meetingText(g);
+          return (
+            <div className="tree-group" key={g._id}>
+              <button type="button" className="tree-group-head" onClick={() => openGroup(g)} aria-label={`Edit ${g.name}`}>
+                <span className="tree-group-name">
+                  {g.name}
+                  <small>{members.length}</small>
+                </span>
+                <span className="tree-group-meta">
+                  {meeting ? (
+                    <>
+                      <Clock size={11} /> {meeting}
+                    </>
+                  ) : (
+                    'Set a day and time'
+                  )}
+                </span>
+                <Pencil size={13} className="tree-group-edit" />
+              </button>
+              {members.map((m) => (
+                <div className="tree-item" key={m._id}>
+                  <PersonNode person={m} />
+                </div>
+              ))}
+              {members.length === 0 && <div className="tree-group-empty">Nobody in this group yet. Tap it to add mentees.</div>}
+            </div>
+          );
+        })}
+        {groups.length > 0 && ungrouped.length > 0 && <div className="tree-caption tree-caption-sub">Not in a group ({ungrouped.length})</div>}
+        {ungrouped.map((m) => (
           <div className="tree-item" key={m._id}>
             <PersonNode person={m} />
           </div>
@@ -215,6 +332,11 @@ export default function Mentoring() {
                   <div className="tree-role">My mentor</div>
                   <div className="mentor-name">{tree.mentor.name}</div>
                   <div className="mentor-meta">{[tree.mentor.memberId, tree.mentor.kampus].filter(Boolean).join(' · ')}</div>
+                  {tree.myGroup && (
+                    <div className="mentor-meta tree-my-group">
+                      <Clock size={11} /> {[tree.myGroup.name, meetingText(tree.myGroup)].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -322,6 +444,91 @@ export default function Mentoring() {
           )}
         </>
       )}
+      <Sheet open={!!groupForm} onClose={() => setGroupForm(null)} title={groupForm?._id ? 'Edit mentoring group' : 'New mentoring group'}>
+        {groupForm && (
+          <div className="entry-form">
+            <div className="field">
+              <label htmlFor="group-name">Name</label>
+              <input
+                id="group-name"
+                className="input"
+                value={groupForm.name}
+                onChange={(e) => setGroupForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. Mentoring 1"
+                maxLength={40}
+              />
+            </div>
+            <div className="group-when">
+              <div className="field">
+                <label htmlFor="group-day">Day</label>
+                <select id="group-day" className="input" value={groupForm.dayOfWeek} onChange={(e) => setGroupForm((f) => ({ ...f, dayOfWeek: e.target.value }))}>
+                  <option value="">Not set</option>
+                  {DAYS.map((label, d) => (
+                    <option key={label} value={d}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="group-time">Time</label>
+                <input
+                  id="group-time"
+                  className="input"
+                  type="time"
+                  value={groupForm.startTime}
+                  onChange={(e) => setGroupForm((f) => ({ ...f, startTime: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="group-venue">
+                <MapPin size={11} /> Place (optional)
+              </label>
+              <input
+                id="group-venue"
+                className="input"
+                value={groupForm.venue}
+                onChange={(e) => setGroupForm((f) => ({ ...f, venue: e.target.value }))}
+                placeholder="e.g. Surau, Google Meet"
+                maxLength={80}
+              />
+            </div>
+            <div className="field">
+              <label>
+                Mentees in this group ({groupForm.memberIds.length} of {mentees.length})
+              </label>
+              <div className="group-members">
+                {mentees.map((m) => {
+                  const on = groupForm.memberIds.includes(m._id);
+                  const other = groups.find((g) => g._id === m.groupId && g._id !== groupForm._id);
+                  return (
+                    <button type="button" key={m._id} className={`group-member${on ? ' on' : ''}`} onClick={() => toggleMember(m._id)} aria-pressed={on}>
+                      <Avatar person={m} />
+                      <span className="group-member-text">
+                        <strong>{m.name}</strong>
+                        <small>{other ? (on ? `Moves here from ${other.name}` : `In ${other.name}`) : m.memberId}</small>
+                      </span>
+                      <span className="group-member-check">{on && <Check size={13} strokeWidth={3} />}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {groupError && <p className="form-error">{groupError}</p>}
+            <div className="form-row">
+              {groupForm._id && (
+                <button className="btn btn-ghost danger-text" onClick={deleteGroup} disabled={groupSaving}>
+                  <Trash2 size={14} /> Delete
+                </button>
+              )}
+              <button className="btn btn-primary" onClick={saveGroup} disabled={groupSaving} style={{ flex: 1 }}>
+                {groupSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Sheet>
       {toast}
     </div>
   );

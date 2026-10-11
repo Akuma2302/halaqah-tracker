@@ -2,6 +2,7 @@ const userRepository = require('../repositories/userRepository');
 const mutabaahRepository = require('../repositories/mutabaahRepository');
 const timetableRepository = require('../repositories/timetableRepository');
 const subjectRepository = require('../repositories/subjectRepository');
+const mentoringGroupRepository = require('../repositories/mentoringGroupRepository');
 const notificationService = require('./notificationService');
 const { ASSESSMENT_LABEL, isExam, whenText, inDays, subjectText } = require('../utils/assessments');
 const mutabaahService = require('./mutabaahService');
@@ -43,10 +44,12 @@ function doneCount(entry) {
 // mentees, with how much of today's mutabaah each mate and mentee has done.
 async function getTree(userId, date) {
   const me = await userRepository.findById(userId);
-  const [mentor, mentees, underMyMentor] = await Promise.all([
+  const [mentor, mentees, underMyMentor, groups, myGroup] = await Promise.all([
     me?.mentor_id ? userRepository.findById(me.mentor_id) : null,
     userRepository.findMentees(userId),
-    me?.mentor_id ? userRepository.findMentees(me.mentor_id) : []
+    me?.mentor_id ? userRepository.findMentees(me.mentor_id) : [],
+    mentoringGroupRepository.findByMentor(userId),
+    me?.mentoring_group_id ? mentoringGroupRepository.findById(me.mentoring_group_id) : null
   ]);
   const mates = underMyMentor.filter((u) => u.id !== userId);
   const todayRows = await mutabaahRepository.findByUsersAndDate(
@@ -58,6 +61,7 @@ async function getTree(userId, date) {
     users
       .map((u) => ({
         ...publicUser(u),
+        groupId: u.mentoring_group_id || null,
         mutabaahDone: doneCount(mutabaahService.toApiShapePublic(rowByUser[u.id], u.id, date)),
         mutabaahTotal: CAMEL_FIELDS.length
       }))
@@ -76,6 +80,9 @@ async function getTree(userId, date) {
     mentor: mentor ? publicUser(mentor) : null,
     mates: withToday(mates),
     mentees: withToday(mentees),
+    // My own groupings of my mentees, and the one my mentor has put me in.
+    groups: groups.map(mentoringGroupRepository.serialize),
+    myGroup: myGroup ? mentoringGroupRepository.serialize(myGroup) : null,
     menteeExams
   };
 }
@@ -85,9 +92,10 @@ async function getTree(userId, date) {
 // under the same mentor, see the mentee's detail.
 async function setMentor(userId, memberIdInput) {
   if (!String(memberIdInput || '').trim()) {
-    await userRepository.update(userId, { mentor_id: null });
+    await userRepository.update(userId, { mentor_id: null, mentoring_group_id: null });
     return null;
   }
+  const me = await userRepository.findById(userId);
   const memberNo = parseMemberNo(memberIdInput);
   if (memberNo === null) throw fail(400, 'Enter a User ID such as D4F-0007');
   const mentor = await userRepository.findByMemberNo(memberNo);
@@ -101,8 +109,24 @@ async function setMentor(userId, memberIdInput) {
     above = await userRepository.findById(above.mentor_id);
   }
 
-  await userRepository.update(userId, { mentor_id: mentor.id });
+  // A group belongs to the mentor who made it, so it doesn't follow to a new one.
+  await userRepository.update(userId, { mentor_id: mentor.id, ...(me?.mentor_id === mentor.id ? {} : { mentoring_group_id: null }) });
   return publicUser(mentor);
+}
+
+// A mentor's groupings of their own mentees. `memberIds` is who is in the
+// group after saving; anyone not this mentor's mentee is ignored.
+async function saveGroup(mentorId, groupId, { memberIds = [], ...fields }) {
+  const row = groupId
+    ? await mentoringGroupRepository.update(groupId, mentorId, fields)
+    : await mentoringGroupRepository.create(mentorId, fields);
+  if (!row) throw fail(404, 'Mentoring group not found');
+  await mentoringGroupRepository.setMembers(row.id, mentorId, memberIds);
+  return mentoringGroupRepository.serialize(row);
+}
+
+async function removeGroup(mentorId, groupId) {
+  await mentoringGroupRepository.remove(groupId, mentorId);
 }
 
 // Who may see whose detail. Visibility only runs down and sideways:
@@ -316,4 +340,4 @@ async function getDashboard(userId, { date, weekStart }) {
   };
 }
 
-module.exports = { getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, groupSummary, alertMentee };
+module.exports = { getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, groupSummary, alertMentee, saveGroup, removeGroup };

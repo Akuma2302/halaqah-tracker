@@ -418,6 +418,21 @@ $$;
 -- mentor's User ID). That link is what allows the mentor to see the mentee's
 -- mutabaah and academic detail. Removing the mentor's account clears the link.
 alter table users add column if not exists mentor_id uuid references users(id) on delete set null;
+
+-- A mentor's own groupings of their mentees ("Mentoring 1", "Mentoring 2"),
+-- each with the day and time it meets. A mentee sits in at most one.
+create table if not exists mentoring_groups (
+  id uuid primary key default gen_random_uuid(),
+  mentor_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  day_of_week smallint check (day_of_week between 0 and 6),
+  start_time time,
+  venue text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_mentoring_groups_mentor on mentoring_groups(mentor_id);
+alter table mentoring_groups enable row level security;
+alter table users add column if not exists mentoring_group_id uuid references mentoring_groups(id) on delete set null;
 create index if not exists idx_users_mentor on users(mentor_id);
 
 -- Weekly class timetable: one row per class slot. day_of_week 0 = Sunday.
