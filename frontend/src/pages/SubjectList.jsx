@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Trash2, Eye, EyeOff, X, ChevronLeft, MoreVertical, User, CalendarClock, CalendarDays, Check, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, X, ChevronLeft, MoreVertical, User, CalendarClock, Check, BookOpen, AlertTriangle } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { ASSESSMENT_TYPES } from '../features/academic/constants';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
-import { KINDS, SHORT_DAYS, slotSummary } from '../features/timetable/timetable';
+import { KINDS, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
 
 const TYPE_LABEL = ASSESSMENT_LABEL;
 const CREDIT_PRESETS = [2, 3, 4];
@@ -325,21 +325,19 @@ export default function SubjectList() {
             const due = upcoming && dueLabel(upcoming.dueDate);
             const weight = s.assessments.reduce((sum, a) => sum + (Number(a.percentage) || 0), 0);
             return (
-              <div key={s._id} className={`card subject-card${s.isVisible === false ? ' hidden-subject' : ''}`}>
+              <div key={s._id} className={`card subject-card${s.isVisible === false ? ' hidden-subject' : ''}`} style={{ '--hue': hueFor(s.name) }}>
                 <div className="subject-card-head">
                   <button type="button" className="subject-card-main" onClick={() => openEdit(s)} aria-label={`Edit ${s.name}`}>
-                    {s.code && <span className="subject-code">{s.code}</span>}
-                    <span className="subject-name">{s.name}</span>
-                    <span className="subject-meta">
-                      <User size={12} /> {s.lecturerName || 'No lecturer set'}
-                      <span className="subject-dot">·</span>
-                      {s.creditHour || 0} credit{Number(s.creditHour) === 1 ? '' : 's'}
+                    <span className="subject-badge" aria-hidden="true">
+                      {(s.name || '?').trim()[0]?.toUpperCase()}
                     </span>
-                    {classesOf(s._id).length > 0 && (
-                      <span className="subject-meta subject-classes">
-                        <CalendarDays size={12} /> {slotSummary(classesOf(s._id))}
+                    <span className="subject-heading">
+                      <span className="subject-name">{s.name}</span>
+                      <span className="subject-meta">
+                        {s.code && <span className="subject-code">{s.code}</span>}
+                        {s.creditHour || 0} credit{Number(s.creditHour) === 1 ? '' : 's'}
                       </span>
-                    )}
+                    </span>
                   </button>
                   <div className="subject-menu" onPointerDown={(e) => e.stopPropagation()}>
                     <button
@@ -374,22 +372,53 @@ export default function SubjectList() {
 
                 {s.isVisible === false && <span className="badge badge-muted subject-hidden-badge">Hidden from journal</span>}
 
+                <div className="subject-facts">
+                  <span className="subject-fact">
+                    <User size={12} /> {s.lecturerName || 'No lecturer set'}
+                  </span>
+                  {[...classesOf(s._id)]
+                    .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
+                    .map((c) => (
+                      <span className="subject-fact slot" key={c._id}>
+                        <strong>{SHORT_DAYS[c.dayOfWeek]}</strong> {clock(c.startTime)}
+                      </span>
+                    ))}
+                </div>
+
                 {s.assessments.length ? (
                   <>
-                    <div className="subject-progress">
+                    <div className="subject-progress-block">
+                      <div className="subject-progress-label">
+                        <span>Overall progress</span>
+                        <strong className={`tone-${progressTone(progress ?? 0)}`}>{progress ?? 0}%</strong>
+                      </div>
                       <span className="hours-bar">
                         <span className={`hours-bar-fill tone-${progressTone(progress ?? 0)}`} style={{ width: `${progress ?? 0}%` }} />
                       </span>
-                      <span className="subject-progress-value">{progress ?? 0}%</span>
                     </div>
                     {due ? (
-                      <div className={`subject-due${due.overdue ? ' overdue' : due.soon ? ' soon' : ''}`}>
-                        <CalendarClock size={13} /> Next: {TYPE_LABEL[upcoming.type] || upcoming.type} · {formatDueDate(upcoming.dueDate)} ({due.text})
+                      <div className={`subject-next${due.overdue ? ' overdue' : due.soon ? ' soon' : ''}`}>
+                        <span className="subject-next-icon">
+                          <CalendarClock size={15} />
+                        </span>
+                        <span className="subject-next-text">
+                          <small>Next up</small>
+                          <strong>
+                            {TYPE_LABEL[upcoming.type] || upcoming.type} · {formatDueDate(upcoming.dueDate)}
+                            {upcoming.dueTime ? `, ${clock(upcoming.dueTime)}` : ''}
+                          </strong>
+                        </span>
+                        <span className="subject-next-when">{due.text.replace(/^due /, '')}</span>
                       </div>
                     ) : (
                       progress === 100 && (
-                        <div className="subject-due done">
-                          <Check size={13} /> All assessments done
+                        <div className="subject-next done">
+                          <span className="subject-next-icon">
+                            <Check size={15} />
+                          </span>
+                          <span className="subject-next-text">
+                            <strong>All assessments done</strong>
+                          </span>
                         </div>
                       )
                     )}
@@ -397,12 +426,14 @@ export default function SubjectList() {
                       {s.assessments.map((a) => (
                         <span key={a._id} className={`assessment-chip${a.isDone ? ' done' : ''}`}>
                           {a.isDone && <Check size={11} />}
-                          {TYPE_LABEL[a.type] || a.type} {a.percentage}%
+                          {TYPE_LABEL[a.type] || a.type} <strong>{a.percentage}%</strong>
                         </span>
                       ))}
                     </div>
                     {weight !== 100 && (
-                      <div className="subject-warn">Weights add up to {weight}%, not 100%.</div>
+                      <div className="subject-warn">
+                        <AlertTriangle size={12} /> Weights add up to {weight}%, not 100%
+                      </div>
                     )}
                   </>
                 ) : (
