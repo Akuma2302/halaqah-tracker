@@ -7968,6 +7968,51 @@ a.class-card.dated {
   gap: 10px;
 }
 
+/* The Timetable as its own home screen icon: the link and its how-to */
+.home-shortcut-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 18px;
+  padding: 11px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.home-shortcut-link svg {
+  color: var(--primary);
+}
+
+.home-shortcut-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.home-shortcut-intro img {
+  flex-shrink: 0;
+  border-radius: 11px;
+}
+
+.widget-steps.home-shortcut-steps {
+  margin-top: 14px;
+}
+
+.home-shortcut-steps code {
+  word-break: break-all;
+}
+
 /* Other users on a task: an ID box, then who has been added */
 .field-hint {
   margin: 2px 0 0;

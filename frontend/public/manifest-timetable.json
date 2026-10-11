@@ -1,0 +1,25 @@
+{
+  "id": "/timetable",
+  "name": "Timetable — Double 4 Flat",
+  "short_name": "Timetable",
+  "description": "Your classes, exams and tasks for the week.",
+  "start_url": "/timetable",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f4ef",
+  "theme_color": "#0f6e56",
+  "icons": [
+    {
+      "src": "/icon-timetable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-timetable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

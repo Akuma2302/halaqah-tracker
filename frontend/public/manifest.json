@@ -7,7 +7,59 @@
   "background_color": "#f5f4ef",
   "theme_color": "#0f6e56",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "id": "/",
+  "shortcuts": [
+    {
+      "name": "Timetable",
+      "short_name": "Timetable",
+      "description": "Today's classes, exams and tasks",
+      "url": "/timetable",
+      "icons": [
+        {
+          "src": "/icon-timetable-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Deadlines",
+      "short_name": "Deadlines",
+      "description": "Every exam and due date",
+      "url": "/deadlines",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Mutabaah",
+      "short_name": "Mutabaah",
+      "description": "Tick today's amal",
+      "url": "/checklist",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

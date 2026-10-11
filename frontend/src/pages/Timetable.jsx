@@ -5,6 +5,7 @@ import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
+import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
 import { CLASS_KINDS, DAYS, KIND_LABEL, SHORT_DAYS, TASK_KINDS, clock, hueFor, minutes } from '../features/timetable/timetable';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
 import { addDays, toDateKey } from '../features/academic/weekUtils';
@@ -501,6 +502,8 @@ export default function Timetable() {
       )}
 
       {/* ---------- add / edit a class ---------- */}
+      <HomeScreenShortcut />
+
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add task' : isClassKind ? 'Edit class' : 'Edit task'}>
         <div className="entry-form">
           {subjects.length > 0 && (
