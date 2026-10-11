@@ -64,7 +64,15 @@ function todayIndexFor(weekKey) {
 const emptyQuestionForm = { subjectId: '', questionCount: '', isValidated: false };
 const emptyConsultForm = { subjectId: '', lecturerName: '', detail: '', date: '', venue: '', photoUrl: '' };
 
-export default function AcademicJournal() {
+// `focus` shows one log on a page of its own (opened from the dashboard):
+// 'question' for practice questions, 'consult' for lecturer consultations.
+// The week chosen on the main page carries over.
+const FOCUS = {
+  question: { title: 'Practice questions', subtitle: 'Past year, tutorial and exercise questions you did' },
+  consult: { title: 'Lecturer consultations', subtitle: 'Questions asked and discussions with your lecturers' }
+};
+
+export default function AcademicJournal({ focus = null }) {
   const [overview, setOverview] = useState(null);
   const [subjects, setSubjects] = useState([]);
 
@@ -274,10 +282,15 @@ export default function AcademicJournal() {
 
   return (
     <div className="page academic">
+      {focus && (
+        <Link to="/academic-journal" className="quran-back">
+          <ChevronLeft size={16} /> Academic Journal
+        </Link>
+      )}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Academic Journal</h1>
-          <p className="page-subtitle">Log your study week and track your progress</p>
+          <h1 className="page-title">{focus ? FOCUS[focus].title : 'Academic Journal'}</h1>
+          <p className="page-subtitle">{focus ? FOCUS[focus].subtitle : 'Log your study week and track your progress'}</p>
         </div>
       </div>
 
@@ -311,7 +324,7 @@ export default function AcademicJournal() {
         >
           <ChevronRight size={16} />
         </button>
-        <div className="export-menu">
+        <div className="export-menu" hidden={!!focus}>
           <button
             type="button"
             className="btn btn-ghost btn-sm"
@@ -345,208 +358,230 @@ export default function AcademicJournal() {
         </div>
       ) : (
         <>
-          {/* ---------- weekly summary ---------- */}
-          <div className={`card week-summary${weekLoading ? ' loading' : ''}`}>
-            <div className="week-summary-head">
-              <div>
-                <div className="week-summary-hours">
-                  <strong>{formatHours(totalHours)}</strong> / {WEEKLY_TARGET_HOURS}h
+          {!focus && (
+            <>
+              {/* ---------- weekly summary ---------- */}
+              <div className={`card week-summary${weekLoading ? ' loading' : ''}`}>
+                <div className="week-summary-head">
+                  <div>
+                    <div className="week-summary-hours">
+                      <strong>{formatHours(totalHours)}</strong> / {WEEKLY_TARGET_HOURS}h
+                    </div>
+                    <div className="setup-text">study hours {isCurrentWeek ? 'this week' : 'that week'}</div>
+                  </div>
+                  <span className={`week-summary-pct${percent >= 100 ? ' done' : ''}`}>{percent}%</span>
                 </div>
-                <div className="setup-text">study hours {isCurrentWeek ? 'this week' : 'that week'}</div>
-              </div>
-              <span className={`week-summary-pct${percent >= 100 ? ' done' : ''}`}>{percent}%</span>
-            </div>
-            <span className="hours-bar">
-              <span className="hours-bar-fill" style={{ width: `${percent}%` }} />
-            </span>
+                <span className="hours-bar">
+                  <span className="hours-bar-fill" style={{ width: `${percent}%` }} />
+                </span>
 
-            <div className="day-bars" aria-label="Hours per day">
-              {hoursByDay.map((h, i) => (
-                <div key={SHORT_DAYS[i]} className={`day-bar${i === todayIndex ? ' today' : ''}`} title={`${SHORT_DAYS[i]}: ${formatHours(h)}`}>
-                  <span className="day-bar-value">{h ? formatHours(h) : ''}</span>
-                  <span className="day-bar-track">
-                    <span className="day-bar-fill" style={{ height: `${(h / maxDayHours) * 100}%` }} />
-                  </span>
-                  <span className="day-bar-label">{SHORT_DAYS[i][0]}</span>
+                <div className="day-bars" aria-label="Hours per day">
+                  {hoursByDay.map((h, i) => (
+                    <div key={SHORT_DAYS[i]} className={`day-bar${i === todayIndex ? ' today' : ''}`} title={`${SHORT_DAYS[i]}: ${formatHours(h)}`}>
+                      <span className="day-bar-value">{h ? formatHours(h) : ''}</span>
+                      <span className="day-bar-track">
+                        <span className="day-bar-fill" style={{ height: `${(h / maxDayHours) * 100}%` }} />
+                      </span>
+                      <span className="day-bar-label">{SHORT_DAYS[i][0]}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="week-stats">
-              <div className="week-stat">
-                <span className="week-stat-value">{studySessions.length}</span>
-                <span className="week-stat-label">
-                  <Clock size={12} /> Sessions
-                </span>
-              </div>
-              <div className="week-stat">
-                <span className="week-stat-value">{totalQuestions}</span>
-                <span className="week-stat-label">
-                  <PenLine size={12} /> Questions
-                </span>
-              </div>
-              <div className="week-stat">
-                <span className="week-stat-value">{consultations.length}</span>
-                <span className="week-stat-label">
-                  <UsersIcon size={12} /> Consults
-                </span>
-              </div>
-              <div className={`week-stat${validated ? ' ok' : ''}`} title={validated ? 'Validated by mentor' : 'Not validated by mentor yet'}>
-                <span className="week-stat-value">{validated ? <CheckCircle2 size={18} /> : '–'}</span>
-                <span className="week-stat-label">Mentor</span>
-              </div>
-            </div>
+                <div className="week-stats">
+                  <div className="week-stat">
+                    <span className="week-stat-value">{studySessions.length}</span>
+                    <span className="week-stat-label">
+                      <Clock size={12} /> Sessions
+                    </span>
+                  </div>
+                  <Link to="/academic-journal/questions" className="week-stat week-stat-link" aria-label={`Practice questions: ${totalQuestions}. Open to add or change.`}>
+                    <span className="week-stat-value">{totalQuestions}</span>
+                    <span className="week-stat-label">
+                      <PenLine size={12} /> Questions
+                    </span>
+                    <ChevronRight size={12} className="week-stat-go" />
+                  </Link>
+                  <Link to="/academic-journal/consultations" className="week-stat week-stat-link" aria-label={`Lecturer consultations: ${consultations.length}. Open to add or change.`}>
+                    <span className="week-stat-value">{consultations.length}</span>
+                    <span className="week-stat-label">
+                      <UsersIcon size={12} /> Consults
+                    </span>
+                    <ChevronRight size={12} className="week-stat-go" />
+                  </Link>
+                  <div className={`week-stat${validated ? ' ok' : ''}`} title={validated ? 'Validated by mentor' : 'Not validated by mentor yet'}>
+                    <span className="week-stat-value">{validated ? <CheckCircle2 size={18} /> : '–'}</span>
+                    <span className="week-stat-label">Mentor</span>
+                  </div>
+                </div>
 
-            {/* ---------- the semester in numbers, in the same card ---------- */}
-            <SemesterOverview subjects={subjects} timetable={timetable} embedded />
-          </div>
+                {/* ---------- the semester in numbers, in the same card ---------- */}
+                <SemesterOverview subjects={subjects} timetable={timetable} embedded />
+              </div>
 
-          {/* ---------- study hours ---------- */}
-          <LogSection
-            icon={Clock}
-            title="Study hours"
-            subtitle="Notes, questions, projects, study groups"
-            onAdd={() => openSheet('study')}
-            empty={!studySessions.length}
-            emptyText="No study sessions logged for this week yet."
-          >
-            {[...studySessions]
-              .sort((a, b) => a.date.localeCompare(b.date))
-              .map((s) => (
-                <div className="log-row" key={s._id}>
-                  <span className="log-day">{SHORT_DAYS[dayIndexInWeek(week, s.date)] || s.date}</span>
-                  <div className="log-body">
-                    <div className="log-title">{subjectLabel(s.subject)}</div>
-                    {s.categories?.length > 0 && (
-                      <div className="log-tags">
-                        {s.categories.map((c) => (
-                          <span key={c} className="log-tag">
-                            {CATEGORY_LABEL[c] || c}
-                          </span>
-                        ))}
+              {/* ---------- study hours ---------- */}
+              <LogSection
+                icon={Clock}
+                title="Study hours"
+                subtitle="Notes, questions, projects, study groups"
+                onAdd={() => openSheet('study')}
+                empty={!studySessions.length}
+                emptyText="No study sessions logged for this week yet."
+              >
+                {[...studySessions]
+                  .sort((a, b) => a.date.localeCompare(b.date))
+                  .map((s) => (
+                    <div className="log-row" key={s._id}>
+                      <span className="log-day">{SHORT_DAYS[dayIndexInWeek(week, s.date)] || s.date}</span>
+                      <div className="log-body">
+                        <div className="log-title">{subjectLabel(s.subject)}</div>
+                        {s.categories?.length > 0 && (
+                          <div className="log-tags">
+                            {s.categories.map((c) => (
+                              <span key={c} className="log-tag">
+                                {CATEGORY_LABEL[c] || c}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
+                      <span className="log-amount">{formatHours(s.hours)}</span>
+                      <button className="icon-btn log-delete" onClick={() => removeEntry('study', s._id)} aria-label="Delete">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+              </LogSection>
+            </>
+          )}
+
+          {focus === 'question' && (
+            <>
+              {/* ---------- practice questions ---------- */}
+              <LogSection
+                icon={PenLine}
+                title="Practice questions"
+                subtitle="Past year, tutorial, exercise"
+                onAdd={() => openSheet('question')}
+                empty={!questionPractice.length}
+                emptyText="No practice questions logged for this week yet."
+              >
+                {questionPractice.map((q) => (
+                  <div className="log-row" key={q._id}>
+                    <div className="log-body">
+                      <div className="log-title">{subjectLabel(q.subject)}</div>
+                      <div className={`log-meta${q.isValidated ? ' ok' : ''}`}>{q.isValidated ? 'Validated' : 'Not validated'}</div>
+                    </div>
+                    <span className="log-amount">{q.questionCount} Q</span>
+                    <button className="icon-btn log-delete" onClick={() => removeEntry('question', q._id)} aria-label="Delete">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </LogSection>
+            </>
+          )}
+
+          {focus === 'consult' && (
+            <>
+              {/* ---------- lecturer consultations ---------- */}
+              <LogSection
+                icon={UsersIcon}
+                title="Lecturer consultations"
+                subtitle="Questions asked, discussions"
+                onAdd={() => openSheet('consult')}
+                empty={!consultations.length}
+                emptyText="No consultations logged for this week yet."
+              >
+                {consultations.map((c) => (
+                  <div className="log-row" key={c._id}>
+                    {c.photoUrl ? <img src={c.photoUrl} alt="" className="log-photo" /> : <span className="log-photo placeholder"><UsersIcon size={15} /></span>}
+                    <div className="log-body">
+                      <div className="log-title">
+                        {subjectLabel(c.subject)}
+                        {c.lecturerName ? ` · ${c.lecturerName}` : ''}
+                      </div>
+                      <div className="log-meta">{[c.date, c.venue].filter(Boolean).join(' · ') || 'No date or venue'}</div>
+                      {c.detail && <div className="log-detail">{c.detail}</div>}
+                    </div>
+                    {c.photoUrl && (
+                      <a href={c.photoUrl} target="_blank" rel="noreferrer" className="icon-btn" aria-label="View photo">
+                        <Paperclip size={14} />
+                      </a>
                     )}
+                    <button className="icon-btn log-delete" onClick={() => removeEntry('consult', c._id)} aria-label="Delete">
+                      <Trash2 size={14} />
+                    </button>
                   </div>
-                  <span className="log-amount">{formatHours(s.hours)}</span>
-                  <button className="icon-btn log-delete" onClick={() => removeEntry('study', s._id)} aria-label="Delete">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-          </LogSection>
+                ))}
+              </LogSection>
+            </>
+          )}
 
-          {/* ---------- practice questions ---------- */}
-          <LogSection
-            icon={PenLine}
-            title="Practice questions"
-            subtitle="Past year, tutorial, exercise"
-            onAdd={() => openSheet('question')}
-            empty={!questionPractice.length}
-            emptyText="No practice questions logged for this week yet."
-          >
-            {questionPractice.map((q) => (
-              <div className="log-row" key={q._id}>
-                <div className="log-body">
-                  <div className="log-title">{subjectLabel(q.subject)}</div>
-                  <div className={`log-meta${q.isValidated ? ' ok' : ''}`}>{q.isValidated ? 'Validated' : 'Not validated'}</div>
+          {!focus && (
+            <>
+              {/* ---------- mentor validation ---------- */}
+              <div className="card mentor-card">
+                <span className={`mentor-icon${validated ? ' ok' : ''}`}>
+                  <CheckCircle2 size={18} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="log-section-title">Validated by mentor</div>
+                  <div className="setup-text">
+                    {validated
+                      ? `Validated${weekData?.mentorValidation?.validatedDate ? ` on ${weekData.mentorValidation.validatedDate}` : ''}`
+                      : 'Turn on once your mentor has checked this week'}
+                  </div>
                 </div>
-                <span className="log-amount">{q.questionCount} Q</span>
-                <button className="icon-btn log-delete" onClick={() => removeEntry('question', q._id)} aria-label="Delete">
-                  <Trash2 size={14} />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={validated}
+                  aria-label="Validated by mentor"
+                  className={`switch${validated ? ' on' : ''}`}
+                  onClick={toggleMentorValidation}
+                >
+                  <span className="switch-knob" />
                 </button>
               </div>
-            ))}
-          </LogSection>
-
-          {/* ---------- lecturer consultations ---------- */}
-          <LogSection
-            icon={UsersIcon}
-            title="Lecturer consultations"
-            subtitle="Questions asked, discussions"
-            onAdd={() => openSheet('consult')}
-            empty={!consultations.length}
-            emptyText="No consultations logged for this week yet."
-          >
-            {consultations.map((c) => (
-              <div className="log-row" key={c._id}>
-                {c.photoUrl ? <img src={c.photoUrl} alt="" className="log-photo" /> : <span className="log-photo placeholder"><UsersIcon size={15} /></span>}
-                <div className="log-body">
-                  <div className="log-title">
-                    {subjectLabel(c.subject)}
-                    {c.lecturerName ? ` · ${c.lecturerName}` : ''}
-                  </div>
-                  <div className="log-meta">{[c.date, c.venue].filter(Boolean).join(' · ') || 'No date or venue'}</div>
-                  {c.detail && <div className="log-detail">{c.detail}</div>}
-                </div>
-                {c.photoUrl && (
-                  <a href={c.photoUrl} target="_blank" rel="noreferrer" className="icon-btn" aria-label="View photo">
-                    <Paperclip size={14} />
-                  </a>
-                )}
-                <button className="icon-btn log-delete" onClick={() => removeEntry('consult', c._id)} aria-label="Delete">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </LogSection>
-
-          {/* ---------- mentor validation ---------- */}
-          <div className="card mentor-card">
-            <span className={`mentor-icon${validated ? ' ok' : ''}`}>
-              <CheckCircle2 size={18} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="log-section-title">Validated by mentor</div>
-              <div className="setup-text">
-                {validated
-                  ? `Validated${weekData?.mentorValidation?.validatedDate ? ` on ${weekData.mentorValidation.validatedDate}` : ''}`
-                  : 'Turn on once your mentor has checked this week'}
-              </div>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={validated}
-              aria-label="Validated by mentor"
-              className={`switch${validated ? ' on' : ''}`}
-              onClick={toggleMentorValidation}
-            >
-              <span className="switch-knob" />
-            </button>
-          </div>
+            </>
+          )}
         </>
       )}
 
-      {/* ---------- assignments and subjects ---------- */}
-      <div className="academic-ref">
-        <div className="card">
-          <div className="log-section-head">
-            <span className="log-section-icon">
-              <BookOpen size={16} />
-            </span>
-            <div className="log-section-title">Subjects & files</div>
-          </div>
-          {overview?.subjects?.length ? (
-            overview.subjects.map((s) => (
-              <div key={s._id}>
-                <button type="button" className="subject-row" onClick={() => setOpenFilesFor((id) => (id === s._id ? null : s._id))} aria-expanded={openFilesFor === s._id}>
-                  <div className="log-body">
-                    <div className="log-title">{s.name}</div>
-                    <div className="log-meta">{s.code || s.lecturerName || '—'}</div>
-                  </div>
-                  <FolderOpen size={15} className="subject-row-icon" />
-                </button>
-
-                {openFilesFor === s._id && <SubjectFiles subject={s} showToast={showToast} />}
+      {!focus && (
+        <>
+          {/* ---------- assignments and subjects ---------- */}
+          <div className="academic-ref">
+            <div className="card">
+              <div className="log-section-head">
+                <span className="log-section-icon">
+                  <BookOpen size={16} />
+                </span>
+                <div className="log-section-title">Subjects & files</div>
               </div>
-            ))
-          ) : (
-            <p className="log-empty">
-              No subjects yet. <Link to="/subject-list">Add one in Subjects</Link>.
-            </p>
-          )}
-        </div>
-      </div>
+              {overview?.subjects?.length ? (
+                overview.subjects.map((s) => (
+                  <div key={s._id}>
+                    <button type="button" className="subject-row" onClick={() => setOpenFilesFor((id) => (id === s._id ? null : s._id))} aria-expanded={openFilesFor === s._id}>
+                      <div className="log-body">
+                        <div className="log-title">{s.name}</div>
+                        <div className="log-meta">{s.code || s.lecturerName || '—'}</div>
+                      </div>
+                      <FolderOpen size={15} className="subject-row-icon" />
+                    </button>
+
+                    {openFilesFor === s._id && <SubjectFiles subject={s} showToast={showToast} />}
+                  </div>
+                ))
+              ) : (
+                <p className="log-empty">
+                  No subjects yet. <Link to="/subject-list">Add one in Subjects</Link>.
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ---------- add-entry sheets ---------- */}
       <Sheet
