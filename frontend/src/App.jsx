@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Login from './components/Login';
 import BootScreen from './components/BootScreen';
@@ -24,6 +24,7 @@ const Mathurat = lazy(() => import('./pages/Mathurat'));
 const QuranIndex = lazy(() => import('./pages/QuranIndex'));
 const QuranSurah = lazy(() => import('./pages/QuranSurah'));
 const QuranRange = lazy(() => import('./pages/QuranRange'));
+// The admin dashboard, at /admin: a separate interface with its own layout.
 // Only admins ever open it, so it stays out of everyone else's download.
 const Admin = lazy(() => import('./pages/Admin'));
 
@@ -35,6 +36,7 @@ const pageFallback = (
 
 export default function App() {
   const { user, loading } = useAuth();
+  const { pathname } = useLocation();
 
   if (loading) {
     return <BootScreen />;
@@ -42,6 +44,14 @@ export default function App() {
 
   if (!user) {
     return <Login />;
+  }
+
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    return (
+      <Suspense fallback={<BootScreen />}>
+        <Admin />
+      </Suspense>
+    );
   }
 
   return (
@@ -107,14 +117,6 @@ export default function App() {
           <Route path="/mentoring" element={<Mentoring />} />
           <Route path="/mentoring/:id" element={<MenteeDetail />} />
           <Route path="/notifications" element={<Notifications />} />
-          <Route
-            path="/admin"
-            element={
-              <Suspense fallback={pageFallback}>
-                <Admin />
-              </Suspense>
-            }
-          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

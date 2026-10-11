@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, NavLink, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
   Ban,
   BookOpen,
   CheckCircle2,
+  ArrowLeft,
   ChevronRight,
   Clock,
+  Download,
   FileStack,
   FileText,
   LayoutDashboard,
   ListChecks,
+  LogOut,
   Network,
   RefreshCw,
   Search,
@@ -36,10 +39,11 @@ const AMAL_LABEL = Object.fromEntries(MUTABAAH_FIELDS.map((f) => [f.key, f.label
 // Seven amal on each of the last seven days.
 const WEEK_POSSIBLE = 49;
 
-const TABS = [
-  ['overview', 'Overview', LayoutDashboard],
-  ['users', 'Users', Users],
-  ['papers', 'Papers', FileStack]
+// The sections of the admin interface, each at its own address.
+const SECTIONS = [
+  { key: 'dashboard', to: '/admin', label: 'Dashboard', icon: LayoutDashboard, title: 'Dashboard', sub: "Here's how everyone on Double 4 Flat is doing today." },
+  { key: 'users', to: '/admin/users', label: 'Users', icon: Users, title: 'Users', sub: 'Everyone who has signed in, with this week beside each name.' },
+  { key: 'papers', to: '/admin/papers', label: 'Past papers', icon: FileStack, title: 'Past papers', sub: 'Every paper users have shared. Remove one that should not be there.' }
 ];
 
 const FILTERS = [
@@ -104,41 +108,104 @@ function Bars({ items, max, label }) {
   );
 }
 
-function Stat({ icon: Icon, value, label, sub, warn }) {
+function Stat({ icon: Icon, value, label, sub, tint = 'primary' }) {
   return (
-    <div className={`aj-action sem-static${warn ? ' adm-stat-warn' : ''}`}>
-      <span className="aj-action-icon">
-        <Icon size={16} />
-      </span>
-      <span className="aj-action-text">
-        <strong>{value}</strong>
+    <div className="card adm-stat">
+      <div className="adm-stat-text">
         <span>{label}</span>
+        <strong>{value}</strong>
         <small>{sub}</small>
+      </div>
+      <span className={`adm-stat-icon tint-${tint}`}>
+        <Icon size={18} />
       </span>
     </div>
   );
 }
 
-function Overview({ data }) {
+function Overview({ data, users, onOpen }) {
   const amal = [...data.amal].sort((a, b) => a.done - b.done);
   const amalPossible = Math.max(1, data.amalPeople * 7);
+  // Who has been on most recently.
+  const recent = [...users]
+    .filter((u) => u.lastActiveAt)
+    .sort((a, b) => new Date(b.lastActiveAt) - new Date(a.lastActiveAt))
+    .slice(0, 6);
   return (
     <>
-      <div className="aj-actions adm-stats">
-        <Stat icon={Users} value={data.users} label="Users" sub={`${data.newThisWeek} joined in the last 7 days`} />
-        <Stat icon={Activity} value={data.activeToday} label="Active today" sub={`${data.activeThisWeek} in the last 7 days`} />
-        <Stat icon={ListChecks} value={data.mutabaahToday} label="Marked mutabaah today" sub={`of ${data.users} users`} />
-        <Stat icon={Clock} value={hours(data.studyHoursThisWeek)} label="Study hours this week" sub={`logged by ${data.studyingThisWeek} users`} />
+      <div className="adm-stats">
+        <Stat icon={Users} value={data.users} label="Total users" sub={`${data.newThisWeek} joined in the last 7 days`} />
+        <Stat icon={Activity} value={data.activeToday} label="Active today" sub={`${data.activeThisWeek} in the last 7 days`} tint="blue" />
+        <Stat icon={ListChecks} value={data.mutabaahToday} label="Marked mutabaah today" sub={`of ${data.users} users`} tint="gold" />
+        <Stat icon={Clock} value={hours(data.studyHoursThisWeek)} label="Study hours this week" sub={`logged by ${data.studyingThisWeek} users`} tint="purple" />
         <Stat icon={Network} value={data.withMentor} label="Have a mentor" sub={`${data.mentors} mentors`} />
         <Stat
           icon={AlertTriangle}
           value={data.overdueAssessments}
           label="Overdue assessments"
           sub={`across ${data.subjects} subjects`}
-          warn={data.overdueAssessments > 0}
+          tint={data.overdueAssessments > 0 ? 'danger' : 'primary'}
         />
-        <Stat icon={FileStack} value={data.pastPapers} label="Past papers shared" sub={`${data.studyGroups} study groups`} />
-        <Stat icon={Ban} value={data.suspended} label="Suspended" sub="Accounts switched off" warn={data.suspended > 0} />
+        <Stat icon={FileStack} value={data.pastPapers} label="Past papers shared" sub={`${data.studyGroups} study groups`} tint="blue" />
+        <Stat icon={Ban} value={data.suspended} label="Suspended" sub="Accounts switched off" tint={data.suspended > 0 ? 'danger' : 'primary'} />
+      </div>
+
+      <div className="adm-split">
+        <div className="card">
+          <div className="adm-card-title adm-card-title-row">
+            Recently active
+            <Link to="/admin/users">View all</Link>
+          </div>
+          {recent.length === 0 ? (
+            <p className="log-empty">Nobody has been seen yet. This fills in as people open the app.</p>
+          ) : (
+            <div className="adm-activity">
+              {recent.map((u) => {
+                const p = percent(u.mutabaahDone, WEEK_POSSIBLE);
+                return (
+                  <button type="button" className="adm-activity-row" key={u._id} onClick={() => onOpen(u._id)}>
+                    <Avatar user={u} size={38} />
+                    <span className="adm-user-text">
+                      <span className="adm-user-name">
+                        {u.name} <Tags user={u} />
+                      </span>
+                      <span className="adm-user-sub">
+                        {u.memberId || 'No ID'} · {u.kampus || 'No kampus'}
+                      </span>
+                      <span className="adm-user-sub">Active {lastActive(u)}</span>
+                    </span>
+                    <span className={`adm-pill tone-${tone(p)}`}>{p}% mutabaah</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="adm-card-title">
+            Amal this week <span>Least done first</span>
+          </div>
+          {data.amalPeople === 0 ? (
+            <p className="log-empty">Nobody has marked their mutabaah in the last 7 days.</p>
+          ) : (
+            <div className="adm-rank adm-rank-stacked">
+              {amal.map((a) => {
+                const p = percent(a.done, amalPossible);
+                return (
+                  <div className="adm-rank-row" key={a.key}>
+                    <span className="adm-rank-name">{AMAL_LABEL[a.key] || a.key}</span>
+                    <span className="adm-rank-value">{p}%</span>
+                    <span className="adm-rank-bar">
+                      <span className={`tone-${tone(p)}`} style={{ width: `${p}%` }} />
+                    </span>
+                  </div>
+                );
+              })}
+              <p className="adm-foot">Out of every day of the last 7 for the {data.amalPeople} people who marked anything.</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="adm-grid">
@@ -177,31 +244,6 @@ function Overview({ data }) {
 
         <div className="card">
           <div className="adm-card-title">
-            Amal this week <span>Least done first</span>
-          </div>
-          {data.amalPeople === 0 ? (
-            <p className="log-empty">Nobody has marked their mutabaah in the last 7 days.</p>
-          ) : (
-            <div className="adm-rank">
-              {amal.map((a) => {
-                const p = percent(a.done, amalPossible);
-                return (
-                  <div className="adm-rank-row" key={a.key}>
-                    <span className="adm-rank-name">{AMAL_LABEL[a.key] || a.key}</span>
-                    <span className="adm-rank-bar">
-                      <span className={`tone-${tone(p)}`} style={{ width: `${p}%` }} />
-                    </span>
-                    <span className="adm-rank-value">{p}%</span>
-                  </div>
-                );
-              })}
-              <p className="adm-foot">Out of every day of the last 7 for the {data.amalPeople} people who marked anything.</p>
-            </div>
-          )}
-        </div>
-
-        <div className="card">
-          <div className="adm-card-title">
             Where users are from <span>Kampus on their profile</span>
           </div>
           <div className="adm-rank">
@@ -222,7 +264,8 @@ function Overview({ data }) {
 }
 
 function UsersTab({ users, onOpen }) {
-  const [query, setQuery] = useState('');
+  const [params] = useSearchParams();
+  const query = params.get('q') || '';
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('id');
 
@@ -264,15 +307,13 @@ function UsersTab({ users, onOpen }) {
   return (
     <>
       <div className="adm-toolbar">
-        <label className="perf-search adm-search">
-          <Search size={16} />
-          <input type="search" placeholder="Search name, email, User ID or kampus" value={query} onChange={(e) => setQuery(e.target.value)} />
-          {query && (
-            <button type="button" onClick={() => setQuery('')} aria-label="Clear search">
-              <X size={13} />
-            </button>
-          )}
-        </label>
+        <div className="chip-row adm-filters">
+        {FILTERS.map(([key, label]) => (
+          <button key={key} type="button" className={`chip${filter === key ? ' on' : ''}`} aria-pressed={filter === key} onClick={() => setFilter(key)}>
+            {label} <span className="adm-chip-count">{count(key)}</span>
+          </button>
+        ))}
+        </div>
         <select className="input adm-sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort users by">
           {SORTS.map(([key, label]) => (
             <option key={key} value={key}>
@@ -281,16 +322,10 @@ function UsersTab({ users, onOpen }) {
           ))}
         </select>
       </div>
-      <div className="chip-row adm-filters">
-        {FILTERS.map(([key, label]) => (
-          <button key={key} type="button" className={`chip${filter === key ? ' on' : ''}`} aria-pressed={filter === key} onClick={() => setFilter(key)}>
-            {label} <span className="adm-chip-count">{count(key)}</span>
-          </button>
-        ))}
-      </div>
 
       <div className="dl-result">
         {shown.length} of {users.length} users
+        {query && <span>matching "{query}"</span>}
       </div>
 
       {shown.length === 0 ? (
@@ -712,18 +747,56 @@ function PapersTab({ papers, onRemoved, showToast }) {
   );
 }
 
-// The admin dashboard: everyone who uses the app, in numbers, with the few
-// things an admin may change. Only admins get here.
+// The users table as a spreadsheet file (opens in Excel).
+function downloadUsers(users) {
+  const cell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const head = ['User ID', 'Name', 'Email', 'Kampus', 'Joined', 'Last active', 'Mutabaah 7 days (%)', 'Study hours this week', 'Subjects', 'Assessments done', 'Assessments', 'Overdue', 'Mentor', 'Mentees', 'Admin', 'Suspended'];
+  const rows = users.map((u) => [
+    u.memberId,
+    u.name,
+    u.email,
+    u.kampus,
+    dayjs(u.createdAt).format('YYYY-MM-DD'),
+    u.lastActiveAt ? dayjs(u.lastActiveAt).format('YYYY-MM-DD HH:mm') : '',
+    percent(u.mutabaahDone, WEEK_POSSIBLE),
+    Math.round(u.studyHours * 10) / 10,
+    u.subjects,
+    u.assessmentsDone,
+    u.assessments,
+    u.overdue,
+    u.mentorName,
+    u.mentees,
+    u.isAdmin ? 'Yes' : '',
+    u.suspendedAt ? 'Yes' : ''
+  ]);
+  const csv = [head, ...rows].map((row) => row.map(cell).join(',')).join('\r\n');
+  // The BOM makes Excel read names with accents correctly.
+  const url = URL.createObjectURL(new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `double4flat-users-${toDateKey(new Date())}.csv`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// The admin interface, at /admin: its own layout (a sidebar, a top bar with
+// search) rather than the user app's. Everyone who uses the app, in numbers,
+// with the few things an admin may change. Only admins get in.
 export default function Admin() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [toast, showToast] = useToast();
-  const [tab, setTab] = useState('overview');
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState(null);
   const [papers, setPapers] = useState(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [openUser, setOpenUser] = useState(null);
+
+  const section = SECTIONS.find((s) => s.to !== '/admin' && pathname.startsWith(s.to)) || SECTIONS[0];
+  const search = section.key === 'users' ? params.get('q') || '' : '';
 
   // My own today and week, so days line up with my timezone.
   const period = useMemo(() => ({ date: toDateKey(new Date()), weekStart: toDateKey(getWeekStart()) }), []);
@@ -749,53 +822,115 @@ export default function Admin() {
     if (user?.isAdmin) load();
   }, [user?.isAdmin, load]);
 
+  useEffect(() => {
+    document.title = 'Admin · Double 4 Flat';
+    return () => {
+      document.title = 'Double 4 Flat — Halaqah Tracker';
+    };
+  }, []);
+
   if (!user?.isAdmin) return <Navigate to="/" replace />;
 
+  const counts = { users: users?.length, papers: papers?.length };
+
   return (
-    <div className="page admin">
-      <div className="page-header adm-header">
-        <div>
-          <h1 className="page-title">
-            <ShieldCheck size={22} /> Admin
-          </h1>
-          <p className="page-subtitle">Everyone using Double 4 Flat, in numbers</p>
+    <div className="adm-shell">
+      <aside className="adm-side">
+        <div className="adm-brand">
+          <span className="brand-mark">
+            <ShieldCheck size={16} />
+          </span>
+          <span>
+            Double 4 Flat
+            <small>Admin</small>
+          </span>
         </div>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
-          <RefreshCw size={14} className={loading ? 'adm-spin' : ''} /> Refresh
-        </button>
-      </div>
-
-      <div className="range-toggle segmented adm-tabs">
-        {TABS.map(([key, label, Icon]) => (
-          <button key={key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>
-            <Icon size={14} /> {label}
-            {key === 'users' && users ? <span className="adm-chip-count">{users.length}</span> : null}
-            {key === 'papers' && papers ? <span className="adm-chip-count">{papers.length}</span> : null}
-          </button>
-        ))}
-      </div>
-
-      {failed ? (
-        <div className="card empty-state">
-          <h3>Couldn't load the dashboard</h3>
-          <p>Check your connection and try again.</p>
-          <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={load}>
-            Try again
+        <nav className="adm-nav" aria-label="Admin sections">
+          {SECTIONS.map(({ key, to, label, icon: Icon }) => (
+            <NavLink key={key} to={to} end={to === '/admin'} className={({ isActive }) => `adm-nav-link${isActive ? ' active' : ''}`}>
+              <Icon size={17} />
+              <span>{label}</span>
+              {counts[key] !== undefined && <span className="adm-chip-count">{counts[key]}</span>}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="adm-side-foot">
+          <Link to="/" className="adm-nav-link">
+            <ArrowLeft size={17} />
+            <span>Back to the app</span>
+          </Link>
+          <button type="button" className="adm-nav-link" onClick={logout}>
+            <LogOut size={17} />
+            <span>Log out</span>
           </button>
         </div>
-      ) : !overview || !users || !papers ? (
-        <div className="spinner" style={{ margin: '40px auto' }} />
-      ) : tab === 'overview' ? (
-        <Overview data={overview} />
-      ) : tab === 'users' ? (
-        <UsersTab users={users} onOpen={setOpenUser} />
-      ) : (
-        <PapersTab papers={papers} showToast={showToast} onRemoved={(id) => setPapers((list) => list.filter((p) => p._id !== id))} />
-      )}
+      </aside>
 
-      <p className="mentor-note adm-privacy">
-        <ShieldCheck size={13} /> This dashboard shows activity and counts only. It never shows what people wrote: their notes, messages or files.
-      </p>
+      <div className="adm-main">
+        <header className="adm-top">
+          <label className="perf-search adm-search">
+            <Search size={16} />
+            <input
+              type="search"
+              placeholder="Search users by name, email, User ID or kampus"
+              value={search}
+              onChange={(e) => navigate(e.target.value ? `/admin/users?q=${encodeURIComponent(e.target.value)}` : '/admin/users', { replace: section.key === 'users' })}
+              aria-label="Search users"
+            />
+            {search && (
+              <button type="button" onClick={() => navigate('/admin/users', { replace: true })} aria-label="Clear search">
+                <X size={13} />
+              </button>
+            )}
+          </label>
+          <div className="adm-me">
+            <Avatar user={user} size={34} />
+            <span className="adm-user-text">
+              <span className="adm-user-name">{user.name}</span>
+              <span className="adm-user-sub">{user.email}</span>
+            </span>
+          </div>
+        </header>
+
+        <main className="adm-content">
+          <div className="adm-header">
+            <div>
+              <h1 className="page-title">{section.title}</h1>
+              <p className="page-subtitle">{section.sub}</p>
+            </div>
+            <div className="adm-header-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => users && downloadUsers(users)} disabled={!users}>
+                <Download size={14} /> Export users
+              </button>
+              <button type="button" className="btn btn-primary" onClick={load} disabled={loading}>
+                <RefreshCw size={14} className={loading ? 'adm-spin' : ''} /> Refresh
+              </button>
+            </div>
+          </div>
+
+          {failed ? (
+            <div className="card empty-state">
+              <h3>Couldn't load the dashboard</h3>
+              <p>Check your connection and try again.</p>
+              <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={load}>
+                Try again
+              </button>
+            </div>
+          ) : !overview || !users || !papers ? (
+            <div className="spinner" style={{ margin: '40px auto' }} />
+          ) : section.key === 'dashboard' ? (
+            <Overview data={overview} users={users} onOpen={setOpenUser} />
+          ) : section.key === 'users' ? (
+            <UsersTab users={users} onOpen={setOpenUser} />
+          ) : (
+            <PapersTab papers={papers} showToast={showToast} onRemoved={(id) => setPapers((list) => list.filter((p) => p._id !== id))} />
+          )}
+
+          <p className="mentor-note adm-privacy">
+            <ShieldCheck size={13} /> This dashboard shows activity and counts only. It never shows what people wrote: their notes, messages or files.
+          </p>
+        </main>
+      </div>
 
       <UserSheet userId={openUser} users={users || []} period={period} me={user} onClose={() => setOpenUser(null)} onChanged={load} showToast={showToast} />
       {toast}
