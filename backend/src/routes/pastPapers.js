@@ -25,14 +25,18 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
+    const favouriteIds = await pastPaperRepository.findFavouriteIds(req.userId);
     const rows = await pastPaperRepository.search({
       q: req.query.q,
       university: req.query.university,
       course: req.query.course,
       // ?mine=1 lists only the papers the signed-in user shared
-      uploaderId: req.query.mine ? req.userId : undefined
+      uploaderId: req.query.mine ? req.userId : undefined,
+      // ?favourites=1 lists only the ones they marked as a favourite
+      ids: req.query.favourites ? favouriteIds : undefined
     });
-    res.json(rows.map(pastPaperRepository.serialize));
+    const favourites = new Set(favouriteIds);
+    res.json(rows.map((row) => ({ ...pastPaperRepository.serialize(row), isFavourite: favourites.has(row.id) })));
   })
 );
 
@@ -67,6 +71,24 @@ router.post(
       mime_type: req.file.mimetype
     });
     res.status(201).json(pastPaperRepository.serialize(row));
+  })
+);
+
+// Mark a paper as a favourite, or take the mark off. It is the user's own list.
+router.put(
+  '/:id/favourite',
+  asyncHandler(async (req, res) => {
+    if (!(await pastPaperRepository.findById(req.params.id))) return res.status(404).json({ error: 'Paper not found' });
+    await pastPaperRepository.addFavourite(req.userId, req.params.id);
+    res.json({ isFavourite: true });
+  })
+);
+
+router.delete(
+  '/:id/favourite',
+  asyncHandler(async (req, res) => {
+    await pastPaperRepository.removeFavourite(req.userId, req.params.id);
+    res.json({ isFavourite: false });
   })
 );
 

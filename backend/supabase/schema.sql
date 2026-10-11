@@ -494,3 +494,12 @@ create table if not exists past_papers (
 create index if not exists idx_past_papers_created on past_papers(created_at desc);
 create index if not exists idx_past_papers_university on past_papers(university);
 alter table past_papers enable row level security;
+
+-- Papers a user has marked as a favourite, to find them again quickly.
+create table if not exists past_paper_favourites (
+  user_id uuid not null references users(id) on delete cascade,
+  paper_id uuid not null references past_papers(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, paper_id)
+);
+alter table past_paper_favourites enable row level security;

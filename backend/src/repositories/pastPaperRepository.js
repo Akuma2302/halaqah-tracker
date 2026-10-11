@@ -13,8 +13,9 @@ const clean = (text) =>
 
 // Newest first. `q` looks in the subject, its code, the course and the
 // university; `university` must match exactly; `course` is a "contains";
-// `uploaderId` keeps only what that user shared.
-async function search({ q, university, course, uploaderId, limit = 100 }) {
+// `uploaderId` keeps only what that user shared; `ids` keeps only those papers.
+async function search({ q, university, course, uploaderId, ids, limit = 100 }) {
+  if (ids && !ids.length) return [];
   let query = supabase.from('past_papers').select(WITH_UPLOADER).order('created_at', { ascending: false }).limit(limit);
   const text = clean(q);
   if (text) {
@@ -24,6 +25,7 @@ async function search({ q, university, course, uploaderId, limit = 100 }) {
   if (clean(university)) query = query.eq('university', String(university).trim().slice(0, 160));
   if (clean(course)) query = query.ilike('course', `%${clean(course)}%`);
   if (uploaderId) query = query.eq('uploader_id', uploaderId);
+  if (ids) query = query.in('id', ids);
   const { data, error } = await query;
   if (error) throw error;
   return data;
@@ -46,6 +48,25 @@ async function remove(id, uploaderId) {
   if (error) throw error;
 }
 
+// The ids of the papers a user has marked as a favourite.
+async function findFavouriteIds(userId) {
+  const { data, error } = await supabase.from('past_paper_favourites').select('paper_id').eq('user_id', userId);
+  if (error) throw error;
+  return data.map((row) => row.paper_id);
+}
+
+async function addFavourite(userId, paperId) {
+  const { error } = await supabase
+    .from('past_paper_favourites')
+    .upsert({ user_id: userId, paper_id: paperId }, { onConflict: 'user_id,paper_id', ignoreDuplicates: true });
+  if (error) throw error;
+}
+
+async function removeFavourite(userId, paperId) {
+  const { error } = await supabase.from('past_paper_favourites').delete().eq('user_id', userId).eq('paper_id', paperId);
+  if (error) throw error;
+}
+
 function serialize(row) {
   return {
     _id: row.id,
@@ -65,4 +86,4 @@ function serialize(row) {
   };
 }
 
-module.exports = { search, findById, create, remove, serialize };
+module.exports = { search, findById, create, remove, findFavouriteIds, addFavourite, removeFavourite, serialize };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, FolderUp, GraduationCap, Image as ImageIcon, Library, Search, Trash2, Upload, X } from 'lucide-react';
+import { FileText, FolderUp, GraduationCap, Image as ImageIcon, Library, Search, Star, Trash2, Upload, X } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import client from '../services/apiClient';
@@ -86,8 +86,10 @@ export default function PastYear() {
   const [query, setQuery] = useState('');
   const [university, setUniversity] = useState('');
   const [course, setCourse] = useState('');
-  // Show everyone's papers, or only the ones I shared.
-  const [mine, setMine] = useState(false);
+  // Which papers to show: everyone's ('all'), my favourites, or the ones I shared ('mine').
+  const [scope, setScope] = useState('all');
+  const mine = scope === 'mine';
+  const favouritesOnly = scope === 'favourites';
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -101,7 +103,13 @@ export default function PastYear() {
       setError(false);
       client
         .get('/past-papers', {
-          params: { q: query.trim() || undefined, university: university || undefined, course: course.trim() || undefined, mine: mine ? 1 : undefined }
+          params: {
+            q: query.trim() || undefined,
+            university: university || undefined,
+            course: course.trim() || undefined,
+            mine: mine ? 1 : undefined,
+            favourites: favouritesOnly ? 1 : undefined
+          }
         })
         .then((res) => !cancelled && setPapers(Array.isArray(res.data) ? res.data : []))
         .catch(() => !cancelled && setError(true));
@@ -110,7 +118,7 @@ export default function PastYear() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query, university, course, mine]);
+  }, [query, university, course, scope]);
 
   const filtered = !!(query.trim() || university || course.trim());
   const thisYear = new Date().getFullYear();
@@ -152,6 +160,26 @@ export default function PastYear() {
     }
   }
 
+  // The star: changes at once, and goes back if the server says no.
+  async function toggleFavourite(paper) {
+    const next = !paper.isFavourite;
+    const apply = (value) =>
+      setPapers((list) =>
+        // In the Favourites view an unstarred paper leaves the list.
+        favouritesOnly && !value ? list.filter((x) => x._id !== paper._id) : list.map((x) => (x._id === paper._id ? { ...x, isFavourite: value } : x))
+      );
+    const before = papers;
+    apply(next);
+    try {
+      if (next) await client.put(`/past-papers/${paper._id}/favourite`);
+      else await client.delete(`/past-papers/${paper._id}/favourite`);
+      showToast(next ? 'Added to favourites' : 'Removed from favourites');
+    } catch {
+      setPapers(before);
+      showToast("Couldn't update your favourites.");
+    }
+  }
+
   async function remove(paper) {
     if (!window.confirm(`Remove "${paper.subject}" from Past Year? Nobody will be able to open it any more.`)) return;
     const before = papers;
@@ -178,10 +206,13 @@ export default function PastYear() {
       </div>
 
       <div className="range-toggle segmented py-scope">
-        <button className={mine ? '' : 'active'} onClick={() => setMine(false)}>
-          <Library size={14} /> All papers
+        <button className={scope === 'all' ? 'active' : ''} onClick={() => setScope('all')}>
+          <Library size={14} /> All
         </button>
-        <button className={mine ? 'active' : ''} onClick={() => setMine(true)}>
+        <button className={favouritesOnly ? 'active' : ''} onClick={() => setScope('favourites')}>
+          <Star size={14} /> Favourites
+        </button>
+        <button className={mine ? 'active' : ''} onClick={() => setScope('mine')}>
           <FolderUp size={14} /> My uploads
         </button>
       </div>
@@ -235,7 +266,7 @@ export default function PastYear() {
           <div className="dl-result">
             <span>
               {papers.length} paper{papers.length === 1 ? '' : 's'}
-              {mine ? ' shared by you' : ''}
+              {mine ? ' shared by you' : favouritesOnly ? ' in your favourites' : ''}
               {papers.length === 100 ? ' (showing the newest 100)' : ''}
             </span>
             {filtered && (
@@ -255,11 +286,31 @@ export default function PastYear() {
           {papers.length === 0 ? (
             <div className="card empty-state notif-empty">
               <GraduationCap size={26} />
-              <h3>{filtered ? 'No paper matches that yet' : mine ? "You haven't shared a paper yet" : 'No papers shared yet'}</h3>
-              <p>{mine ? 'Papers you share appear here, where you can remove them.' : 'Have one? Share it so the next student can find it.'}</p>
-              <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={openUpload}>
-                <Upload size={14} /> Share a paper
-              </button>
+              <h3>
+                {filtered
+                  ? 'No paper matches that yet'
+                  : mine
+                    ? "You haven't shared a paper yet"
+                    : favouritesOnly
+                      ? 'No favourites yet'
+                      : 'No papers shared yet'}
+              </h3>
+              <p>
+                {mine
+                  ? 'Papers you share appear here, where you can remove them.'
+                  : favouritesOnly
+                    ? 'Tap the star on a paper to keep it here.'
+                    : 'Have one? Share it so the next student can find it.'}
+              </p>
+              {favouritesOnly ? (
+                <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setScope('all')}>
+                  <Library size={14} /> Browse all papers
+                </button>
+              ) : (
+                <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={openUpload}>
+                  <Upload size={14} /> Share a paper
+                </button>
+              )}
             </div>
           ) : (
             <div className="py-list">
@@ -291,6 +342,15 @@ export default function PastYear() {
                       <a className="btn btn-primary btn-sm" href={p.fileUrl} target="_blank" rel="noreferrer">
                         Open
                       </a>
+                      <button
+                        type="button"
+                        className={`icon-btn py-star${p.isFavourite ? ' on' : ''}`}
+                        onClick={() => toggleFavourite(p)}
+                        aria-pressed={!!p.isFavourite}
+                        aria-label={p.isFavourite ? `Remove ${p.subject} from favourites` : `Add ${p.subject} to favourites`}
+                      >
+                        <Star size={15} fill={p.isFavourite ? 'currentColor' : 'none'} />
+                      </button>
                       {p.uploader?._id === user?._id && (
                         <button type="button" className="icon-btn" onClick={() => remove(p)} aria-label={`Remove ${p.subject}`}>
                           <Trash2 size={14} />
