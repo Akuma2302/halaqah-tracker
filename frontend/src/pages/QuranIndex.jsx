@@ -38,6 +38,19 @@ export default function QuranIndex() {
   // Ayat saved for tadabbur, and the one whose note is open.
   const tadabbur = useTadabbur();
   const [editing, setEditing] = useState(null);
+  const [tadabburQuery, setTadabburQuery] = useState('');
+  // Looks in the surah name and ayat number, the translation, the note and the Arabic.
+  const tadabburShown = useMemo(() => {
+    const raw = tadabburQuery.trim();
+    const q = normalize(raw);
+    if (!raw) return tadabbur;
+    return tadabbur.filter(
+      (t) =>
+        t.key === raw ||
+        (q && [t.label, t.translation, t.note].some((text) => normalize(text || '').includes(q))) ||
+        (t.arabic || '').includes(raw)
+    );
+  }, [tadabbur, tadabburQuery]);
 
   function load() {
     setLoading(true);
@@ -151,11 +164,26 @@ export default function QuranIndex() {
           </div>
         ) : (
           <>
+            <label className="quran-search">
+              <Search size={16} />
+              <input
+                type="search"
+                placeholder="Search your ayat and notes"
+                value={tadabburQuery}
+                onChange={(e) => setTadabburQuery(e.target.value)}
+              />
+            </label>
             <span className="section-label">
-              {tadabbur.length} ayat saved
+              {tadabburQuery.trim() ? `${tadabburShown.length} of ${tadabbur.length} ayat` : `${tadabbur.length} ayat saved`}
             </span>
+            {tadabburShown.length === 0 && (
+              <div className="card empty-state">
+                <h3>Nothing matches that</h3>
+                <p>Try a surah name, an ayat like 2:255, or a word from your note.</p>
+              </div>
+            )}
             <div className="tadabbur-list">
-              {tadabbur.map((t) => (
+              {tadabburShown.map((t) => (
                 <article key={t.key} className="card tadabbur-card">
                   <div className="tadabbur-card-head">
                     <Link to={`/quran/${t.key.split(':')[0]}#${t.key}`} className="tadabbur-ref">
