@@ -519,6 +519,15 @@ export default function MenteeDetail() {
                       {q.isValidated ? <BadgeCheck size={13} /> : <CircleDashed size={13} />}
                       {q.isValidated ? 'Validated' : 'Not validated yet'}
                     </span>
+                    {q.photoUrls?.length > 0 && (
+                      <div className="photo-strip">
+                        {q.photoUrls.map((url) => (
+                          <a key={url} href={url} target="_blank" rel="noreferrer" aria-label="Open photo">
+                            <img src={url} alt="Questions done" loading="lazy" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

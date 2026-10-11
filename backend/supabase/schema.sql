@@ -314,6 +314,9 @@ alter table subject_assessments add column if not exists note text not null defa
 -- The small steps towards finishing an assessment: [{ title, dueDate, isDone }].
 alter table subject_assessments add column if not exists tasks jsonb not null default '[]'::jsonb;
 
+-- Photos of the practice questions that were done (links to uploaded images).
+alter table question_practice add column if not exists photo_urls jsonb not null default '[]'::jsonb;
+
 -- One row per "7 / 3 / 1 days before" reminder actually sent (services/assessmentReminderService.js),
 -- so repeated job runs never send the same one twice. Assessment rows are
 -- replaced whenever a subject is saved, so the key is built from the subject,

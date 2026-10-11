@@ -190,6 +190,7 @@ function serializeQuestionPractice(row) {
     weekStart: row.week_start,
     questionCount: row.question_count,
     isValidated: row.is_validated,
+    photoUrls: Array.isArray(row.photo_urls) ? row.photo_urls : [],
     subject: row.subject ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code } : null,
     createdAt: row.created_at
   };

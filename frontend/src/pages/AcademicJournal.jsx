@@ -13,7 +13,8 @@ import {
   Clock,
   PenLine,
   BookOpen,
-  Camera
+  Camera,
+  X
 } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
@@ -61,7 +62,8 @@ function todayIndexFor(weekKey) {
   return weekKey === currentWeekKey ? new Date().getDay() : 1; // default to Monday for past weeks
 }
 
-const emptyQuestionForm = { subjectId: '', questionCount: '', isValidated: false };
+const emptyQuestionForm = { subjectId: '', questionCount: '', isValidated: false, photoUrls: [] };
+const MAX_QUESTION_PHOTOS = 6;
 const emptyConsultForm = { subjectId: '', lecturerName: '', detail: '', date: '', venue: '', photoUrl: '' };
 
 // `focus` shows one log on a page of its own (opened from the dashboard):
@@ -193,7 +195,8 @@ export default function AcademicJournal({ focus = null }) {
           subjectId: questionForm.subjectId || null,
           weekStart: week,
           questionCount: count,
-          isValidated: questionForm.isValidated
+          isValidated: questionForm.isValidated,
+          photoUrls: questionForm.photoUrls
         });
       } else {
         if (!consultForm.subjectId && !consultForm.lecturerName.trim()) throw new Error('Choose a subject or enter the lecturer.');
@@ -225,6 +228,29 @@ export default function AcademicJournal({ focus = null }) {
     } finally {
       setUploadingPhoto(false);
       e.target.value = '';
+    }
+  }
+
+  // Photos of the questions done: each picked or snapped image is uploaded
+  // straight away and its link kept with the entry.
+  async function handleQuestionPhotos(e) {
+    const room = MAX_QUESTION_PHOTOS - questionForm.photoUrls.length;
+    const files = [...(e.target.files || [])].slice(0, room);
+    e.target.value = '';
+    if (!files.length) return;
+    setUploadingPhoto(true);
+    setFormError('');
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await client.post('/academic/weeks/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        setQuestionForm((f) => ({ ...f, photoUrls: [...f.photoUrls, res.data.url] }));
+      }
+    } catch {
+      setFormError("Couldn't upload the photo. Try again.");
+    } finally {
+      setUploadingPhoto(false);
     }
   }
 
@@ -501,7 +527,8 @@ export default function AcademicJournal({ focus = null }) {
                 emptyText="No practice questions logged for this week yet."
               >
                 {questionPractice.map((q) => (
-                  <div className="log-row" key={q._id}>
+                  <div key={q._id}>
+                  <div className="log-row">
                     <div className="log-body">
                       <div className="log-title">{subjectLabel(q.subject)}</div>
                       <div className={`log-meta${q.isValidated ? ' ok' : ''}`}>{q.isValidated ? 'Validated' : 'Not validated'}</div>
@@ -510,6 +537,16 @@ export default function AcademicJournal({ focus = null }) {
                     <button className="icon-btn log-delete" onClick={() => removeEntry('question', q._id)} aria-label="Delete">
                       <Trash2 size={14} />
                     </button>
+                  </div>
+                  {q.photoUrls?.length > 0 && (
+                    <div className="photo-strip">
+                      {q.photoUrls.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noreferrer" aria-label="Open photo">
+                          <img src={url} alt="Questions done" loading="lazy" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   </div>
                 ))}
               </LogSection>
@@ -750,6 +787,32 @@ export default function AcademicJournal({ focus = null }) {
                 <span className="switch-knob" />
               </button>
             </label>
+            <div className="field">
+              <label>
+                Photos of your work (optional) · {questionForm.photoUrls.length}/{MAX_QUESTION_PHOTOS}
+              </label>
+              <div className="photo-grid">
+                {questionForm.photoUrls.map((url) => (
+                  <span className="photo-thumb" key={url}>
+                    <img src={url} alt="Questions done" />
+                    <button
+                      type="button"
+                      onClick={() => setQuestionForm((f) => ({ ...f, photoUrls: f.photoUrls.filter((x) => x !== url) }))}
+                      aria-label="Remove photo"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+                {questionForm.photoUrls.length < MAX_QUESTION_PHOTOS && (
+                  <label className={`photo-add${uploadingPhoto ? ' busy' : ''}`}>
+                    <Camera size={18} />
+                    <span>{uploadingPhoto ? 'Uploading…' : 'Snap or add'}</span>
+                    <input type="file" accept="image/*" multiple hidden onChange={handleQuestionPhotos} disabled={uploadingPhoto} />
+                  </label>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

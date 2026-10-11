@@ -67,7 +67,9 @@ const createQuestionPracticeSchema = z.object({
   subjectId: z.string().uuid().nullish(),
   weekStart: z.string().min(1, 'Week is required'),
   questionCount: z.number().int().min(0),
-  isValidated: z.boolean().optional()
+  isValidated: z.boolean().optional(),
+  // Links returned by the upload route, for photos of the questions done.
+  photoUrls: z.array(z.string().url().max(600)).max(6).optional()
 });
 
 const createConsultationSchema = z.object({
