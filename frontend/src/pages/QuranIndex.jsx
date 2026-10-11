@@ -61,6 +61,17 @@ export default function QuranIndex() {
     );
   }, [chapters, query]);
 
+  // Every mushaf page with the surah it opens on; `starts` marks a page where a surah begins.
+  const pageTiles = useMemo(() => {
+    const ordered = [...chapters].sort((a, b) => a.pages[0] - b.pages[0] || a.id - b.id);
+    return Array.from({ length: TOTAL_PAGES }, (_, i) => {
+      const page = i + 1;
+      const starting = ordered.filter((c) => c.pages[0] === page);
+      const current = starting[0] || [...ordered].reverse().find((c) => c.pages[0] <= page);
+      return { page, surah: current?.name_simple || '', starts: starting.length > 0 };
+    });
+  }, [chapters]);
+
   const pageNumber = Number(pageInput);
   const pageValid = Number.isInteger(pageNumber) && pageNumber >= 1 && pageNumber <= TOTAL_PAGES;
 
@@ -203,19 +214,12 @@ export default function QuranIndex() {
               </button>
             </div>
           </form>
-          <span className="section-label">Surah by page</span>
-          <div className="quran-list">
-            {chapters.map((c) => (
-              <Link key={c.id} to={`/quran/page/${c.pages[0]}`} className="quran-row">
-                <span className="quran-row-num">{c.id}</span>
-                <span className="quran-row-body">
-                  <span className="quran-row-name">{c.name_simple}</span>
-                  <span className="quran-row-meta">
-                    Muka surat {c.pages[0]}
-                    {c.pages[1] !== c.pages[0] ? `–${c.pages[1]}` : ''}
-                  </span>
-                </span>
-                <span className="quran-row-page">{c.pages[0]}</span>
+          <span className="section-label">All {TOTAL_PAGES} pages</span>
+          <div className="quran-page-grid">
+            {pageTiles.map((t) => (
+              <Link key={t.page} to={`/quran/page/${t.page}`} className={`quran-page-tile${t.starts ? ' starts' : ''}`} aria-label={`Page ${t.page}, ${t.surah}`}>
+                <strong>{t.page}</strong>
+                <span>{t.surah}</span>
               </Link>
             ))}
           </div>

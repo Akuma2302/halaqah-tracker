@@ -5452,6 +5452,58 @@ a.perf-row:hover .perf-name {
   margin-bottom: 18px;
 }
 
+/* Every mushaf page as a tile: the number, and the surah it falls in */
+.quran-page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.quran-page-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 9px 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quran-page-tile:hover {
+  border-color: var(--primary);
+}
+
+.quran-page-tile strong {
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.quran-page-tile span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+/* A page where a surah begins */
+.quran-page-tile.starts {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: var(--primary-tint);
+}
+
+.quran-page-tile.starts span {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
 .quran-page-jump-row {
   display: flex;
   gap: 8px;
