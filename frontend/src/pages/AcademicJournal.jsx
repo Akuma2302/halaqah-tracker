@@ -268,6 +268,52 @@ export default function AcademicJournal() {
     </>
   );
 
+  // Upcoming deadlines sit second, right under the week's summary. While the
+  // week is still loading (or failed) they stay with the subjects further down.
+  const weekShown = !(weekLoading && !weekData) && !weekError;
+  const deadlinesCard = (
+    <div className="card">
+      <div className="log-section-head">
+        <span className="log-section-icon">
+          <CalendarClock size={16} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="log-section-title">Upcoming deadlines</div>
+          <div className="log-section-sub">From your subjects' assessments</div>
+        </div>
+      </div>
+      {deadlines.length ? (
+        <>
+          {deadlines.slice(0, MAX_DEADLINES).map((d) => {
+            const due = d.dueDate ? dueLabel(d.dueDate) : null;
+            return (
+              <div className="log-row" key={d.id}>
+                <div className="log-body">
+                  <div className="log-title">
+                    {d.title}
+                    {d.weight ? <span className="log-weight"> · {d.weight}%</span> : null}
+                  </div>
+                  <div className="log-meta">{subjectLabel(d.subject)}</div>
+                </div>
+                <div className={`log-due${due?.overdue ? ' overdue' : due?.soon ? ' soon' : ''}`}>
+                  <span>{d.dueDate ? formatDueDate(d.dueDate) : 'No date'}</span>
+                  {due && <span className="log-due-rel">{due.text}</span>}
+                </div>
+              </div>
+            );
+          })}
+          <Link to="/subject-list" className="log-more">
+            {deadlines.length > MAX_DEADLINES ? `View all ${deadlines.length} in Subjects` : 'Manage in Subjects'}
+          </Link>
+        </>
+      ) : (
+        <p className="log-empty">
+          No upcoming deadlines. Add due dates to your assessments in <Link to="/subject-list">Subjects</Link>.
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <div className="page academic">
       <div className="page-header">
@@ -397,6 +443,9 @@ export default function AcademicJournal() {
             </div>
           </div>
 
+          {/* ---------- upcoming deadlines ---------- */}
+          {deadlinesCard}
+
           {/* ---------- study hours ---------- */}
           <LogSection
             icon={Clock}
@@ -514,47 +563,8 @@ export default function AcademicJournal() {
       )}
 
       {/* ---------- assignments and subjects ---------- */}
-      <div className="grid-2 academic-ref">
-        <div className="card">
-          <div className="log-section-head">
-            <span className="log-section-icon">
-              <CalendarClock size={16} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="log-section-title">Upcoming deadlines</div>
-              <div className="log-section-sub">From your subjects' assessments</div>
-            </div>
-          </div>
-          {deadlines.length ? (
-            <>
-              {deadlines.slice(0, MAX_DEADLINES).map((d) => {
-                const due = d.dueDate ? dueLabel(d.dueDate) : null;
-                return (
-                  <div className="log-row" key={d.id}>
-                    <div className="log-body">
-                      <div className="log-title">
-                        {d.title}
-                        {d.weight ? <span className="log-weight"> · {d.weight}%</span> : null}
-                      </div>
-                      <div className="log-meta">{subjectLabel(d.subject)}</div>
-                    </div>
-                    <div className={`log-due${due?.overdue ? ' overdue' : due?.soon ? ' soon' : ''}`}>
-                      <span>{d.dueDate ? formatDueDate(d.dueDate) : 'No date'}</span>
-                      {due && <span className="log-due-rel">{due.text}</span>}
-                    </div>
-                  </div>
-                );
-              })}
-              <Link to="/subject-list" className="log-more">
-                {deadlines.length > MAX_DEADLINES ? `View all ${deadlines.length} in Subjects` : 'Manage in Subjects'}
-              </Link>
-            </>
-          ) : (
-            <p className="log-empty">
-              No upcoming deadlines. Add due dates to your assessments in <Link to="/subject-list">Subjects</Link>.
-            </p>
-          )}
-        </div>
+      <div className={weekShown ? 'academic-ref' : 'grid-2 academic-ref'}>
+        {!weekShown && deadlinesCard}
 
         <div className="card">
           <div className="log-section-head">
