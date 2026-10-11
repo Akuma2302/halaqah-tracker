@@ -9,6 +9,11 @@ const assessmentTaskSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullish(),
+  // "HH:MM", optional. With a date and a time the task is shown in the Timetable.
+  dueTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .nullish(),
   isDone: z.boolean().optional()
 });
 

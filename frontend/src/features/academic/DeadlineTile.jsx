@@ -142,6 +142,7 @@ export function AssessmentSheet({ deadline: d, onClose }) {
                     {t.dueDate && (
                       <span className={`as-task-due${late ? ' late' : ''}`}>
                         {parts(t.dueDate).d} {MONTHS[parts(t.dueDate).m - 1]}
+                        {t.dueTime ? `, ${clock(t.dueTime)}` : ''}
                       </span>
                     )}
                   </li>

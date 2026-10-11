@@ -9,7 +9,12 @@ function toAssessmentRow(subjectId, a) {
     due_time: (a.dueDate && a.dueTime) || null,
     focus_topics: a.focusTopics || '',
     note: a.note || '',
-    tasks: (a.tasks || []).map((t) => ({ title: t.title, dueDate: t.dueDate || null, isDone: !!t.isDone })),
+    tasks: (a.tasks || []).map((t) => ({
+      title: t.title,
+      dueDate: t.dueDate || null,
+      dueTime: (t.dueDate && t.dueTime) || null,
+      isDone: !!t.isDone
+    })),
     progress_percentage: a.progressPercentage || 0,
     is_done: !!a.isDone
   };

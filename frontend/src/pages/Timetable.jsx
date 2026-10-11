@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarDays, Clock, MapPin, Plus, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
@@ -82,23 +83,33 @@ export default function Timetable() {
     return groups;
   }, [entries]);
 
-  // Quizzes, tests and final exams from the subjects, still to come, soonest first.
+  // Dated things from the subjects, still to come, soonest first: quizzes,
+  // tests and final exams, and any assessment task given a date and a time.
   const todayKey = toDateKey(now);
   const exams = useMemo(
     () =>
       subjects
         .flatMap((s) =>
-          (s.assessments || [])
-            .filter((a) => isExam(a.type) && a.dueDate && !a.isDone && a.dueDate >= todayKey)
-            .map((a, i) => ({
-              id: a._id || `${s._id}-${i}`,
-              type: a.type,
-              date: a.dueDate,
-              time: a.dueTime || '',
-              topics: a.focusTopics || '',
-              progress: Number(a.progressPercentage) || 0,
-              subject: s
-            }))
+          (s.assessments || []).flatMap((a, i) => {
+            const items = [];
+            if (isExam(a.type) && a.dueDate && !a.isDone && a.dueDate >= todayKey) {
+              items.push({
+                id: a._id || `${s._id}-${i}`,
+                type: a.type,
+                date: a.dueDate,
+                time: a.dueTime || '',
+                topics: a.focusTopics || '',
+                progress: Number(a.progressPercentage) || 0,
+                subject: s
+              });
+            }
+            (a.tasks || []).forEach((t, j) => {
+              if (!t.isDone && !a.isDone && t.dueDate && t.dueTime && t.dueDate >= todayKey) {
+                items.push({ id: `${a._id || `${s._id}-${i}`}-task-${j}`, task: t.title, type: a.type, date: t.dueDate, time: t.dueTime, subject: s });
+              }
+            });
+            return items;
+          })
         )
         .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)),
     [subjects, todayKey]
@@ -298,27 +309,30 @@ export default function Timetable() {
     );
   }
 
-  // An exam on its date: read-only here, it is edited in the subject.
+  // An exam, or a timed task towards an assessment, on its date. Read-only
+  // here: tapping it opens the subject, where it is edited.
   function ExamCard({ exam }) {
     const due = dueLabel(exam.date);
+    const label = ASSESSMENT_LABEL[exam.type] || exam.type;
     return (
-      <div className="class-card static exam">
+      <Link to={`/subject-list?edit=${exam.subject._id}`} className={`class-card static dated ${exam.task ? 'task' : 'exam'}`}>
         <span className="class-time">
           <strong>{exam.time ? clock(exam.time) : 'All day'}</strong>
           <span>{formatDueDate(exam.date)}</span>
         </span>
         <span className="class-body">
           <span className="class-name">
-            {ASSESSMENT_LABEL[exam.type] || exam.type}
-            <span className="badge badge-gold">Exam</span>
+            {exam.task || label}
+            <span className={`badge ${exam.task ? 'badge-primary' : 'badge-gold'}`}>{exam.task ? 'Task' : 'Exam'}</span>
           </span>
-          <span className="class-meta">{[exam.subject.name, exam.subject.code].filter(Boolean).join(' · ')}</span>
+          <span className="class-meta">{[exam.task ? `For ${label}` : '', exam.subject.name, exam.subject.code].filter(Boolean).join(' · ')}</span>
           <span className="class-meta">
-            {due.text.replace(/^due /, '')} · {exam.progress}% revised
+            {due.text.replace(/^due /, '')}
+            {exam.task ? '' : ` · ${exam.progress}% revised`}
           </span>
           {exam.topics && <span className="class-meta exam-topics">Focus: {exam.topics}</span>}
         </span>
-      </div>
+      </Link>
     );
   }
 
@@ -473,8 +487,8 @@ export default function Timetable() {
           {exams.length > 0 && (
             <section className="week-group exam-list">
               <h2 className="week-group-title">
-                Exams coming up
-                <small>From your subjects</small>
+                Coming up
+                <small>Exams and timed tasks from your subjects</small>
               </h2>
               <div className="class-list">
                 {exams.map((x) => (

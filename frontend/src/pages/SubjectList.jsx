@@ -136,7 +136,7 @@ export default function SubjectList() {
         dueTime: a.dueTime || '',
         focusTopics: a.focusTopics || '',
         note: a.note || '',
-        tasks: (a.tasks || []).map((t) => ({ title: t.title || '', dueDate: t.dueDate || '', isDone: !!t.isDone })),
+        tasks: (a.tasks || []).map((t) => ({ title: t.title || '', dueDate: t.dueDate || '', dueTime: t.dueTime || '', isDone: !!t.isDone })),
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: !!a.isDone
       })),
@@ -189,7 +189,7 @@ export default function SubjectList() {
     }));
   }
 
-  const addTask = (i) => setTasks(i, (tasks) => [...tasks, { title: '', dueDate: '', isDone: false }]);
+  const addTask = (i) => setTasks(i, (tasks) => [...tasks, { title: '', dueDate: '', dueTime: '', isDone: false }]);
   const updateTask = (i, j, patch) => setTasks(i, (tasks) => tasks.map((t, idx) => (idx === j ? { ...t, ...patch } : t)));
   const removeTask = (i, j) => setTasks(i, (tasks) => tasks.filter((_, idx) => idx !== j));
 
@@ -263,7 +263,7 @@ export default function SubjectList() {
         note: (a.note || '').trim(),
         tasks: (a.tasks || [])
           .filter((t) => t.title.trim())
-          .map((t) => ({ title: t.title.trim(), dueDate: t.dueDate || null, isDone: !!t.isDone })),
+          .map((t) => ({ title: t.title.trim(), dueDate: t.dueDate || null, dueTime: (t.dueDate && t.dueTime) || null, isDone: !!t.isDone })),
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: a.isDone
       }))
@@ -762,7 +762,7 @@ export default function SubjectList() {
                         <div className="edit-section-head">
                           <span>
                             Tasks
-                            <small>The small steps to finish it</small>
+                            <small>The small steps to finish it. Give one a date and a time to see it in your Timetable.</small>
                           </span>
                         </div>
                         {(a.tasks || []).map((t, j) => (
@@ -792,6 +792,14 @@ export default function SubjectList() {
                               max={a.dueDate || undefined}
                               onChange={(e) => updateTask(i, j, { dueDate: e.target.value })}
                               aria-label="Task due date"
+                            />
+                            <input
+                              className="input assess-task-time"
+                              type="time"
+                              value={t.dueTime}
+                              onChange={(e) => updateTask(i, j, { dueTime: e.target.value })}
+                              disabled={!t.dueDate}
+                              aria-label="Task time (optional)"
                             />
                             <button type="button" className="icon-btn" onClick={() => removeTask(i, j)} aria-label="Remove task">
                               <X size={13} />
