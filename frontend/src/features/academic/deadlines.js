@@ -2,6 +2,11 @@ import { ASSESSMENT_TYPES } from './constants';
 
 export const ASSESSMENT_LABEL = Object.fromEntries(ASSESSMENT_TYPES.map((t) => [t.value, t.label]));
 
+// Sat at a set date and time; the rest are pieces of work handed in by a due date.
+// Matches EXAM_TYPES in backend/src/utils/assessments.js.
+export const EXAM_TYPES = ['quiz', 'test', 'final_exam'];
+export const isExam = (type) => EXAM_TYPES.includes(type);
+
 function daysUntil(dateKey) {
   const [y, m, d] = dateKey.split('-').map(Number);
   const today = new Date();
@@ -34,7 +39,9 @@ export function upcomingDeadlines(subjects = [], assignments = []) {
         weight: a.percentage,
         progress: Number(a.progressPercentage) || 0,
         subject: s,
-        dueDate: a.dueDate
+        dueDate: a.dueDate,
+        dueTime: a.dueTime || '',
+        type: a.type
       }))
   );
   const standalone = assignments

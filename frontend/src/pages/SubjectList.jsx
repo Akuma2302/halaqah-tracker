@@ -5,7 +5,7 @@ import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { ASSESSMENT_TYPES } from '../features/academic/constants';
-import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
+import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
 import { KINDS, SHORT_DAYS, slotSummary } from '../features/timetable/timetable';
 
 const TYPE_LABEL = ASSESSMENT_LABEL;
@@ -100,6 +100,7 @@ export default function SubjectList() {
         type: a.type,
         percentage: a.percentage === null || a.percentage === undefined ? '' : String(a.percentage),
         dueDate: a.dueDate || '',
+        dueTime: a.dueTime || '',
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: !!a.isDone
       })),
@@ -125,7 +126,7 @@ export default function SubjectList() {
   function addAssessment(type) {
     setForm((f) => ({
       ...f,
-      assessments: [...f.assessments, { type, percentage: '', dueDate: '', progressPercentage: 0, isDone: false }]
+      assessments: [...f.assessments, { type, percentage: '', dueDate: '', dueTime: '', progressPercentage: 0, isDone: false }]
     }));
   }
 
@@ -195,6 +196,7 @@ export default function SubjectList() {
         type: a.type,
         percentage: Math.max(0, Math.min(100, Number(a.percentage))),
         dueDate: a.dueDate || null,
+        dueTime: (a.dueDate && a.dueTime) || null,
         progressPercentage: a.isDone ? 100 : Number(a.progressPercentage) || 0,
         isDone: a.isDone
       }))
@@ -530,14 +532,28 @@ export default function SubjectList() {
                     <X size={14} />
                   </button>
                 </div>
+                <div className="assess-when-label">
+                  {isExam(a.type) ? 'Exam date and time' : 'Due date and time'}
+                  {isExam(a.type) && <span>Shown in your Timetable</span>}
+                </div>
                 <div className="assess-row">
                   <input
                     className="input assess-date"
                     type="date"
                     value={a.dueDate}
                     onChange={(e) => updateAssessment(i, { dueDate: e.target.value })}
-                    aria-label="Due date"
+                    aria-label={isExam(a.type) ? 'Exam date' : 'Due date'}
                   />
+                  <input
+                    className="input assess-time"
+                    type="time"
+                    value={a.dueTime}
+                    onChange={(e) => updateAssessment(i, { dueTime: e.target.value })}
+                    disabled={!a.dueDate}
+                    aria-label={isExam(a.type) ? 'Exam time' : 'Due time'}
+                  />
+                </div>
+                <div className="assess-row">
                   <label className="assess-done">
                     <button
                       type="button"

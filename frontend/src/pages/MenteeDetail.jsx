@@ -269,7 +269,10 @@ export default function MenteeDetail() {
                       {d.percentage ? ` · ${d.percentage}%` : ''}
                     </div>
                     <div className="log-meta">{subjectLabel(d.subject)}</div>
-                    <div className={`log-meta md-due${due.soon ? ' soon' : ''}`}>{due.text.replace(/^due /, '')}</div>
+                    <div className={`log-meta md-due${due.soon ? ' soon' : ''}`}>
+                      {due.text.replace(/^due /, '')}
+                      {d.dueTime ? ` · ${clock(d.dueTime)}` : ''}
+                    </div>
                   </div>
                   {isMentor && (
                     <button

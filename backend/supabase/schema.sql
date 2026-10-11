@@ -105,7 +105,7 @@ create table if not exists mutabaah_entries (
 create table if not exists notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
-  type text not null check (type in ('reminder', 'group_invite', 'session_scheduled', 'message', 'exam_alert')),
+  type text not null check (type in ('reminder', 'group_invite', 'session_scheduled', 'message', 'exam_alert', 'deadline_reminder', 'mentee_exam')),
   title text not null,
   body text not null default '',
   related_id uuid,
@@ -301,11 +301,25 @@ alter table push_subscriptions enable row level security;
 -- Safe to run every boot: it just re-asserts the same (or newer) rule.
 alter table notifications drop constraint if exists notifications_type_check;
 alter table notifications add constraint notifications_type_check
-  check (type in ('reminder', 'group_invite', 'session_scheduled', 'message', 'exam_alert'));
+  check (type in ('reminder', 'group_invite', 'session_scheduled', 'message', 'exam_alert', 'deadline_reminder', 'mentee_exam'));
 
 alter table subject_assessments add column if not exists due_date date;
 alter table subject_assessments add column if not exists progress_percentage numeric not null default 0;
 alter table subject_assessments add column if not exists is_done boolean not null default false;
+-- The time of an exam, or the time an assignment is due (optional).
+alter table subject_assessments add column if not exists due_time time;
+
+-- One row per "7 / 3 / 1 days before" reminder actually sent (services/assessmentReminderService.js),
+-- so repeated job runs never send the same one twice. Assessment rows are
+-- replaced whenever a subject is saved, so the key is built from the subject,
+-- type and date rather than the assessment's id.
+create table if not exists assessment_reminders_sent (
+  user_id uuid not null references users(id) on delete cascade,
+  key text not null,
+  sent_at timestamptz not null default now(),
+  primary key (user_id, key)
+);
+alter table assessment_reminders_sent enable row level security;
 
 -- Daily "mutabaah not done yet" push reminders (services/mutabaahReminderService.js).
 alter table users add column if not exists mutabaah_reminders boolean not null default true;

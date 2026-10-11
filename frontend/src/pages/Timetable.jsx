@@ -4,6 +4,8 @@ import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { DAYS, KINDS, KIND_LABEL, SHORT_DAYS, clock, hueFor, minutes } from '../features/timetable/timetable';
+import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
+import { addDays, toDateKey } from '../features/academic/weekUtils';
 
 function duration(mins) {
   const h = Math.floor(mins / 60);
@@ -66,6 +68,34 @@ export default function Timetable() {
     groups.forEach((g) => g.sort((a, b) => a.startTime.localeCompare(b.startTime)));
     return groups;
   }, [entries]);
+
+  // Quizzes, tests and final exams from the subjects, still to come, soonest first.
+  const todayKey = toDateKey(now);
+  const exams = useMemo(
+    () =>
+      subjects
+        .flatMap((s) =>
+          (s.assessments || [])
+            .filter((a) => isExam(a.type) && a.dueDate && !a.isDone && a.dueDate >= todayKey)
+            .map((a, i) => ({ id: a._id || `${s._id}-${i}`, type: a.type, date: a.dueDate, time: a.dueTime || '', subject: s }))
+        )
+        .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)),
+    [subjects, todayKey]
+  );
+
+  // The ones in the next 7 days, by weekday, so they sit with that day's classes.
+  const examsByDay = useMemo(() => {
+    const groups = DAYS.map(() => []);
+    const [y, m, d] = todayKey.split('-').map(Number);
+    const limit = toDateKey(addDays(new Date(y, m - 1, d), 6));
+    exams
+      .filter((x) => x.date <= limit)
+      .forEach((x) => {
+        const [ey, em, ed] = x.date.split('-').map(Number);
+        groups[new Date(ey, em - 1, ed).getDay()].push(x);
+      });
+    return groups;
+  }, [exams, todayKey]);
 
   // Today: the class in progress, and the next one still to start.
   const todays = byDay[today];
@@ -208,6 +238,27 @@ export default function Timetable() {
     );
   }
 
+  // An exam on its date: read-only here, it is edited in the subject.
+  function ExamCard({ exam }) {
+    const due = dueLabel(exam.date);
+    return (
+      <div className="class-card static exam">
+        <span className="class-time">
+          <strong>{exam.time ? clock(exam.time) : 'All day'}</strong>
+          <span>{formatDueDate(exam.date)}</span>
+        </span>
+        <span className="class-body">
+          <span className="class-name">
+            {ASSESSMENT_LABEL[exam.type] || exam.type}
+            <span className="badge badge-gold">Exam</span>
+          </span>
+          <span className="class-meta">{[exam.subject.name, exam.subject.code].filter(Boolean).join(' · ')}</span>
+          <span className="class-meta">{due.text.replace(/^due /, '')}</span>
+        </span>
+      </div>
+    );
+  }
+
   const total = entries?.length || 0;
 
   return (
@@ -233,7 +284,7 @@ export default function Timetable() {
         </div>
       ) : !entries ? (
         <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
-      ) : total === 0 ? (
+      ) : total === 0 && exams.length === 0 ? (
         <div className="card empty-state">
           <CalendarDays size={28} style={{ color: 'var(--primary)' }} />
           <h3>No classes yet</h3>
@@ -305,12 +356,12 @@ export default function Timetable() {
                     onClick={() => setDay(d)}
                   >
                     <span>{label}</span>
-                    <small>{byDay[d].length || '·'}</small>
+                    <small>{byDay[d].length + examsByDay[d].length || '·'}</small>
                   </button>
                 ))}
               </div>
 
-              {byDay[day].length === 0 ? (
+              {byDay[day].length + examsByDay[day].length === 0 ? (
                 <div className="card class-empty">
                   <p>No classes on {DAYS[day]}.</p>
                   <button className="btn btn-ghost btn-sm" onClick={() => openNew(day)}>
@@ -319,6 +370,9 @@ export default function Timetable() {
                 </div>
               ) : (
                 <div className="class-list">
+                  {examsByDay[day].map((x) => (
+                    <ExamCard key={x.id} exam={x} />
+                  ))}
                   {byDay[day].map((e) => (
                     <ClassCard key={e._id} entry={e} showState />
                   ))}
@@ -327,7 +381,7 @@ export default function Timetable() {
             </>
           ) : (
             DAYS.map((label, d) =>
-              byDay[d].length ? (
+              byDay[d].length + examsByDay[d].length ? (
                 <section key={label} className="week-group">
                   <h2 className={`week-group-title${d === today ? ' today' : ''}`}>
                     {label}
@@ -337,6 +391,9 @@ export default function Timetable() {
                     </small>
                   </h2>
                   <div className="class-list">
+                    {examsByDay[d].map((x) => (
+                      <ExamCard key={x.id} exam={x} />
+                    ))}
                     {byDay[d].map((e) => (
                       <ClassCard key={e._id} entry={e} showState />
                     ))}
@@ -344,6 +401,21 @@ export default function Timetable() {
                 </section>
               ) : null
             )
+          )}
+
+          {/* ---------- every exam still to come, from the subjects ---------- */}
+          {exams.length > 0 && (
+            <section className="week-group exam-list">
+              <h2 className="week-group-title">
+                Exams coming up
+                <small>From your subjects</small>
+              </h2>
+              <div className="class-list">
+                {exams.map((x) => (
+                  <ExamCard key={x.id} exam={x} />
+                ))}
+              </div>
+            </section>
           )}
         </>
       )}

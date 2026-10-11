@@ -12,7 +12,13 @@ dayjs.extend(relativeTime);
 // Every notification type falls into one of these, which is how the list is
 // filtered and coloured.
 const CATEGORIES = [
-  { key: 'exam', label: 'Exams', icon: CalendarClock, types: ['exam_alert'], empty: 'No exam reminders from your mentor yet.' },
+  {
+    key: 'exam',
+    label: 'Exams & due',
+    icon: CalendarClock,
+    types: ['exam_alert', 'deadline_reminder', 'mentee_exam'],
+    empty: 'No exam or due-date reminders yet.'
+  },
   { key: 'reminder', label: 'Reminders', icon: AlarmClock, types: ['reminder'], empty: 'No reminders yet.' },
   { key: 'group', label: 'Groups', icon: Users, types: ['group_invite', 'session_scheduled'], empty: 'No group invites or sessions yet.' },
   { key: 'message', label: 'Messages', icon: MessageCircle, types: ['message'], empty: 'No messages yet.' }

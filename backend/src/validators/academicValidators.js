@@ -6,6 +6,11 @@ const assessmentSchema = z.object({
   type: z.enum(ASSESSMENT_TYPES),
   percentage: z.number().min(0).max(100),
   dueDate: z.string().nullish(),
+  // "HH:MM": when the exam starts, or when the work is due.
+  dueTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .nullish(),
   progressPercentage: z.number().min(0).max(100).optional(),
   isDone: z.boolean().optional()
 });

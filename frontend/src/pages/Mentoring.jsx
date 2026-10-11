@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BarChart3, Check, ChevronRight, Copy, Network, Share2, UserMinus, UserPlus } from 'lucide-react';
+import { BarChart3, CalendarClock, Check, ChevronRight, Copy, Network, Share2, UserMinus, UserPlus } from 'lucide-react';
 import MentoringDashboard from '../features/mentoring/MentoringDashboard';
 import client from '../services/apiClient';
 import { useToast } from '../hooks/useToast';
 import { toDateKey } from '../features/academic/weekUtils';
+import { ASSESSMENT_LABEL, dueLabel, formatDueDate } from '../features/academic/deadlines';
+import { clock } from '../features/timetable/timetable';
 
 // A steady colour per person (from their name), so faces in the tree are easy
 // to tell apart when there is no photo.
@@ -282,6 +284,39 @@ export default function Mentoring() {
               )}
             </div>
           </div>
+          {/* ---------- a mentor's view of every mentee's exams ---------- */}
+          {tree.menteeExams?.length > 0 && (
+            <div className="card mentee-exams">
+              <div className="log-section-head">
+                <span className="log-section-icon">
+                  <CalendarClock size={16} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="log-section-title">My mentees' exams</div>
+                  <div className="log-section-sub">Quizzes, tests and finals still to come</div>
+                </div>
+              </div>
+              {tree.menteeExams.map((x) => {
+                const due = dueLabel(x.dueDate);
+                return (
+                  <Link to={`/mentoring/${x.mentee._id}`} className="log-row mentee-exam" key={`${x.mentee._id}-${x._id}`}>
+                    <span className="log-day">{formatDueDate(x.dueDate)}</span>
+                    <div className="log-body">
+                      <div className="log-title">
+                        {x.mentee.name} · {ASSESSMENT_LABEL[x.type] || x.type}
+                      </div>
+                      <div className="log-meta">{[x.subject.name, x.subject.code].filter(Boolean).join(' · ')}</div>
+                      <div className={`log-meta md-due${due.soon ? ' soon' : ''}`}>
+                        {due.text.replace(/^due /, '')}
+                        {x.dueTime ? ` · ${clock(x.dueTime)}` : ''}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="mentee-chevron" />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
           {(mates.length > 0 || mentees.length > 0) && (
             <p className="mentor-note">The ring beside each person is their mutabaah today, out of 7. Tap someone to see their updates.</p>
           )}

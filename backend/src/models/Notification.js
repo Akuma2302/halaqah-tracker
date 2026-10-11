@@ -3,7 +3,7 @@
  * @typedef {Object} Notification
  * @property {string} id
  * @property {string} user_id
- * @property {'reminder'|'group_invite'|'session_scheduled'|'message'|'exam_alert'} type
+ * @property {'reminder'|'group_invite'|'session_scheduled'|'message'|'exam_alert'|'deadline_reminder'|'mentee_exam'} type
  * @property {string} title
  * @property {string} body
  * @property {string|null} related_id

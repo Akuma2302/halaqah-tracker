@@ -13,4 +13,16 @@ async function claim(rows) {
   return data;
 }
 
-module.exports = { claim };
+// The same idea for assessment reminders: (user_id, key) rows, returning only
+// the ones this call inserted.
+async function claimAssessment(rows) {
+  if (!rows.length) return [];
+  const { data, error } = await supabase
+    .from('assessment_reminders_sent')
+    .upsert(rows, { onConflict: 'user_id,key', ignoreDuplicates: true })
+    .select('user_id, key');
+  if (error) throw error;
+  return data;
+}
+
+module.exports = { claim, claimAssessment };

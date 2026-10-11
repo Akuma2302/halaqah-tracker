@@ -145,6 +145,7 @@ function serializeSubject(row) {
       type: a.type,
       percentage: a.percentage,
       dueDate: a.due_date,
+      dueTime: a.due_time ? String(a.due_time).slice(0, 5) : null,
       progressPercentage: a.progress_percentage,
       isDone: a.is_done
     })),

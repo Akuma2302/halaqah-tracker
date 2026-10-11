@@ -6,6 +6,7 @@ function toAssessmentRow(subjectId, a) {
     type: a.type,
     percentage: a.percentage,
     due_date: a.dueDate || null,
+    due_time: (a.dueDate && a.dueTime) || null,
     progress_percentage: a.progressPercentage || 0,
     is_done: !!a.isDone
   };
@@ -30,6 +31,19 @@ async function findVisibleForUser(userId) {
     .order('created_at', { ascending: true });
   if (error) throw error;
   return data;
+}
+
+// Unfinished assessments falling on any of the given dates, each with its
+// subject (and so its owner). For the "days before" reminders.
+async function findAssessmentsDueOn(dates) {
+  if (!dates.length) return [];
+  const { data, error } = await supabase
+    .from('subject_assessments')
+    .select('*, subject:subjects!inner(id, name, code, user_id, is_visible)')
+    .in('due_date', dates)
+    .eq('is_done', false);
+  if (error) throw error;
+  return data.filter((a) => a.subject?.is_visible !== false);
 }
 
 async function findById(id, userId) {
@@ -92,4 +106,4 @@ async function remove(id, userId) {
   if (error) throw error;
 }
 
-module.exports = { findAllForUser, findVisibleForUser, findById, create, update, remove };
+module.exports = { findAllForUser, findVisibleForUser, findAssessmentsDueOn, findById, create, update, remove };

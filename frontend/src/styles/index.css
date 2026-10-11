@@ -3049,6 +3049,37 @@ a.perf-row:hover .perf-name {
   min-width: 0;
 }
 
+.assess-time {
+  flex: 0 0 138px;
+  min-width: 0;
+}
+
+.assess-row .assess-date,
+.assess-row .assess-time {
+  padding-left: 9px;
+  padding-right: 6px;
+}
+
+.assess-time:disabled {
+  opacity: 0.5;
+}
+
+.assess-when-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: -2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.assess-when-label span {
+  font-weight: 600;
+  color: var(--gold-ink);
+}
+
 .assess-done {
   display: inline-flex;
   align-items: center;
@@ -6438,6 +6469,32 @@ input.input::-webkit-date-and-time-value {
 
 .class-card.past {
   opacity: 0.55;
+}
+
+/* An exam on its date, among the classes */
+.class-card.exam {
+  --subject: var(--gold);
+  background: color-mix(in srgb, var(--gold) 9%, var(--surface));
+}
+
+.class-card.exam:hover {
+  border-color: var(--border);
+  border-left-color: var(--gold);
+}
+
+.week-group.exam-list {
+  margin-top: 22px;
+}
+
+/* A mentor's list of every mentee's exams */
+.card.mentee-exams {
+  margin-top: 14px;
+}
+
+.mentee-exam {
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
 }
 
 /* Read-only, e.g. a mentee's timetable */

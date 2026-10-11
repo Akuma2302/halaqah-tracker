@@ -3,6 +3,7 @@ const mutabaahRepository = require('../repositories/mutabaahRepository');
 const timetableRepository = require('../repositories/timetableRepository');
 const subjectRepository = require('../repositories/subjectRepository');
 const notificationService = require('./notificationService');
+const { ASSESSMENT_LABEL, isExam, whenText, inDays, subjectText } = require('../utils/assessments');
 const mutabaahService = require('./mutabaahService');
 const weeklyLogService = require('./weeklyLogService');
 const { CAMEL_FIELDS } = require('../models/MutabaahEntry');
@@ -62,11 +63,20 @@ async function getTree(userId, date) {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Every mentee's quizzes, tests and final exams still to come, soonest first,
+  // so a mentor can see them all in one place.
+  const examLists = await Promise.all(mentees.map((u) => upcomingAssessments(u.id, date)));
+  const menteeExams = examLists
+    .flatMap((list, i) => list.filter((a) => isExam(a.type)).map((a) => ({ ...a, mentee: publicUser(mentees[i]) })))
+    .sort((a, b) => `${a.dueDate}${a.dueTime || ''}`.localeCompare(`${b.dueDate}${b.dueTime || ''}`))
+    .slice(0, 12);
+
   return {
     me: publicUser(me),
     mentor: mentor ? publicUser(mentor) : null,
     mates: withToday(mates),
-    mentees: withToday(mentees)
+    mentees: withToday(mentees),
+    menteeExams
   };
 }
 
@@ -142,15 +152,6 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart }) {
   };
 }
 
-const ASSESSMENT_LABEL = {
-  quiz: 'Quiz',
-  test: 'Test',
-  assignment: 'Assignment',
-  project: 'Project',
-  presentation: 'Presentation',
-  final_exam: 'Final Exam'
-};
-
 // A person's quizzes, tests, exams and other assessments still to come:
 // unfinished, dated from `date` on, soonest first.
 async function upcomingAssessments(userId, date) {
@@ -164,10 +165,11 @@ async function upcomingAssessments(userId, date) {
           type: a.type,
           percentage: a.percentage,
           dueDate: a.due_date,
+          dueTime: a.due_time ? String(a.due_time).slice(0, 5) : null,
           subject: { _id: s.id, name: s.name, code: s.code }
         }))
     )
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    .sort((a, b) => `${a.dueDate}${a.dueTime || ''}`.localeCompare(`${b.dueDate}${b.dueTime || ''}`));
 }
 
 // A mentor reminds a mentee about one of the mentee's upcoming assessments:
@@ -182,15 +184,14 @@ async function alertMentee(mentorId, menteeId, { assessmentId, date, note }) {
   const label = ASSESSMENT_LABEL[assessment.type] || assessment.type;
   const due = new Date(`${assessment.dueDate}T00:00:00Z`);
   const days = Math.round((due - new Date(`${date}T00:00:00Z`)) / 86400000);
-  const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
-  const onDate = due.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-  const subject = assessment.subject.code ? `${assessment.subject.name} (${assessment.subject.code})` : assessment.subject.name;
+  const exam = isExam(assessment.type);
+  const when = whenText(assessment.dueDate, assessment.dueTime);
 
   return notificationService.notify({
     userId: menteeId,
     type: 'exam_alert',
-    title: `${label} ${when}: ${assessment.subject.name}`,
-    body: `${mentor.name} is reminding you: ${label} for ${subject} is on ${onDate}.${note ? ` "${note}"` : ''}`,
+    title: `${label} ${exam ? '' : 'due '}${inDays(days)}: ${assessment.subject.name}`,
+    body: `${mentor.name} is reminding you: ${label} for ${subjectText(assessment.subject)} is ${exam ? 'on' : 'due'} ${when}.${note ? ` "${note}"` : ''}`,
     relatedId: assessment._id
   });
 }

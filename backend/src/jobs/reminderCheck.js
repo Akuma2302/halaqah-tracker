@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const studyGroupRepository = require('../repositories/studyGroupRepository');
 const notificationService = require('../services/notificationService');
 const mutabaahReminderService = require('../services/mutabaahReminderService');
+const assessmentReminderService = require('../services/assessmentReminderService');
 
 // Look for sessions starting 30-40 minutes from now and send a one-time
 // reminder notification to each member.
@@ -47,6 +48,12 @@ async function runAllReminders() {
   } catch (err) {
     console.error('Mutabaah reminder error:', err.message);
     result.mutabaahError = err.message;
+  }
+  try {
+    result.assessments = await assessmentReminderService.runDueReminders();
+  } catch (err) {
+    console.error('Assessment reminder error:', err.message);
+    result.assessmentsError = err.message;
   }
   return result;
 }
