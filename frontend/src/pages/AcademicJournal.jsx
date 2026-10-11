@@ -447,13 +447,13 @@ export default function AcademicJournal() {
                 <span className="week-stat-label">Mentor</span>
               </div>
             </div>
+
+            {/* ---------- the semester in numbers, in the same card ---------- */}
+            <SemesterOverview subjects={subjects} timetable={timetable} embedded />
           </div>
 
           {/* ---------- upcoming deadlines ---------- */}
           {deadlinesCard}
-
-          {/* ---------- the semester in numbers ---------- */}
-          <SemesterOverview subjects={subjects} timetable={timetable} />
 
           {/* ---------- study hours ---------- */}
           <LogSection

@@ -8820,6 +8820,39 @@ a.md-deadline {
 }
 
 /* ---------- Academic: the semester in numbers ---------- */
+/* Inside the week's summary card: set off by a line, with its own small title */
+.sem-embedded {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.sem-embedded-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.sem-embedded-title svg {
+  color: var(--primary);
+}
+
+.sem-embedded-title span {
+  margin-left: auto;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.sem-embedded .sem-tile {
+  background: var(--paper);
+}
+
 .sem-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));

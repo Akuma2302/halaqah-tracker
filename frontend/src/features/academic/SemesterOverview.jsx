@@ -21,7 +21,8 @@ function hoursText(mins) {
 // The semester at a glance, from the subjects and the weekly timetable: how
 // many subjects, classes and assessments there are, how many of each kind of
 // assessment, and how much of it is done. Hidden subjects are left out.
-export default function SemesterOverview({ subjects, timetable }) {
+// `embedded` drops the card and its header, to sit inside the week's summary card.
+export default function SemesterOverview({ subjects, timetable, embedded = false }) {
   const visible = subjects.filter((s) => s.isVisible !== false);
   const assessments = visible.flatMap((s) => s.assessments || []);
   const classes = timetable.filter((e) => CLASS_KIND_KEYS.includes(e.kind) && e.subject?.isVisible !== false && !e.shared);
@@ -47,16 +48,23 @@ export default function SemesterOverview({ subjects, timetable }) {
   const byKind = CLASS_KINDS.map(([value]) => ({ value, total: classes.filter((e) => e.kind === value).length })).filter((k) => k.total > 0);
 
   return (
-    <div className="card sem-overview">
-      <div className="log-section-head">
-        <span className="log-section-icon">
-          <LayoutDashboard size={16} />
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="log-section-title">Semester dashboard</div>
-          <div className="log-section-sub">Everything in your subjects, in numbers</div>
+    <div className={embedded ? 'sem-overview sem-embedded' : 'card sem-overview'}>
+      {embedded ? (
+        <div className="sem-embedded-title">
+          <LayoutDashboard size={14} /> This semester
+          <span>Everything in your subjects</span>
         </div>
-      </div>
+      ) : (
+        <div className="log-section-head">
+          <span className="log-section-icon">
+            <LayoutDashboard size={16} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="log-section-title">Semester dashboard</div>
+            <div className="log-section-sub">Everything in your subjects, in numbers</div>
+          </div>
+        </div>
+      )}
 
       <div className="sem-tiles">
         <Link to="/subject-list" className="sem-tile">
