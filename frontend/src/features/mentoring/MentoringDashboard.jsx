@@ -123,7 +123,7 @@ function DayStrip({ days, total, dayKeys }) {
 // One person's mutabaah as a grid: an amal on each row, a day in each column,
 // as on their own page. A range longer than a week uses small squares.
 // How an amal's count moved against the period before: up, down or level.
-function Delta({ now, before, known, what }) {
+export function Delta({ now, before, known, what }) {
   if (!known) return <span className="perf-grid-delta none" title={`Nothing was logged the ${what} before, so there is nothing to compare with`}>–</span>;
   const change = now - before;
   return (

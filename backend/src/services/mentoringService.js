@@ -174,7 +174,8 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart, days = nul
   const to = days ? date : addDays(weekStart, 6);
   const [todayEntry, weekRows, academic, timetableRows, deadlines] = await Promise.all([
     mutabaahService.getEntry(menteeId, date),
-    mutabaahRepository.findBoundedRangeForUser(menteeId, from, to),
+    // From the period before too, to show how each amal has moved.
+    mutabaahRepository.findBoundedRangeForUser(menteeId, addDays(from, -(days || 7)), to),
     days ? academicLogInRange(menteeId, from, to) : weeklyLogService.getWeek(menteeId, weekStart),
     timetableRepository.findByUser(menteeId),
     upcomingAssessments(menteeId, date)
@@ -186,13 +187,32 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart, days = nul
     return mutabaahService.toApiShapePublic(rowByDate[day], menteeId, day);
   });
 
+  // Each amal over the matching days of the period before: for a week in
+  // progress, the same weekdays last week; otherwise the whole period before.
+  const length = days || 7;
+  const prevFrom = addDays(from, -length);
+  const lastDay = date < from ? null : date > to ? to : date;
+  const elapsed = lastDay ? Math.round((new Date(`${lastDay}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 86400000) + 1 : 0;
+  const prevLast = addDays(prevFrom, Math.max(0, elapsed - 1));
+  const prevItems = Object.fromEntries(CAMEL_FIELDS.map((key) => [key, 0]));
+  weekRows
+    .filter((r) => elapsed && r.date >= prevFrom && r.date <= prevLast)
+    .forEach((r) => {
+      const entry = mutabaahService.toApiShapePublic(r, menteeId, r.date);
+      CAMEL_FIELDS.forEach((key) => {
+        if (entry[key]) prevItems[key] += 1;
+      });
+    });
+  // False when nothing at all was logged then: there is nothing to compare with.
+  const hasPrev = weekRows.some((r) => r.date >= prevFrom && r.date < from);
+
   return {
     user: publicUser(mentee),
     relation,
     date,
     weekStart,
     days,
-    mutabaah: { today: todayEntry, week },
+    mutabaah: { today: todayEntry, week, prevItems, hasPrev },
     academic,
     // Their weekly class timetable (the same every week).
     timetable: timetableRows.filter((row) => row.subject?.is_visible !== false).map(timetableRepository.serialize),

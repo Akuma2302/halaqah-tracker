@@ -11999,3 +11999,32 @@ button.adm-group:hover {
     font-size: 12px;
   }
 }
+
+.mentee-grid.with-sum.with-delta .mentee-grid-row {
+  grid-template-columns: minmax(0, 1fr) repeat(7, 26px) 40px 34px;
+}
+
+/* A phone: tighter columns so the amal names keep their room */
+@media (max-width: 520px) {
+  .mentee-grid.with-sum:not(.compact) .mentee-grid-row {
+    grid-template-columns: minmax(0, 1fr) repeat(7, 20px) 34px;
+    gap: 3px;
+  }
+
+  .mentee-grid.with-sum.with-delta:not(.compact) .mentee-grid-row {
+    grid-template-columns: minmax(0, 1fr) repeat(7, 20px) 34px 24px;
+  }
+
+  .mentee-grid.with-sum:not(.compact) .mentee-dot {
+    width: 18px;
+    height: 18px;
+  }
+
+  .mentee-grid.with-sum .mentee-grid-name {
+    overflow: visible;
+    white-space: normal;
+    font-size: 12.5px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+}

@@ -10,6 +10,7 @@ import { DAYS, KIND_LABEL, SHORT_DAYS, clock, hueFor } from '../features/timetab
 import { ASSESSMENT_LABEL, isExam } from '../features/academic/deadlines';
 import { useToast } from '../hooks/useToast';
 import SocialLinks from '../components/SocialLinks';
+import { Delta } from '../features/mentoring/MentoringDashboard';
 
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
 const todayKey = toDateKey(new Date());
@@ -173,7 +174,13 @@ export default function MenteeDetail() {
   const dayMark = (key, i) => (compact ? (dateOf(key).getDay() === 0 || i === 0 ? dateOf(key).getDate() : '') : SHORT_DAYS[dateOf(key).getDay()]);
   // The weekly study target, stretched to the length of the range.
   const studyTarget = ranged ? Math.round((WEEKLY_TARGET_HOURS * period) / 7) : WEEKLY_TARGET_HOURS;
-  const gridColumns = compact ? { gridTemplateColumns: `minmax(84px, 112px) repeat(${shownDays}, minmax(0, 1fr)) 40px` } : undefined;
+  // With the period before to compare against, a last column shows each amal's change.
+  const compare = !!mutabaah.prevItems;
+  const gridColumns = compact
+    ? { gridTemplateColumns: `minmax(84px, 112px) repeat(${shownDays}, minmax(0, 1fr)) 40px${compare ? ' 34px' : ''}` }
+    : undefined;
+  const span = ranged ? `${period} days` : 'week';
+  const prevAll = Object.values(mutabaah.prevItems || {}).reduce((sum, n) => sum + n, 0);
   const today = mutabaah.today;
   const doneToday = MUTABAAH_FIELDS.filter((f) => today[f.key]).length;
 
@@ -407,7 +414,7 @@ export default function MenteeDetail() {
           sub={`${weekDone} of ${elapsed.length * MUTABAAH_FIELDS.length} done`}
           aside={<span className={`md-pill${weekPercent >= 80 ? ' ok' : weekPercent >= 50 ? ' mid' : ' low'}`}>{weekPercent}%</span>}
         >
-          <div className={`mentee-grid perf-grid with-sum${compact ? ' compact' : ''}`} role="table" aria-label="Mutabaah by day">
+          <div className={`mentee-grid perf-grid with-sum${compare ? ' with-delta' : ''}${compact ? ' compact' : ''}`} role="table" aria-label="Mutabaah by day">
             <div className="mentee-grid-row head" role="row" style={gridColumns}>
               <span />
               {mutabaah.week.map((day, i) => (
@@ -418,6 +425,11 @@ export default function MenteeDetail() {
               <span className="perf-grid-sum" role="columnheader">
                 Done
               </span>
+              {compare && (
+                <span className="perf-grid-sum" role="columnheader" title={`Change from the ${span} before`}>
+                  ±
+                </span>
+              )}
             </div>
             {MUTABAAH_FIELDS.map((f) => (
               <div className="mentee-grid-row" role="row" key={f.key} style={gridColumns}>
@@ -446,6 +458,9 @@ export default function MenteeDetail() {
                     </span>
                   );
                 })()}
+                {compare && (
+                  <Delta now={elapsed.filter((day) => day[f.key]).length} before={mutabaah.prevItems[f.key] || 0} known={mutabaah.hasPrev} what={span} />
+                )}
               </div>
             ))}
             <div className="mentee-grid-row total" role="row" style={gridColumns}>
@@ -459,8 +474,16 @@ export default function MenteeDetail() {
                 {weekDone}
                 <small>/{elapsed.length * MUTABAAH_FIELDS.length}</small>
               </span>
+              {compare && <Delta now={weekDone} before={prevAll} known={mutabaah.hasPrev} what={span} />}
             </div>
           </div>
+          {compare && (
+            <p className="perf-grid-note">
+              {mutabaah.hasPrev
+                ? `± is the change from ${ranged ? `the ${span} before` : elapsed.length < 7 ? 'the same days the week before' : 'the week before'}.`
+                : `Nothing was logged the ${span} before, so there is no change to show.`}
+            </p>
+          )}
         </Section>
 
         {/* ---------- academic for the week ---------- */}
