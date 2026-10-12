@@ -26,14 +26,6 @@ function shiftWeek(weekKey, weeks) {
   return toDateKey(addDays(new Date(y, m - 1, d), weeks * 7));
 }
 
-// What to look at: the week (with arrows to earlier weeks), or the last 7, 14 or 30 days.
-const PERIODS = [
-  ['week', 'Week'],
-  [7, '7 days'],
-  [14, '14 days'],
-  [30, '30 days']
-];
-
 // Which side of someone's week to show.
 const VIEWS = [
   ['all', 'All'],
@@ -388,39 +380,81 @@ export default function MentoringDashboard() {
     [group, isThisWeek, view, period]
   );
 
-  const weekNav = (
-    <>
-      <div className="range-toggle segmented perf-period" role="group" aria-label="Period">
-        {PERIODS.map(([key, label]) => (
-          <button key={key} className={period === key ? 'active' : ''} onClick={() => setPeriod(key)}>
-            {label}
-          </button>
-        ))}
+  // One row of three dropdowns (when, who, what) instead of rows of buttons.
+  const who = active === 'mates' ? 'mates' : groupFilter || 'all';
+  function setWho(value) {
+    if (value === 'mates') return setGroupKey('mates');
+    setGroupKey('mentees');
+    setMentoringGroup(value === 'all' ? '' : value);
+  }
+  const count = (n) => (data ? ` (${n})` : '');
+  const controls = (
+    <div className="card perf-controls">
+      <div className="perf-controls-row">
+        <label className="field">
+          <span>Period</span>
+          <select className="input" value={period} onChange={(e) => setPeriod(e.target.value === 'week' ? 'week' : Number(e.target.value))}>
+            <option value="week">By week</option>
+            <option value={7}>Last 7 days</option>
+            <option value={14}>Last 14 days</option>
+            <option value={30}>Last 30 days</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>People</span>
+          <select className="input" value={who} onChange={(e) => setWho(e.target.value)}>
+            <optgroup label="My mentees">
+              <option value="all">All mentees{count(data?.mentees.summary.count)}</option>
+              {myGroups.map((g) => (
+                <option key={g._id} value={g._id}>
+                  {g.name}
+                </option>
+              ))}
+              {myGroups.length > 0 && <option value="none">Not in a group</option>}
+            </optgroup>
+            <optgroup label="Under my mentor">
+              <option value="mates">Mentoring mates{count(Math.max(0, (data?.mates.summary.count || 1) - 1))}</option>
+            </optgroup>
+          </select>
+        </label>
+        <label className="field">
+          <span>Show</span>
+          <select className="input" value={view} onChange={(e) => setView(e.target.value)}>
+            {VIEWS.map(([key, label]) => (
+              <option key={key} value={key}>
+                {key === 'all' ? 'Everything' : label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
-      {ranged ? (
-        <div className="date-nav perf-range-label">
-          <span className="date-label">
-            Last {period} days · {rangeLabel(toDateKey(addDays(new Date(), -(period - 1))), todayKey)}
-          </span>
-        </div>
-      ) : (
-        <div className="date-nav">
+      {/* Which dates that is; by week, the arrows step back through earlier weeks */}
+      <div className="perf-when">
+        {!ranged && (
           <button className="icon-btn" onClick={() => setWeek(shiftWeek(week, -1))} aria-label="Previous week">
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
-          <span className="date-label">{week === currentWeekKey ? `This week · ${formatWeekLabel(week)}` : formatWeekLabel(week)}</span>
+        )}
+        <span>
+          {ranged
+            ? rangeLabel(toDateKey(addDays(new Date(), -(period - 1))), todayKey)
+            : week === currentWeekKey
+              ? `This week · ${formatWeekLabel(week)}`
+              : formatWeekLabel(week)}
+        </span>
+        {!ranged && (
           <button className="icon-btn" onClick={() => setWeek(shiftWeek(week, 1))} disabled={week === currentWeekKey} aria-label="Next week">
-            <ChevronRight size={16} />
+            <ChevronRight size={15} />
           </button>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </div>
   );
 
   if (error) {
     return (
       <>
-        {weekNav}
+        {controls}
         <div className="card empty-state">
           <h3>Couldn't load the dashboard</h3>
           <p>Check your connection and try again.</p>
@@ -431,7 +465,7 @@ export default function MentoringDashboard() {
   if (!data || data.key !== requestKey) {
     return (
       <>
-        {weekNav}
+        {controls}
         <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
       </>
     );
@@ -443,44 +477,7 @@ export default function MentoringDashboard() {
 
   return (
     <>
-      {weekNav}
-
-      <div className="range-toggle segmented perf-groups">
-        <button className={active === 'mentees' ? 'active' : ''} onClick={() => setGroupKey('mentees')}>
-          Mentees ({data.mentees.summary.count})
-        </button>
-        <button className={active === 'mates' ? 'active' : ''} onClick={() => setGroupKey('mates')}>
-          Mates ({Math.max(0, data.mates.summary.count - 1)})
-        </button>
-      </div>
-
-      {/* ---------- which mentoring group, and which side of the week ---------- */}
-      <div className="perf-filters">
-        {active === 'mentees' && myGroups.length > 0 && (
-          <label className="field">
-            <span>Mentoring group</span>
-            <select className="input" value={groupFilter} onChange={(e) => setMentoringGroup(e.target.value)}>
-              <option value="">All groups</option>
-              {myGroups.map((g) => (
-                <option key={g._id} value={g._id}>
-                  {g.name}
-                </option>
-              ))}
-              <option value="none">Not in a group</option>
-            </select>
-          </label>
-        )}
-        <div className="field">
-          <span>Show</span>
-          <div className="chip-row">
-            {VIEWS.map(([key, label]) => (
-              <button key={key} type="button" className={`chip${view === key ? ' on' : ''}`} aria-pressed={view === key} onClick={() => setView(key)}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      {controls}
 
       {group.people.length === 0 ? (
         <div className="card">

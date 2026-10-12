@@ -11787,3 +11787,63 @@ button.adm-group:hover {
   overflow: visible;
   white-space: nowrap;
 }
+
+/* ---------- Mentoring dashboard: one tidy bar of controls ---------- */
+.card.perf-controls {
+  margin: 0 0 12px;
+  padding: 12px 14px 10px;
+}
+
+.perf-controls-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.perf-controls .field {
+  margin-bottom: 0;
+  gap: 3px;
+}
+
+.perf-controls .field > span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.perf-controls select.input {
+  min-height: 40px;
+  padding: 8px 10px;
+  background: var(--paper);
+}
+
+.perf-when {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.perf-when .icon-btn {
+  width: 28px;
+  height: 28px;
+}
+
+/* A narrow phone: the three dropdowns stack so each stays readable */
+@media (max-width: 420px) {
+  .perf-controls-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .perf-controls-row .field:first-child {
+    grid-column: 1 / -1;
+  }
+}
