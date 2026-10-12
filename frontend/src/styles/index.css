@@ -12258,3 +12258,63 @@ button.adm-group:hover {
   height: 30px;
   flex-shrink: 0;
 }
+
+/* ---------- Study hours and consultations pages: tiles like practice questions ---------- */
+/* A session: the day, the subject and the hours on one line; what was worked
+   on, with edit and delete, on the next */
+.md-session.aj-s-tile {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.aj-s-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aj-s-tile .md-session-title {
+  overflow-wrap: anywhere;
+}
+
+.aj-q-foot .log-tags {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.aj-s-none {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* A consultation: who and what, when and where, what was said, then the signature */
+.aj-c-list .md-consult-who strong,
+.aj-c-list .md-consult-who span {
+  overflow-wrap: anywhere;
+}
+
+.aj-c-photo {
+  flex-shrink: 0;
+}
+
+.aj-c-photo img {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.aj-q-foot.aj-c-foot {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.aj-c-foot .log-signature {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}

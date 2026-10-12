@@ -6,13 +6,14 @@ import {
   Download,
   Users as UsersIcon,
   CheckCircle2,
-  Paperclip,
   FolderOpen,
   ChevronLeft,
   ChevronRight,
   Clock,
   PenLine,
   BadgeCheck,
+  CalendarDays,
+  MapPin,
   CircleDashed,
   Pencil,
   BookOpen,
@@ -66,6 +67,15 @@ function formatHours(h) {
 function subjectLabel(s) {
   if (!s) return 'No subject';
   return s.code ? `${s.name} (${s.code})` : s.name;
+}
+
+// Who a consultation was with: the name typed in, else the subject's lecturer.
+const lecturerOf = (c) => c.lecturerName || c.subject?.lecturerName || 'Lecturer';
+
+// "Mon, 12 Oct" from a date key.
+function prettyDay(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 function todayIndexFor(weekKey) {
@@ -174,6 +184,7 @@ export default function AcademicJournal({ focus = null }) {
   const totalQuestions = questionPractice.reduce((sum, q) => sum + (Number(q.questionCount) || 0), 0);
   const maxQuestions = Math.max(1, ...questionPractice.map((q) => Number(q.questionCount) || 0));
   const validatedSets = questionPractice.filter((q) => q.isValidated).length;
+  const signedCount = consultations.filter((c) => c.signatureUrl).length;
   const hoursByDay = useMemo(() => {
     const days = Array(7).fill(0);
     for (const s of studySessions) {
@@ -559,32 +570,64 @@ export default function AcademicJournal({ focus = null }) {
                 empty={!studySessions.length}
                 emptyText="No study sessions logged for this week yet."
               >
-                {[...studySessions]
-                  .sort((a, b) => a.date.localeCompare(b.date))
-                  .map((s) => (
-                    <div className="log-row" key={s._id}>
-                      <span className="log-day">{SHORT_DAYS[dayIndexInWeek(week, s.date)] || s.date}</span>
-                      <div className="log-body">
-                        <div className="log-title">{subjectLabel(s.subject)}</div>
-                        {s.categories?.length > 0 && (
-                          <div className="log-tags">
-                            {s.categories.map((c) => (
-                              <span key={c} className="log-tag">
-                                {CATEGORY_LABEL[c] || c}
-                              </span>
-                            ))}
+                {/* The week in three figures, then a tile for each session */}
+                <div className="aj-q-summary">
+                  <div className={totalHours >= WEEKLY_TARGET_HOURS ? 'ok' : ''}>
+                    <strong>
+                      {formatHours(totalHours)}
+                      <small>/{WEEKLY_TARGET_HOURS}h</small>
+                    </strong>
+                    <span>Studied</span>
+                  </div>
+                  <div>
+                    <strong>{studySessions.length}</strong>
+                    <span>Session{studySessions.length === 1 ? '' : 's'}</span>
+                  </div>
+                  <div>
+                    <strong>
+                      {hoursByDay.filter((h) => h > 0).length}
+                      <small>/7</small>
+                    </strong>
+                    <span>Days studied</span>
+                  </div>
+                </div>
+                <div className="md-sessions aj-s-list">
+                  {[...studySessions]
+                    .sort((a, b) => a.date.localeCompare(b.date))
+                    .map((s) => (
+                      <div className="md-session aj-s-tile" key={s._id} style={{ '--hue': hueFor(s.subject?.name || '') }}>
+                        <div className="aj-s-top">
+                          <span className="md-date md-date-sm" aria-hidden="true">
+                            <small>{SHORT_DAYS[dayIndexInWeek(week, s.date)] || ''}</small>
+                            <strong>{Number(s.date.slice(8))}</strong>
+                          </span>
+                          <div className="md-session-body">
+                            <div className="md-session-title">{subjectLabel(s.subject)}</div>
                           </div>
-                        )}
+                          <span className="md-hours">{formatHours(s.hours)}</span>
+                        </div>
+                        <div className="aj-q-foot">
+                          <div className="log-tags">
+                            {s.categories?.length > 0 ? (
+                              s.categories.map((c) => (
+                                <span key={c} className="log-tag">
+                                  {CATEGORY_LABEL[c] || c}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="aj-s-none">No category</span>
+                            )}
+                          </div>
+                          <button className="icon-btn" onClick={() => openEdit('study', s)} aria-label="Edit">
+                            <Pencil size={13} />
+                          </button>
+                          <button className="icon-btn log-delete" onClick={() => removeEntry('study', s._id)} aria-label="Delete">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
-                      <span className="log-amount">{formatHours(s.hours)}</span>
-                      <button className="icon-btn" onClick={() => openEdit('study', s)} aria-label="Edit">
-                        <Pencil size={13} />
-                      </button>
-                      <button className="icon-btn log-delete" onClick={() => removeEntry('study', s._id)} aria-label="Delete">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                    ))}
+                </div>
               </LogSection>
             </>
           )}
@@ -670,36 +713,80 @@ export default function AcademicJournal({ focus = null }) {
                 empty={!consultations.length}
                 emptyText="No consultations logged for this week yet."
               >
-                {consultations.map((c) => (
-                  <div className="log-row" key={c._id}>
-                    {c.photoUrl ? <img src={c.photoUrl} alt="" className="log-photo" /> : <span className="log-photo placeholder"><UsersIcon size={15} /></span>}
-                    <div className="log-body">
-                      <div className="log-title">
-                        {subjectLabel(c.subject)}
-                        {c.lecturerName ? ` · ${c.lecturerName}` : ''}
-                      </div>
-                      <div className="log-meta">{[c.date, c.venue].filter(Boolean).join(' · ') || 'No date or venue'}</div>
-                      {c.detail && <div className="log-detail">{c.detail}</div>}
-                      {c.signatureUrl && (
-                        <div className="log-signature">
-                          <img src={c.signatureUrl} alt="Lecturer's signature" loading="lazy" />
-                          <span>Signed by the lecturer</span>
-                        </div>
-                      )}
-                    </div>
-                    {c.photoUrl && (
-                      <a href={c.photoUrl} target="_blank" rel="noreferrer" className="icon-btn" aria-label="View photo">
-                        <Paperclip size={14} />
-                      </a>
-                    )}
-                    <button className="icon-btn" onClick={() => openEdit('consult', c)} aria-label="Edit">
-                      <Pencil size={13} />
-                    </button>
-                    <button className="icon-btn log-delete" onClick={() => removeEntry('consult', c._id)} aria-label="Delete">
-                      <Trash2 size={14} />
-                    </button>
+                {/* The week in three figures, then a tile for each meeting */}
+                <div className="aj-q-summary">
+                  <div>
+                    <strong>{consultations.length}</strong>
+                    <span>Consultation{consultations.length === 1 ? '' : 's'}</span>
                   </div>
-                ))}
+                  <div>
+                    <strong>{new Set(consultations.map((c) => lecturerOf(c).toLowerCase())).size}</strong>
+                    <span>Lecturers met</span>
+                  </div>
+                  <div className={signedCount === consultations.length ? 'ok' : ''}>
+                    <strong>
+                      {signedCount}
+                      <small>/{consultations.length}</small>
+                    </strong>
+                    <span>Signed</span>
+                  </div>
+                </div>
+                <div className="md-consults aj-c-list">
+                  {consultations.map((c) => {
+                    const lecturer = lecturerOf(c);
+                    return (
+                      <div className="md-consult" key={c._id}>
+                        <div className="md-consult-head">
+                          <span className="avatar md-consult-avatar mentor-avatar-letter" style={{ '--hue': hueFor(lecturer) }}>
+                            {lecturer.replace(/^(dr|prof|ustaz|ustazah|encik|puan|mr|mrs|ms)\.?\s+/i, '').trim()[0]?.toUpperCase() || 'L'}
+                          </span>
+                          <div className="md-consult-who">
+                            <strong>{lecturer}</strong>
+                            <span>{subjectLabel(c.subject)}</span>
+                          </div>
+                          {c.photoUrl && (
+                            <a href={c.photoUrl} target="_blank" rel="noreferrer" className="aj-c-photo" aria-label="Open the photo">
+                              <img src={c.photoUrl} alt="" loading="lazy" />
+                            </a>
+                          )}
+                        </div>
+                        {(c.date || c.venue) && (
+                          <div className="md-consult-facts">
+                            {c.date && (
+                              <span>
+                                <CalendarDays size={12} /> {prettyDay(c.date)}
+                              </span>
+                            )}
+                            {c.venue && (
+                              <span>
+                                <MapPin size={12} /> {c.venue}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {c.detail && <p className="md-consult-note">{c.detail}</p>}
+                        <div className="aj-q-foot aj-c-foot">
+                          {c.signatureUrl ? (
+                            <div className="log-signature">
+                              <img src={c.signatureUrl} alt="Lecturer's signature" loading="lazy" />
+                              <span>Signed</span>
+                            </div>
+                          ) : (
+                            <span className="md-practice-state">
+                              <CircleDashed size={13} /> Not signed yet
+                            </span>
+                          )}
+                          <button className="icon-btn" onClick={() => openEdit('consult', c)} aria-label="Edit">
+                            <Pencil size={13} />
+                          </button>
+                          <button className="icon-btn log-delete" onClick={() => removeEntry('consult', c._id)} aria-label="Delete">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </LogSection>
             </>
           )}
