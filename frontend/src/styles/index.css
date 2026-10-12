@@ -11568,3 +11568,48 @@ button.adm-group:hover {
 .perf-search.adm-user-search {
   margin-bottom: 12px;
 }
+
+/* ---------- Mentoring dashboard: period, mentoring group and view ---------- */
+.range-toggle.segmented.perf-period {
+  margin-bottom: 10px;
+}
+
+.date-nav.perf-range-label {
+  justify-content: center;
+}
+
+.perf-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+  margin: 12px 0 14px;
+}
+
+.perf-filters .field {
+  flex: 1 1 180px;
+  margin-bottom: 0;
+}
+
+.perf-filters .field > span {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.perf-filters .chip-row {
+  min-height: 44px;
+  align-items: center;
+}
+
+/* A range longer than a week: a square per day, too small for a letter */
+.perf-days.compact {
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.perf-days.compact .perf-day {
+  width: 9px;
+  height: 14px;
+  border-radius: 3px;
+}

@@ -47,7 +47,9 @@ router.get(
   asyncHandler(async (req, res) => {
     const date = dateParam(req, res, 'date');
     const weekStart = date && dateParam(req, res, 'weekStart');
-    if (weekStart) res.json(await mentoringService.getDashboard(req.userId, { date, weekStart }));
+    // ?days=7|14|30 looks back that many days from today instead of at the week.
+    const days = [7, 14, 30].includes(Number(req.query.days)) ? Number(req.query.days) : null;
+    if (weekStart) res.json(await mentoringService.getDashboard(req.userId, { date, weekStart, days }));
   })
 );
 

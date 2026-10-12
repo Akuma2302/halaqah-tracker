@@ -9,6 +9,8 @@ const mutabaahService = require('./mutabaahService');
 const weeklyLogService = require('./weeklyLogService');
 const { CAMEL_FIELDS } = require('../models/MutabaahEntry');
 const { serializeUser } = require('../utils/serializers');
+const supabase = require('../config/supabaseClient');
+const { getWeekStart } = require('../utils/weekUtils');
 
 function fail(status, message) {
   const err = new Error(message);
@@ -276,6 +278,67 @@ function weekStats(mutabaahRows, academic, { date, weekStart }) {
   };
 }
 
+// The same numbers over the last `days` days ending on `date` (7, 14 or 30),
+// rather than a Sunday-to-Saturday week. The trend compares with the same
+// number of days before that.
+function rangeStats(mutabaahRows, academic, { date, days }) {
+  const from = addDays(date, -(days - 1));
+  const entryOf = (r) => mutabaahService.toApiShapePublic(r, r.user_id, r.date);
+  const doneByDate = Object.fromEntries(mutabaahRows.map((r) => [r.date, doneCount(entryOf(r))]));
+  const dayKeys = Array.from({ length: days }, (_, i) => addDays(from, i));
+  const counted = mutabaahRows.filter((r) => r.date >= from && r.date <= date);
+  const done = counted.reduce((sum, r) => sum + doneByDate[r.date], 0);
+
+  const prevFrom = addDays(from, -days);
+  const prevRows = mutabaahRows.filter((r) => r.date >= prevFrom && r.date < from);
+  const prevDone = prevRows.reduce((sum, r) => sum + doneByDate[r.date], 0);
+
+  const items = Object.fromEntries(CAMEL_FIELDS.map((key) => [key, 0]));
+  counted.forEach((r) => {
+    const entry = entryOf(r);
+    CAMEL_FIELDS.forEach((key) => {
+      if (entry[key]) items[key] += 1;
+    });
+  });
+
+  const hours = academic.studySessions.reduce((sum, s) => sum + s.hours, 0);
+  return {
+    // Oldest day first, one figure per day of the range.
+    days: dayKeys.map((key) => doneByDate[key] || 0),
+    dayKeys,
+    items,
+    daysElapsed: days,
+    prevMutabaahPercent: prevRows.length ? Math.round((prevDone / (days * CAMEL_FIELDS.length)) * 100) : null,
+    mutabaahPercent: Math.round((done / (days * CAMEL_FIELDS.length)) * 100),
+    mutabaahToday: doneByDate[date] || 0,
+    mutabaahTotal: CAMEL_FIELDS.length,
+    studyHours: Math.round(hours * 10) / 10,
+    studiedToday: academic.studySessions.some((s) => s.date === date),
+    studySessions: academic.studySessions.length,
+    questions: academic.questionPractice.reduce((sum, q) => sum + (q.questionCount || 0), 0),
+    consultations: academic.consultations.length
+  };
+}
+
+// One person's academic log between two dates. Study sessions and
+// consultations carry their own date; practice questions are logged against a
+// week, so every week that touches the range is counted.
+async function academicInRange(userId, from, to) {
+  const firstWeek = getWeekStart(from);
+  const [sessions, practice, consults] = await Promise.all([
+    supabase.from('study_sessions').select('hours, date').eq('user_id', userId).gte('date', from).lte('date', to),
+    supabase.from('question_practice').select('question_count').eq('user_id', userId).gte('week_start', firstWeek).lte('week_start', to),
+    supabase.from('lecturer_consultations').select('id, date, week_start').eq('user_id', userId).gte('week_start', firstWeek).lte('week_start', to)
+  ]);
+  const failed = [sessions, practice, consults].find((r) => r.error);
+  if (failed) throw failed.error;
+  return {
+    studySessions: sessions.data.map((s) => ({ hours: Number(s.hours), date: s.date })),
+    questionPractice: practice.data.map((q) => ({ questionCount: q.question_count })),
+    consultations: consults.data.filter((c) => !c.date || (c.date >= from && c.date <= to))
+  };
+}
+
 function groupSummary(people) {
   const n = people.length;
   const avg = (pick) => (n ? people.reduce((sum, p) => sum + pick(p), 0) / n : 0);
@@ -297,7 +360,9 @@ function groupSummary(people) {
 // Overall performance for the week: my mentoring mates (with me among them,
 // for comparison) and my mentees, each as a ranked list plus group averages.
 // Follows the same visibility rule as the detail page: no mentor, no one else.
-async function getDashboard(userId, { date, weekStart }) {
+// With `days` (7, 14 or 30) it covers that many days ending on `date` instead
+// of the week.
+async function getDashboard(userId, { date, weekStart, days = null }) {
   const me = await userRepository.findById(userId);
   const [mentees, underMyMentor] = await Promise.all([
     userRepository.findMentees(userId),
@@ -306,23 +371,30 @@ async function getDashboard(userId, { date, weekStart }) {
   const mates = underMyMentor.filter((u) => u.id !== userId);
   const everyone = [me, ...mates, ...mentees];
 
-  const [mutabaahRows, academicLogs] = await Promise.all([
-    // From the week before, so each person's trend can be worked out too.
-    mutabaahRepository.findBoundedRangeForUsers(
-      everyone.map((u) => u.id),
-      addDays(weekStart, -7),
-      addDays(weekStart, 6)
-    ),
-    Promise.all(everyone.map((u) => weeklyLogService.getWeek(u.id, weekStart)))
+  const from = days ? addDays(date, -(days - 1)) : weekStart;
+  const [mutabaahRows, academicLogs, groups] = await Promise.all([
+    // From the period before as well, so each person's trend can be worked out.
+    days
+      ? // One person at a time: a long range for many people is more rows than one request returns.
+        Promise.all(everyone.map((u) => mutabaahRepository.findBoundedRangeForUsers([u.id], addDays(from, -days), date))).then((lists) => lists.flat())
+      : mutabaahRepository.findBoundedRangeForUsers(
+          everyone.map((u) => u.id),
+          addDays(weekStart, -7),
+          addDays(weekStart, 6)
+        ),
+    Promise.all(everyone.map((u) => (days ? academicInRange(u.id, from, date) : weeklyLogService.getWeek(u.id, weekStart)))),
+    mentoringGroupRepository.findByMentor(userId)
   ]);
   const academicByUser = Object.fromEntries(everyone.map((u, i) => [u.id, academicLogs[i]]));
   const person = (u) => ({
     ...publicUser(u),
     isMe: u.id === userId,
-    ...weekStats(
+    // Which of the mentor's own groups a mentee sits in, to filter by.
+    groupId: u.mentoring_group_id || null,
+    ...(days ? rangeStats : weekStats)(
       mutabaahRows.filter((r) => r.user_id === u.id),
       academicByUser[u.id],
-      { date, weekStart }
+      { date, weekStart, days }
     )
   });
   // Best mutabaah first, study hours as the tie-break.
@@ -334,10 +406,13 @@ async function getDashboard(userId, { date, weekStart }) {
   return {
     date,
     weekStart,
+    days,
+    from,
+    groups: groups.map(mentoringGroupRepository.serialize),
     hasMentor: !!me?.mentor_id,
     mates: { summary: groupSummary(mateGroup), people: mateGroup },
     mentees: { summary: groupSummary(menteeGroup), people: menteeGroup }
   };
 }
 
-module.exports = { getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, groupSummary, alertMentee, saveGroup, removeGroup };
+module.exports = { getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, rangeStats, groupSummary, alertMentee, saveGroup, removeGroup };
