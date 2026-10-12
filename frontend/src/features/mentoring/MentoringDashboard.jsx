@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, Clock, GraduationCap, Minus, PenLine, Search, Timer, X } from 'lucide-react';
+import { AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, Check, ChevronLeft, ChevronRight, Clock, GraduationCap, Minus, PenLine, Search, Timer, TrendingDown, X } from 'lucide-react';
 import client from '../../services/apiClient';
 import { WEEKLY_TARGET_HOURS } from '../academic/constants';
 import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../academic/weekUtils';
@@ -128,6 +128,58 @@ function DayStrip({ days, total, dayKeys }) {
   );
 }
 
+// One person's mutabaah as a grid: an amal on each row, a day in each column,
+// as on their own page. A range longer than a week uses small squares.
+function MutabaahGrid({ person }) {
+  const keys = person.dayKeys || [];
+  const compact = keys.length > 7;
+  const columns = { gridTemplateColumns: compact ? `84px repeat(${keys.length}, minmax(0, 1fr))` : 'minmax(0, 1fr) repeat(7, 26px)' };
+  const day = (key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+  const label = (key) => day(key).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return (
+    <div className={`mentee-grid perf-grid${compact ? ' compact' : ''}`} role="table" aria-label={`${person.name}'s mutabaah by day`}>
+      <div className="mentee-grid-row head" role="row" style={columns}>
+        <span />
+        {keys.map((key, i) => (
+          <span key={key} className={key === todayKey ? 'today' : ''} role="columnheader">
+            {/* In a long range only each Sunday is marked, with its date */}
+            {compact ? (day(key).getDay() === 0 || i === 0 ? day(key).getDate() : '') : DAY_LETTERS[day(key).getDay()]}
+          </span>
+        ))}
+      </div>
+      {MUTABAAH_FIELDS.map((f) => (
+        <div className="mentee-grid-row" role="row" key={f.key} style={columns}>
+          <span className="mentee-grid-name">{f.label}</span>
+          {keys.map((key, i) => {
+            const done = person.grid[f.key]?.[i];
+            return (
+              <span
+                key={key}
+                role="cell"
+                className={`mentee-dot${done ? ' done' : done === null ? ' future' : ''}`}
+                title={`${f.label}, ${label(key)}: ${done ? 'done' : done === null ? 'not yet' : 'not done'}`}
+              >
+                {compact ? '' : done ? <Check size={11} strokeWidth={3} /> : done === null ? '' : <Minus size={10} />}
+              </span>
+            );
+          })}
+        </div>
+      ))}
+      <div className="mentee-grid-row total" role="row" style={columns}>
+        <span className="mentee-grid-name">Done</span>
+        {keys.map((key, i) => (
+          <span key={key} role="cell" className={key === todayKey ? 'today' : ''}>
+            {compact || person.days[i] === null ? '' : person.days[i]}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PersonRow({ person, rank, isThisWeek, view, studyTarget, span }) {
   const hoursPercent = Math.min(100, Math.round((person.studyHours / studyTarget) * 100));
   const showMutabaah = view !== 'academic';
@@ -151,10 +203,18 @@ function PersonRow({ person, rank, isThisWeek, view, studyTarget, span }) {
         <div className="perf-head">
           <span className="perf-name">{person.name}</span>
           {person.isMe && <span className="badge badge-gold">You</span>}
-          {showMutabaah && <DayStrip days={person.days} total={person.mutabaahTotal} dayKeys={person.dayKeys} />}
+          {view === 'mutabaah' && person.grid ? (
+            <span className={`md-pill perf-grid-pill ${tone(person.mutabaahPercent) === 'good' ? 'ok' : tone(person.mutabaahPercent)}`}>
+              {person.mutabaahPercent}%
+              <Trend now={person.mutabaahPercent} before={person.prevMutabaahPercent} span={span} />
+            </span>
+          ) : (
+            showMutabaah && <DayStrip days={person.days} total={person.mutabaahTotal} dayKeys={person.ranged ? person.dayKeys : undefined} />
+          )}
         </div>
+        {view === 'mutabaah' && person.grid && <MutabaahGrid person={person} />}
         <div className="perf-bars">
-          {showMutabaah && (
+          {showMutabaah && !(view === 'mutabaah' && person.grid) && (
             <>
               <span className="perf-bar-label">Mutabaah</span>
               <span className="perf-bar">
@@ -260,10 +320,24 @@ export default function MentoringDashboard() {
     if (!raw) return null;
     const known = new Set(myGroups.map((g) => g._id));
     let list = raw.people.filter((p) => !groupFilter || (groupFilter === 'none' ? !known.has(p.groupId) : p.groupId === groupFilter));
+    if (ranged) list = list.map((p) => ({ ...p, ranged: true }));
     if (view === 'academic') list = [...list].sort((a, b) => b.studyHours - a.studyHours || b.questions - a.questions || a.name.localeCompare(b.name));
     return { people: list, summary: summarize(list), total: raw.people.length };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, active, groupFilter, view]);
+  }, [data, active, groupFilter, view, ranged]);
+
+  // Who has missed the most amal in the period, most first.
+  const missers = useMemo(() => {
+    if (!group) return [];
+    return group.people
+      .map((p) => {
+        const possible = (p.daysElapsed || 0) * p.mutabaahTotal;
+        const done = Object.values(p.items || {}).reduce((sum, n) => sum + n, 0);
+        return { person: p, possible, missed: Math.max(0, possible - done), most: mostMissed(p) };
+      })
+      .filter((x) => x.possible > 0)
+      .sort((a, b) => b.missed - a.missed || a.person.name.localeCompare(b.person.name));
+  }, [group]);
 
   // The search narrows by name or User ID; the rank is the place in the whole list.
   const people = useMemo(() => {
@@ -504,6 +578,51 @@ export default function MentoringDashboard() {
                         <small>
                           {a.done}/{a.possible}
                         </small>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ---------- who misses the most ---------- */}
+          {view === 'mutabaah' && missers.length > 0 && (
+            <div className="card perf-amal perf-missers">
+              <div className="log-section-head">
+                <span className="log-section-icon">
+                  <TrendingDown size={16} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="log-section-title">Who misses the most</div>
+                  <div className="log-section-sub">Amal not done, {ranged ? `over the last ${period} days` : isThisWeek ? 'this week so far' : 'that week'}</div>
+                </div>
+              </div>
+              {missers[0].missed === 0 ? (
+                <p className="perf-amal-lead">Nobody has missed an amal. Masya-Allah.</p>
+              ) : (
+                <p className="perf-amal-lead">
+                  <strong>{missers[0].person.isMe ? 'You' : missers[0].person.name}</strong> missed the most: {missers[0].missed} of {missers[0].possible}
+                  {missers[0].most ? `, mostly ${missers[0].most.label}` : ''}.
+                </p>
+              )}
+              <div className="perf-amal-list">
+                {missers.map(({ person, possible, missed, most }, i) => {
+                  const share = Math.round((missed / possible) * 100);
+                  const level = share >= 50 ? 'low' : share >= 20 ? 'mid' : 'good';
+                  return (
+                    <div className={`perf-amal-row perf-misser tone-${level}${i === 0 && missed > 0 ? ' worst' : ''}`} key={person._id}>
+                      <span className="perf-amal-icon">{i + 1}</span>
+                      <span className="perf-amal-name">
+                        {person.name}
+                        {missed > 0 && most && <small>Misses {most.label} most</small>}
+                      </span>
+                      <span className="perf-bar">
+                        <span className={`perf-bar-fill tone-${level}`} style={{ width: `${share}%` }} />
+                      </span>
+                      <span className="perf-amal-value">
+                        {missed}
+                        <small>of {possible}</small>
                       </span>
                     </div>
                   );

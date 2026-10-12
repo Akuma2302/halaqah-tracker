@@ -261,9 +261,18 @@ function weekStats(mutabaahRows, academic, { date, weekStart }) {
     });
   });
 
+  // Each amal on each day of the week: true, false, or null for a day still to come.
+  const entryByDate = Object.fromEntries(mutabaahRows.map((r) => [r.date, mutabaahService.toApiShapePublic(r, r.user_id, r.date)]));
+  const dayKeys = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const grid = Object.fromEntries(
+    CAMEL_FIELDS.map((key) => [key, dayKeys.map((day) => (lastDay && day <= lastDay ? !!entryByDate[day]?.[key] : null))])
+  );
+
   const hours = academic.studySessions.reduce((sum, s) => sum + s.hours, 0);
   return {
     days,
+    dayKeys,
+    grid,
     items,
     daysElapsed,
     prevMutabaahPercent,
@@ -306,6 +315,8 @@ function rangeStats(mutabaahRows, academic, { date, days }) {
     // Oldest day first, one figure per day of the range.
     days: dayKeys.map((key) => doneByDate[key] || 0),
     dayKeys,
+    // Each amal on each day of the range.
+    grid: Object.fromEntries(CAMEL_FIELDS.map((key) => [key, dayKeys.map((day) => !!entryByDateOf(mutabaahRows)[day]?.[key])])),
     items,
     daysElapsed: days,
     prevMutabaahPercent: prevRows.length ? Math.round((prevDone / (days * CAMEL_FIELDS.length)) * 100) : null,
@@ -318,6 +329,11 @@ function rangeStats(mutabaahRows, academic, { date, days }) {
     questions: academic.questionPractice.reduce((sum, q) => sum + (q.questionCount || 0), 0),
     consultations: academic.consultations.length
   };
+}
+
+// A person's mutabaah rows as entries keyed by date.
+function entryByDateOf(rows) {
+  return Object.fromEntries(rows.map((r) => [r.date, mutabaahService.toApiShapePublic(r, r.user_id, r.date)]));
 }
 
 // One person's academic log between two dates. Study sessions and
