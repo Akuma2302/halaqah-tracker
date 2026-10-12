@@ -12455,3 +12455,249 @@ button.adm-group:hover {
   font-weight: 700;
   color: var(--primary);
 }
+
+/* ---------- Mentoring dashboard: everyone's timetable, to find shared free time ---------- */
+.card.gt-card {
+  margin: 0 0 12px;
+}
+
+.gt-lead {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-tint);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* One line per day: the day, then when everyone is free */
+.gt-days {
+  display: flex;
+  flex-direction: column;
+}
+
+.gt-day {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.gt-day-name {
+  flex-shrink: 0;
+  width: 34px;
+  padding-top: 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.gt-day-windows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.gt-window {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--primary-tint);
+  color: var(--primary-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.gt-window.all {
+  background: var(--primary);
+  color: #fff;
+}
+
+.gt-window.busy {
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  color: var(--danger);
+}
+
+/* The week: an hour a row, a day a column, shaded by how many are busy */
+.gt-grid {
+  display: grid;
+  grid-template-columns: 38px repeat(7, minmax(0, 1fr));
+  gap: 3px;
+  margin-top: 12px;
+}
+
+.gt-grid-row {
+  display: contents;
+}
+
+.gt-grid-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.gt-grid-hour {
+  align-self: center;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.gt-cell {
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--primary) 26%, var(--paper));
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gt-cell.some {
+  background: color-mix(in srgb, var(--gold) calc(22% + var(--share, 0.5) * 50%), var(--paper));
+}
+
+.gt-cell.full {
+  background: color-mix(in srgb, var(--danger) 55%, var(--paper));
+}
+
+.gt-cell.picked {
+  border-color: var(--ink);
+}
+
+.gt-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.gt-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gt-legend i {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--primary) 26%, var(--paper));
+}
+
+.gt-legend i.some {
+  background: color-mix(in srgb, var(--gold) 50%, var(--paper));
+}
+
+.gt-legend i.full {
+  background: color-mix(in srgb, var(--danger) 55%, var(--paper));
+}
+
+.gt-picked {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  font-size: 13px;
+}
+
+.gt-picked p {
+  margin: 4px 0 0;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.gt-picked b {
+  color: var(--ink);
+}
+
+/* By person: a bar for the day with a block for each thing on */
+.day-tabs.gt-day-tabs {
+  margin-top: 12px;
+}
+
+.gt-scale {
+  position: relative;
+  height: 14px;
+  margin-top: 10px;
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.gt-scale span {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+}
+
+.gt-person {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.gt-person-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gt-person-head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.gt-person-head span {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.gt-bar {
+  position: relative;
+  height: 12px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 20%, var(--paper));
+  overflow: hidden;
+}
+
+.gt-bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: hsl(var(--hue, 165) 55% 50%);
+  box-shadow: 0 0 0 1px var(--surface);
+}
+
+.gt-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.gt-items b {
+  color: var(--ink);
+}
+
+.gt-free {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-dark);
+}

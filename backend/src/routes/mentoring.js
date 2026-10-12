@@ -53,6 +53,14 @@ router.get(
   })
 );
 
+// Weekly timetables of me, my mentees and my mentoring mates, to find shared free time.
+router.get(
+  '/timetables',
+  asyncHandler(async (req, res) => {
+    res.json(await mentoringService.getTimetables(req.userId));
+  })
+);
+
 router.put(
   '/mentor',
   validate(setMentorSchema),

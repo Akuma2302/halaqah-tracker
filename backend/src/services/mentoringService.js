@@ -445,6 +445,36 @@ function groupSummary(people) {
 
 // Overall performance for the week: my mentoring mates (with me among them,
 // for comparison) and my mentees, each as a ranked list plus group averages.
+// Everyone's weekly timetable, by user id: mine, my mentees' and my mentoring
+// mates', so a time can be found when the whole group is free. Only what
+// repeats every week, and only when and what it is (no people, no reminders).
+async function getTimetables(userId) {
+  const me = await userRepository.findById(userId);
+  const [mentees, underMyMentor] = await Promise.all([userRepository.findMentees(userId), me?.mentor_id ? userRepository.findMentees(me.mentor_id) : []]);
+  const everyone = [me, ...mentees, ...underMyMentor.filter((u) => u.id !== userId)].filter(Boolean);
+  const lists = await Promise.all(
+    everyone.map((u) => Promise.all([timetableRepository.findByUser(u.id), timetableRepository.findSharedWith(u.id)]).then(([own, shared]) => [...own, ...shared]))
+  );
+  return Object.fromEntries(
+    everyone.map((u, i) => [
+      u.id,
+      lists[i]
+        .filter((row) => row.subject?.is_visible !== false && !row.start_date)
+        .map(timetableRepository.serialize)
+        .map(({ _id, title, dayOfWeek, startTime, endTime, kind, customKind, subject }) => ({
+          _id,
+          title,
+          dayOfWeek,
+          startTime,
+          endTime,
+          kind,
+          customKind,
+          subject: subject ? { name: subject.name, code: subject.code } : null
+        }))
+    ])
+  );
+}
+
 // Follows the same visibility rule as the detail page: no mentor, no one else.
 // With `days` (7, 14 or 30) it covers that many days ending on `date` instead
 // of the week.
@@ -501,4 +531,4 @@ async function getDashboard(userId, { date, weekStart, days = null }) {
   };
 }
 
-module.exports = { getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, rangeStats, groupSummary, alertMentee, saveGroup, removeGroup };
+module.exports = { getTimetables, getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, rangeStats, groupSummary, alertMentee, saveGroup, removeGroup };

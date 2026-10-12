@@ -7,6 +7,7 @@ import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../academic/w
 import { MUTABAAH_FIELDS } from '../mutabaah/mutabaahFields';
 import { MUTABAAH_ICONS } from '../mutabaah/mutabaahIcons';
 import { hueFor } from '../timetable/timetable';
+import GroupTimetable from './GroupTimetable';
 
 const todayKey = toDateKey(new Date());
 const currentWeekKey = toDateKey(getWeekStart());
@@ -30,7 +31,8 @@ function shiftWeek(weekKey, weeks) {
 const VIEWS = [
   ['all', 'All'],
   ['mutabaah', 'Mutabaah'],
-  ['academic', 'Academic']
+  ['academic', 'Academic'],
+  ['timetable', 'Timetable']
 ];
 
 function rangeLabel(from, to) {
@@ -471,6 +473,11 @@ export default function MentoringDashboard() {
         </label>
       </div>
       {/* Which dates that is; by week, the arrows step back through earlier weeks */}
+      {view === 'timetable' ? (
+        <div className="perf-when">
+          <span>Everyone's weekly timetable</span>
+        </div>
+      ) : (
       <div className="perf-when">
         {!ranged && (
           <button className="icon-btn" onClick={() => setWeek(shiftWeek(week, -1))} aria-label="Previous week">
@@ -490,6 +497,7 @@ export default function MentoringDashboard() {
           </button>
         )}
       </div>
+      )}
     </div>
   );
 
@@ -532,6 +540,8 @@ export default function MentoringDashboard() {
                 : 'Add a mentor on the Tree tab to see how you and your mentoring mates are doing.'}
           </p>
         </div>
+      ) : view === 'timetable' ? (
+        <GroupTimetable people={group.people} />
       ) : (
         <>
           {/* ---------- group at a glance ---------- */}
