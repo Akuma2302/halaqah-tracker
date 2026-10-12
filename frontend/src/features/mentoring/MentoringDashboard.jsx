@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowDownRight, ArrowUpRight, CheckCircle2, Check, ChevronLeft, ChevronRight, Clock, GraduationCap, Minus, PenLine, Search, Timer, TrendingDown, X } from 'lucide-react';
+import { AlertCircle, ArrowDownRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock, GraduationCap, Minus, PenLine, Search, Timer, TrendingDown, X } from 'lucide-react';
 import client from '../../services/apiClient';
 import { WEEKLY_TARGET_HOURS } from '../academic/constants';
 import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../academic/weekUtils';
@@ -482,7 +482,6 @@ export default function MentoringDashboard() {
 
   const { summary } = group;
   const studyPercent = Math.min(100, Math.round((summary.avgStudyHours / studyTarget) * 100));
-  const others = group.people.filter((p) => !p.isMe).length;
 
   return (
     <>
@@ -633,12 +632,12 @@ export default function MentoringDashboard() {
             </div>
           )}
 
-          {/* ---------- who to follow up with ---------- */}
-          {isThisWeek && others > 0 && (
-            <div className={`card perf-attention${attention.length ? '' : ' clear'}`}>
+          {/* ---------- who to follow up with: only shown when someone needs it ---------- */}
+          {isThisWeek && attention.length > 0 && (
+            <div className="card perf-attention">
               <div className="perf-attention-title">
-                {attention.length ? <AlertCircle size={15} /> : <CheckCircle2 size={15} />}
-                {attention.length ? `Needs attention (${attention.length})` : 'Everyone is on track today'}
+                <AlertCircle size={15} />
+                Needs attention ({attention.length})
               </div>
               {attention.map(({ person, why }) => (
                 <Link key={person._id} to={`/mentoring/${person._id}`} className="perf-attention-row">
