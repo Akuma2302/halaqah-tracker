@@ -194,6 +194,15 @@ function PersonRow({ person, rank, isThisWeek, view, studyTarget, span }) {
   const hoursPercent = Math.min(100, Math.round((person.studyHours / studyTarget) * 100));
   const showMutabaah = view !== 'academic';
   const showAcademic = view !== 'mutabaah';
+  const gridView = view === 'mutabaah' && !!person.grid;
+  // Short facts for the line under the figures.
+  const notes = [
+    isThisWeek && showMutabaah && { text: `${person.mutabaahToday}/${person.mutabaahTotal} today`, tone: person.mutabaahToday === person.mutabaahTotal ? 'ok' : '' },
+    isThisWeek && showAcademic && { text: person.studiedToday ? 'Studied today' : 'No study yet today', tone: person.studiedToday ? 'ok' : '' },
+    view === 'academic' && { text: `${person.studySessions} study session${person.studySessions === 1 ? '' : 's'}` },
+    showAcademic && person.questions > 0 && { text: `${person.questions} questions` },
+    showAcademic && person.consultations > 0 && { text: `Met lecturer ×${person.consultations}`, tone: 'ok' }
+  ].filter(Boolean);
   const missed = mostMissed(person);
   const body = (
     <>
@@ -223,47 +232,47 @@ function PersonRow({ person, rank, isThisWeek, view, studyTarget, span }) {
           )}
         </div>
         {view === 'mutabaah' && person.grid && <MutabaahGrid person={person} />}
-        <div className="perf-bars">
-          {showMutabaah && !(view === 'mutabaah' && person.grid) && (
-            <>
-              <span className="perf-bar-label">Mutabaah</span>
-              <span className="perf-bar">
-                <span className={`perf-bar-fill tone-${tone(person.mutabaahPercent)}`} style={{ width: `${person.mutabaahPercent}%` }} />
-              </span>
-              <span className="perf-bar-value">
-                {person.mutabaahPercent}%
-                <Trend now={person.mutabaahPercent} before={person.prevMutabaahPercent} span={span} />
-              </span>
-            </>
-          )}
-          {showAcademic && (
-            <>
-              <span className="perf-bar-label">Study</span>
-              <span className="perf-bar">
-                <span className={`perf-bar-fill tone-${tone(hoursPercent)}`} style={{ width: `${hoursPercent}%` }} />
-              </span>
-              <span className="perf-bar-value">{person.studyHours}h</span>
-            </>
-          )}
-        </div>
-        <div className="perf-chips">
-          {isThisWeek && showMutabaah && (
-            <span className={`perf-chip${person.mutabaahToday === person.mutabaahTotal ? ' ok' : ''}`}>
-              {person.mutabaahToday}/{person.mutabaahTotal} today
+        {/* Two figures side by side, each with a thin bar under it */}
+        {(showAcademic || (showMutabaah && !gridView)) && (
+          <div className="perf-stats">
+            {showMutabaah && !gridView && (
+              <div className="perf-stat">
+                <div className="perf-stat-top">
+                  <span>Mutabaah</span>
+                  <strong>
+                    {person.mutabaahPercent}%
+                    <Trend now={person.mutabaahPercent} before={person.prevMutabaahPercent} span={span} />
+                  </strong>
+                </div>
+                <span className="perf-bar">
+                  <span className={`perf-bar-fill tone-${tone(person.mutabaahPercent)}`} style={{ width: `${person.mutabaahPercent}%` }} />
+                </span>
+              </div>
+            )}
+            {showAcademic && (
+              <div className="perf-stat">
+                <div className="perf-stat-top">
+                  <span>Study</span>
+                  <strong>
+                    {person.studyHours}h<small> / {studyTarget}h</small>
+                  </strong>
+                </div>
+                <span className="perf-bar">
+                  <span className={`perf-bar-fill tone-${tone(hoursPercent)}`} style={{ width: `${hoursPercent}%` }} />
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+        {/* The rest in one quiet line, with only what needs a look in colour */}
+        <div className="perf-notes">
+          {notes.map((n) => (
+            <span key={n.text} className={n.tone || ''}>
+              {n.text}
             </span>
-          )}
-          {isThisWeek && showAcademic && (
-            <span className={`perf-chip${person.studiedToday ? ' ok' : ''}`}>{person.studiedToday ? 'Studied today' : 'No study yet today'}</span>
-          )}
-          {showAcademic && view === 'academic' && (
-            <span className="perf-chip">
-              {person.studySessions} study session{person.studySessions === 1 ? '' : 's'}
-            </span>
-          )}
-          {showAcademic && person.questions > 0 && <span className="perf-chip">{person.questions} questions</span>}
-          {showAcademic && person.consultations > 0 && <span className="perf-chip ok">Met lecturer ×{person.consultations}</span>}
+          ))}
           {showMutabaah && missed && (
-            <span className="perf-chip warn" title={`Not done on ${missed.missed} of ${person.daysElapsed} day${person.daysElapsed === 1 ? '' : 's'}`}>
+            <span className="warn" title={`Not done on ${missed.missed} of ${person.daysElapsed} day${person.daysElapsed === 1 ? '' : 's'}`}>
               Misses {missed.label} most
             </span>
           )}

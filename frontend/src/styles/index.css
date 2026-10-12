@@ -11847,3 +11847,86 @@ button.adm-group:hover {
     grid-column: 1 / -1;
   }
 }
+
+/* ---------- Mentoring dashboard: a tidier row per person ---------- */
+/* The week's squares sit beside the name; they drop below it on a narrow phone */
+.perf-row .perf-days:not(.compact) {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.perf-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px 16px;
+  margin-top: 9px;
+}
+
+.perf-stat-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.perf-stat-top > span {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.perf-stat-top strong {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.perf-stat-top strong small {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  white-space: pre;
+}
+
+.perf-stat .perf-bar {
+  display: block;
+  height: 5px;
+}
+
+.perf-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 0;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.perf-notes span + span::before {
+  content: '·';
+  margin: 0 6px;
+  color: var(--ink-soft);
+}
+
+.perf-notes .ok {
+  color: var(--primary-dark);
+}
+
+/* What they miss most takes its own line, so no line starts with a stray dot */
+.perf-notes .warn {
+  flex: 0 0 100%;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.perf-notes span + span.warn::before {
+  content: none;
+}
+
+.perf-row {
+  padding: 14px 0;
+}
