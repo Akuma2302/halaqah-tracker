@@ -132,7 +132,10 @@ function DayStrip({ days, total, dayKeys }) {
 function MutabaahGrid({ person }) {
   const keys = person.dayKeys || [];
   const compact = keys.length > 7;
-  const columns = { gridTemplateColumns: compact ? `84px repeat(${keys.length}, minmax(0, 1fr))` : 'minmax(0, 1fr) repeat(7, 26px)' };
+  // The last column is how many of the days each amal was done.
+  const columns = { gridTemplateColumns: compact ? `84px repeat(${keys.length}, minmax(0, 1fr)) 38px` : 'minmax(0, 1fr) repeat(7, 26px) 40px' };
+  const elapsed = person.daysElapsed || 0;
+  const doneAll = Object.values(person.items || {}).reduce((sum, n) => sum + n, 0);
   const day = (key) => {
     const [y, m, d] = key.split('-').map(Number);
     return new Date(y, m - 1, d);
@@ -148,6 +151,9 @@ function MutabaahGrid({ person }) {
             {compact ? (day(key).getDay() === 0 || i === 0 ? day(key).getDate() : '') : DAY_LETTERS[day(key).getDay()]}
           </span>
         ))}
+        <span className="perf-grid-sum" role="columnheader">
+          Done
+        </span>
       </div>
       {MUTABAAH_FIELDS.map((f) => (
         <div className="mentee-grid-row" role="row" key={f.key} style={columns}>
@@ -165,6 +171,14 @@ function MutabaahGrid({ person }) {
               </span>
             );
           })}
+          <span
+            role="cell"
+            className={`perf-grid-sum${elapsed && (person.items?.[f.key] || 0) === elapsed ? ' full' : (person.items?.[f.key] || 0) * 2 < elapsed ? ' low' : ''}`}
+            title={`${f.label}: done on ${person.items?.[f.key] || 0} of ${elapsed} day${elapsed === 1 ? '' : 's'}`}
+          >
+            {person.items?.[f.key] || 0}
+            <small>/{elapsed}</small>
+          </span>
         </div>
       ))}
       <div className="mentee-grid-row total" role="row" style={columns}>
@@ -174,6 +188,10 @@ function MutabaahGrid({ person }) {
             {compact || person.days[i] === null ? '' : person.days[i]}
           </span>
         ))}
+        <span role="cell" className="perf-grid-sum" title={`${doneAll} of ${elapsed * person.mutabaahTotal} done in all`}>
+          {doneAll}
+          <small>/{elapsed * person.mutabaahTotal}</small>
+        </span>
       </div>
     </div>
   );
