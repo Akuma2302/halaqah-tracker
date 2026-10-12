@@ -11756,3 +11756,34 @@ button.adm-group:hover {
 .mentee-grid.with-sum .mentee-grid-row {
   grid-template-columns: minmax(0, 1fr) repeat(7, 26px) 40px;
 }
+
+/* ---------- Mentee page: the period switch (week, or the last 7, 14 or 30 days) ---------- */
+.range-toggle.segmented.md-period {
+  margin: 6px 0 0;
+}
+
+.md-week.md-week-range {
+  justify-content: center;
+}
+
+/* The last period stays on screen, dimmed, while another loads */
+.md-period-body {
+  transition: opacity 0.15s ease;
+}
+
+.md-period-body.stale {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* A long range: thin bars, close together, with a date at each Sunday */
+.day-bars.compact {
+  gap: 2px;
+}
+
+.day-bars.compact .day-bar-label {
+  min-height: 12px;
+  font-size: 9px;
+  overflow: visible;
+  white-space: nowrap;
+}

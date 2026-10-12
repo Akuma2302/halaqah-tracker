@@ -67,12 +67,24 @@ function subjectLabel(s) {
   return s.code ? `${s.name} (${s.code})` : s.name;
 }
 
+// What the page covers: the week (with arrows to earlier weeks), or the last 7, 14 or 30 days.
+const PERIODS = [
+  ['week', 'Week'],
+  [7, '7 days'],
+  [14, '14 days'],
+  [30, '30 days']
+];
+
 // A mentor's view of one mentee: today's mutabaah item by item, the week's
 // mutabaah, the week's academic log (studied or not, sessions, questions,
 // lecturer consultations) and their class timetable. Read-only.
 export default function MenteeDetail() {
   const { id } = useParams();
   const [week, setWeek] = useState(currentWeekKey);
+  // 'week', or the number of days to look back from today (7, 14 or 30).
+  const [period, setPeriod] = useState('week');
+  const ranged = period !== 'week';
+  const requestKey = `${id}|${ranged ? `days-${period}` : week}`;
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   // The timetable day picked by hand; until then it follows today.
@@ -103,8 +115,8 @@ export default function MenteeDetail() {
     let cancelled = false;
     setError('');
     client
-      .get(`/mentoring/mentees/${id}`, { params: { date: todayKey, weekStart: week } })
-      .then((res) => !cancelled && setData(res.data))
+      .get(`/mentoring/mentees/${id}`, { params: { date: todayKey, weekStart: ranged ? currentWeekKey : week, days: ranged ? period : undefined } })
+      .then((res) => !cancelled && setData({ ...res.data, key: requestKey }))
       .catch(
         (err) =>
           !cancelled &&
@@ -117,7 +129,8 @@ export default function MenteeDetail() {
     return () => {
       cancelled = true;
     };
-  }, [id, week]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestKey]);
 
   const back = (
     <Link to="/mentoring" className="quran-back">
@@ -146,7 +159,21 @@ export default function MenteeDetail() {
   }
 
   const { user, mutabaah, academic } = data;
-  const isThisWeek = week === currentWeekKey;
+  // "Today" belongs to the period whenever the period reaches today.
+  const isThisWeek = ranged || week === currentWeekKey;
+  // While another period loads, the last one stays on screen, dimmed.
+  const stale = data.key !== requestKey;
+  const shownDays = mutabaah.week.length;
+  // A long range: small squares and thin bars, with a date at each Sunday.
+  const compact = shownDays > 7;
+  const dateOf = (key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+  const dayMark = (key, i) => (compact ? (dateOf(key).getDay() === 0 || i === 0 ? dateOf(key).getDate() : '') : SHORT_DAYS[dateOf(key).getDay()]);
+  // The weekly study target, stretched to the length of the range.
+  const studyTarget = ranged ? Math.round((WEEKLY_TARGET_HOURS * period) / 7) : WEEKLY_TARGET_HOURS;
+  const gridColumns = compact ? { gridTemplateColumns: `minmax(84px, 112px) repeat(${shownDays}, minmax(0, 1fr)) 40px` } : undefined;
   const today = mutabaah.today;
   const doneToday = MUTABAAH_FIELDS.filter((f) => today[f.key]).length;
 
@@ -184,8 +211,8 @@ export default function MenteeDetail() {
   const weekPercent = elapsed.length ? Math.round((weekDone / (elapsed.length * MUTABAAH_FIELDS.length)) * 100) : 0;
   const todayPercent = Math.round((doneToday / MUTABAAH_FIELDS.length) * 100);
   const ringTone = doneToday === MUTABAAH_FIELDS.length ? 'done' : doneToday === 0 ? 'none' : todayPercent >= 50 ? 'mid' : 'low';
-  const targetPercent = Math.min(100, Math.round((totalHours / WEEKLY_TARGET_HOURS) * 100));
-  const thisOrThat = isThisWeek ? 'this week' : 'that week';
+  const targetPercent = Math.min(100, Math.round((totalHours / studyTarget) * 100));
+  const thisOrThat = ranged ? `in the last ${period} days` : isThisWeek ? 'this week' : 'that week';
 
   const itemNote = (f) => {
     if (f.key === 'tilawah' && today.tilawahPages) return `${today.tilawahPages} pages`;
@@ -238,11 +265,11 @@ export default function MenteeDetail() {
             )}
             <div className={`md-stat${totalHours > 0 ? ' ok' : ''}`}>
               <strong>{formatHours(totalHours)}</strong>
-              <span>Studied {thisOrThat}</span>
+              <span>Studied {ranged ? `in ${period} days` : thisOrThat}</span>
             </div>
             <div className={`md-stat${consultations.length > 0 ? ' ok' : ''}`}>
               <strong>{consultations.length > 0 ? consultations.length : 'No'}</strong>
-              <span>Met lecturer {thisOrThat}</span>
+              <span>Met lecturer {ranged ? `in ${period} days` : thisOrThat}</span>
             </div>
           </div>
         </div>
@@ -334,39 +361,58 @@ export default function MenteeDetail() {
           )}
         </Section>
 
-        {/* ---------- week picker: everything below follows it ---------- */}
-        <div className="md-week">
-          <button className="icon-btn" onClick={() => setWeek(shiftWeek(week, -1))} aria-label="Previous week">
-            <ChevronLeft size={16} />
-          </button>
-          <div className="md-week-label">
-            <strong>{isThisWeek ? 'This week' : formatWeekLabel(week)}</strong>
-            {isThisWeek ? (
-              <span>{formatWeekLabel(week)}</span>
-            ) : (
-              <button type="button" className="md-week-reset" onClick={() => setWeek(currentWeekKey)}>
-                Back to this week
-              </button>
-            )}
-          </div>
-          <button className="icon-btn" onClick={() => setWeek(shiftWeek(week, 1))} disabled={isThisWeek} aria-label="Next week">
-            <ChevronRight size={16} />
-          </button>
+        {/* ---------- which period the rest of the page covers ---------- */}
+        <div className="range-toggle segmented md-period" role="group" aria-label="Period">
+          {PERIODS.map(([key, label]) => (
+            <button key={key} className={period === key ? 'active' : ''} onClick={() => setPeriod(key)}>
+              {label}
+            </button>
+          ))}
         </div>
+        {ranged ? (
+          <div className="md-week md-week-range">
+            <div className="md-week-label">
+              <strong>Last {period} days</strong>
+              <span>
+                {shortDate(toDateKey(addDays(new Date(), -(period - 1)))).split(', ')[1]} – {shortDate(todayKey).split(', ')[1]}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="md-week">
+            <button className="icon-btn" onClick={() => setWeek(shiftWeek(week, -1))} aria-label="Previous week">
+              <ChevronLeft size={16} />
+            </button>
+            <div className="md-week-label">
+              <strong>{isThisWeek ? 'This week' : formatWeekLabel(week)}</strong>
+              {isThisWeek ? (
+                <span>{formatWeekLabel(week)}</span>
+              ) : (
+                <button type="button" className="md-week-reset" onClick={() => setWeek(currentWeekKey)}>
+                  Back to this week
+                </button>
+              )}
+            </div>
+            <button className="icon-btn" onClick={() => setWeek(shiftWeek(week, 1))} disabled={isThisWeek} aria-label="Next week">
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
 
+        <div className={`md-stack md-period-body${stale ? ' stale' : ''}`}>
         {/* ---------- mutabaah for the week ---------- */}
         <Section
           icon={CalendarRange}
-          title={`Mutabaah ${thisOrThat}`}
+          title={ranged ? `Mutabaah, last ${period} days` : `Mutabaah ${thisOrThat}`}
           sub={`${weekDone} of ${elapsed.length * MUTABAAH_FIELDS.length} done`}
           aside={<span className={`md-pill${weekPercent >= 80 ? ' ok' : weekPercent >= 50 ? ' mid' : ' low'}`}>{weekPercent}%</span>}
         >
-          <div className="mentee-grid perf-grid with-sum" role="table" aria-label="Mutabaah by day">
-            <div className="mentee-grid-row head" role="row">
+          <div className={`mentee-grid perf-grid with-sum${compact ? ' compact' : ''}`} role="table" aria-label="Mutabaah by day">
+            <div className="mentee-grid-row head" role="row" style={gridColumns}>
               <span />
               {mutabaah.week.map((day, i) => (
                 <span key={day.date} className={day.date === todayKey ? 'today' : ''} role="columnheader">
-                  {SHORT_DAYS[i][0]}
+                  {compact ? dayMark(day.date, i) : SHORT_DAYS[dateOf(day.date).getDay()][0]}
                 </span>
               ))}
               <span className="perf-grid-sum" role="columnheader">
@@ -374,7 +420,7 @@ export default function MenteeDetail() {
               </span>
             </div>
             {MUTABAAH_FIELDS.map((f) => (
-              <div className="mentee-grid-row" role="row" key={f.key}>
+              <div className="mentee-grid-row" role="row" key={f.key} style={gridColumns}>
                 <span className="mentee-grid-name">{f.label}</span>
                 {mutabaah.week.map((day) => (
                   <span
@@ -383,7 +429,7 @@ export default function MenteeDetail() {
                     className={`mentee-dot${day[f.key] ? ' done' : day.date > todayKey ? ' future' : ''}`}
                     title={`${f.label}, ${shortDate(day.date)}: ${day[f.key] ? 'done' : day.date > todayKey ? 'not yet' : 'not done'}`}
                   >
-                    {day[f.key] ? <Check size={11} strokeWidth={3} /> : day.date > todayKey ? '' : <Minus size={10} />}
+                    {compact ? '' : day[f.key] ? <Check size={11} strokeWidth={3} /> : day.date > todayKey ? '' : <Minus size={10} />}
                   </span>
                 ))}
                 {/* How many of the days so far this amal was done */}
@@ -402,11 +448,11 @@ export default function MenteeDetail() {
                 })()}
               </div>
             ))}
-            <div className="mentee-grid-row total" role="row">
+            <div className="mentee-grid-row total" role="row" style={gridColumns}>
               <span className="mentee-grid-name">Done</span>
               {mutabaah.week.map((day) => (
                 <span key={day.date} role="cell" className={day.date === todayKey ? 'today' : ''}>
-                  {day.date > todayKey ? '' : doneOn(day)}
+                  {compact || day.date > todayKey ? '' : doneOn(day)}
                 </span>
               ))}
               <span role="cell" className="perf-grid-sum">
@@ -425,18 +471,18 @@ export default function MenteeDetail() {
           aside={
             <span className="md-figure">
               {formatHours(totalHours)}
-              <small> / {WEEKLY_TARGET_HOURS}h</small>
+              <small> / {studyTarget}h</small>
             </span>
           }
         >
-          <div className="md-progress" role="img" aria-label={`${targetPercent}% of the weekly target`}>
+          <div className="md-progress" role="img" aria-label={`${targetPercent}% of the target`}>
             <span style={{ width: `${targetPercent}%` }} />
           </div>
           <div className="md-target">
             <span>
-              <strong>{targetPercent}%</strong> of the weekly target
+              <strong>{targetPercent}%</strong> of the {ranged ? `${period}-day` : 'weekly'} target
             </span>
-            <span>{totalHours >= WEEKLY_TARGET_HOURS ? 'Target reached' : `${formatHours(WEEKLY_TARGET_HOURS - totalHours)} to go`}</span>
+            <span>{totalHours >= studyTarget ? 'Target reached' : `${formatHours(studyTarget - totalHours)} to go`}</span>
           </div>
           {validated && (
             <div className="md-validated">
@@ -444,18 +490,22 @@ export default function MenteeDetail() {
             </div>
           )}
 
-          <div className="day-bars md-day-bars" aria-label="Hours per day">
+          <div
+            className={`day-bars md-day-bars${compact ? ' compact' : ''}`}
+            style={compact ? { gridTemplateColumns: `repeat(${shownDays}, minmax(0, 1fr))` } : undefined}
+            aria-label="Hours per day"
+          >
             {hoursByDay.map((h, i) => (
               <div
-                key={SHORT_DAYS[i]}
+                key={mutabaah.week[i].date}
                 className={`day-bar${mutabaah.week[i].date === todayKey ? ' today' : ''}${h ? ' has' : ''}`}
-                title={`${SHORT_DAYS[i]}: ${formatHours(h)}`}
+                title={`${shortDate(mutabaah.week[i].date)}: ${formatHours(h)}`}
               >
-                <span className="day-bar-value">{h ? formatHours(h) : ''}</span>
+                <span className="day-bar-value">{h && !compact ? formatHours(h) : ''}</span>
                 <span className="day-bar-track">
                   <span className="day-bar-fill" style={{ height: `${(h / maxDayHours) * 100}%` }} />
                 </span>
-                <span className="day-bar-label">{SHORT_DAYS[i]}</span>
+                <span className="day-bar-label">{dayMark(mutabaah.week[i].date, i)}</span>
               </div>
             ))}
           </div>
@@ -597,6 +647,8 @@ export default function MenteeDetail() {
               </div>
             )}
           </Section>
+        </div>
+
         </div>
 
         {/* ---------- their weekly classes, a day at a time ---------- */}

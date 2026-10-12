@@ -145,22 +145,44 @@ function relationTo(viewer, target) {
 
 // One person in detail, for their mentor or a mentoring mate: mutabaah item
 // by item for the day and the week, and the week's academic log.
-async function getMenteeDetail(viewerId, menteeId, { date, weekStart }) {
+// A person's full academic log between two dates, in the same shape as one
+// week's: every week that touches the range is read and joined. Study sessions
+// and consultations are kept by their own date; practice questions belong to
+// a week, so all of those weeks' sets are included.
+async function academicLogInRange(userId, from, to) {
+  const weeks = [];
+  for (let w = getWeekStart(from); w <= to; w = addDays(w, 7)) weeks.push(w);
+  const logs = await Promise.all(weeks.map((w) => weeklyLogService.getWeek(userId, w)));
+  return {
+    weekStart: weeks[0],
+    studySessions: logs.flatMap((l) => l.studySessions).filter((s) => s.date >= from && s.date <= to),
+    questionPractice: logs.flatMap((l) => l.questionPractice),
+    consultations: logs.flatMap((l) => l.consultations).filter((c) => !c.date || (c.date >= from && c.date <= to)),
+    // A mentor validates a week, not a range.
+    mentorValidation: null
+  };
+}
+
+// With `days` (7, 14 or 30) the page covers that many days ending on `date`
+// instead of the Sunday-to-Saturday week.
+async function getMenteeDetail(viewerId, menteeId, { date, weekStart, days = null }) {
   const [viewer, mentee] = await Promise.all([userRepository.findById(viewerId), userRepository.findById(menteeId)]);
   const relation = relationTo(viewer, mentee);
   if (!relation) throw fail(403, "You can't view this person's updates");
 
-  const weekEnd = addDays(weekStart, 6);
+  const from = days ? addDays(date, -(days - 1)) : weekStart;
+  const to = days ? date : addDays(weekStart, 6);
   const [todayEntry, weekRows, academic, timetableRows, deadlines] = await Promise.all([
     mutabaahService.getEntry(menteeId, date),
-    mutabaahRepository.findBoundedRangeForUser(menteeId, weekStart, weekEnd),
-    weeklyLogService.getWeek(menteeId, weekStart),
+    mutabaahRepository.findBoundedRangeForUser(menteeId, from, to),
+    days ? academicLogInRange(menteeId, from, to) : weeklyLogService.getWeek(menteeId, weekStart),
     timetableRepository.findByUser(menteeId),
     upcomingAssessments(menteeId, date)
   ]);
   const rowByDate = Object.fromEntries(weekRows.map((r) => [r.date, r]));
-  const week = Array.from({ length: 7 }, (_, i) => {
-    const day = addDays(weekStart, i);
+  // One entry per day of the period, oldest first ("week" even when it is a range).
+  const week = Array.from({ length: days || 7 }, (_, i) => {
+    const day = addDays(from, i);
     return mutabaahService.toApiShapePublic(rowByDate[day], menteeId, day);
   });
 
@@ -169,6 +191,7 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart }) {
     relation,
     date,
     weekStart,
+    days,
     mutabaah: { today: todayEntry, week },
     academic,
     // Their weekly class timetable (the same every week).
