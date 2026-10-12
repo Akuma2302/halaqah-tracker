@@ -291,12 +291,27 @@ function weekStats(mutabaahRows, academic, { date, weekStart }) {
     CAMEL_FIELDS.map((key) => [key, dayKeys.map((day) => (lastDay && day <= lastDay ? !!entryByDate[day]?.[key] : null))])
   );
 
+  // The same amal over the same days of the week before (Sunday up to the
+  // same weekday), so this week so far is compared like for like.
+  const prevItems = Object.fromEntries(CAMEL_FIELDS.map((key) => [key, 0]));
+  const prevLast = addDays(prevStart, Math.max(0, daysElapsed - 1));
+  mutabaahRows
+    .filter((r) => daysElapsed && r.date >= prevStart && r.date <= prevLast)
+    .forEach((r) => {
+      CAMEL_FIELDS.forEach((key) => {
+        if (entryByDate[r.date]?.[key]) prevItems[key] += 1;
+      });
+    });
+
   const hours = academic.studySessions.reduce((sum, s) => sum + s.hours, 0);
   return {
     days,
     dayKeys,
     grid,
     items,
+    prevItems,
+    // False when nothing at all was logged then: there is nothing to compare with.
+    hasPrev: prevRows.length > 0,
     daysElapsed,
     prevMutabaahPercent,
     mutabaahPercent: possible ? Math.round((done / possible) * 100) : 0,
@@ -333,8 +348,19 @@ function rangeStats(mutabaahRows, academic, { date, days }) {
     });
   });
 
+  // Each amal over the same number of days just before the range.
+  const prevItems = Object.fromEntries(CAMEL_FIELDS.map((key) => [key, 0]));
+  prevRows.forEach((r) => {
+    const entry = entryOf(r);
+    CAMEL_FIELDS.forEach((key) => {
+      if (entry[key]) prevItems[key] += 1;
+    });
+  });
+
   const hours = academic.studySessions.reduce((sum, s) => sum + s.hours, 0);
   return {
+    prevItems,
+    hasPrev: prevRows.length > 0,
     // Oldest day first, one figure per day of the range.
     days: dayKeys.map((key) => doneByDate[key] || 0),
     dayKeys,

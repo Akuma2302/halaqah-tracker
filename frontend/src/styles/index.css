@@ -11930,3 +11930,72 @@ button.adm-group:hover {
 .perf-row {
   padding: 14px 0;
 }
+
+/* The grid's change column: up, down or level against the period before */
+.perf-grid .perf-grid-delta {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.perf-grid .perf-grid-delta.up {
+  color: var(--primary-dark);
+}
+
+.perf-grid .perf-grid-delta.down {
+  color: var(--danger);
+}
+
+.perf-grid-note {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+/* On a phone the grid runs the full width of the row, under the avatar, so
+   the amal names keep their room */
+@media (max-width: 520px) {
+  .perf-row .mentee-grid.perf-grid,
+  .perf-row .perf-grid ~ .perf-notes {
+    margin-left: -50px;
+    flex: none;
+  }
+
+  /* The arrow would sit on top of the last column; the whole row is still tappable */
+  .perf-row:has(.perf-grid) .mentee-chevron {
+    display: none;
+  }
+
+  .perf-row .mentee-grid.perf-grid {
+    margin-top: 12px;
+  }
+
+  /* Tighter columns and smaller ticks, and a long amal name takes two lines */
+  .perf-row .perf-grid:not(.compact) {
+    --dot-col: 21px;
+    --sum-col: 34px;
+    --delta-col: 26px;
+  }
+
+  .perf-row .perf-grid:not(.compact) .mentee-grid-row {
+    gap: 3px;
+  }
+
+  .perf-row .perf-grid:not(.compact) .mentee-dot {
+    width: 19px;
+    height: 19px;
+  }
+
+  .perf-row .perf-grid .mentee-grid-name {
+    white-space: normal;
+    font-size: 12.5px;
+    line-height: 1.2;
+  }
+
+  .perf-grid .perf-grid-sum {
+    font-size: 12px;
+  }
+}

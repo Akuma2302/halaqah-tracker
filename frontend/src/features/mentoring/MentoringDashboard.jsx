@@ -122,11 +122,30 @@ function DayStrip({ days, total, dayKeys }) {
 
 // One person's mutabaah as a grid: an amal on each row, a day in each column,
 // as on their own page. A range longer than a week uses small squares.
-function MutabaahGrid({ person }) {
+// How an amal's count moved against the period before: up, down or level.
+function Delta({ now, before, known, what }) {
+  if (!known) return <span className="perf-grid-delta none" title={`Nothing was logged the ${what} before, so there is nothing to compare with`}>–</span>;
+  const change = now - before;
+  return (
+    <span className={`perf-grid-delta ${change > 0 ? 'up' : change < 0 ? 'down' : 'flat'}`} title={`${before} the ${what} before, ${now} now`}>
+      {change > 0 ? `+${change}` : change < 0 ? `−${-change}` : '='}
+    </span>
+  );
+}
+
+function MutabaahGrid({ person, span = 'week' }) {
   const keys = person.dayKeys || [];
   const compact = keys.length > 7;
   // The last column is how many of the days each amal was done.
-  const columns = { gridTemplateColumns: compact ? `84px repeat(${keys.length}, minmax(0, 1fr)) 38px` : 'minmax(0, 1fr) repeat(7, 26px) 40px' };
+  // With something to compare against, a last column shows the change from the period before.
+  const compare = !!person.prevItems;
+  const columns = {
+    // The widths are variables so a phone can tighten them (see .perf-grid in the stylesheet).
+    gridTemplateColumns: `${
+      compact ? `84px repeat(${keys.length}, minmax(0, 1fr)) 38px` : 'minmax(0, 1fr) repeat(7, var(--dot-col, 26px)) var(--sum-col, 40px)'
+    }${compare ? ' var(--delta-col, 34px)' : ''}`
+  };
+  const prevAll = Object.values(person.prevItems || {}).reduce((sum, n) => sum + n, 0);
   const elapsed = person.daysElapsed || 0;
   const doneAll = Object.values(person.items || {}).reduce((sum, n) => sum + n, 0);
   const day = (key) => {
@@ -147,6 +166,11 @@ function MutabaahGrid({ person }) {
         <span className="perf-grid-sum" role="columnheader">
           Done
         </span>
+        {compare && (
+          <span className="perf-grid-sum" role="columnheader" title={`Change from the ${span} before`}>
+            ±
+          </span>
+        )}
       </div>
       {MUTABAAH_FIELDS.map((f) => (
         <div className="mentee-grid-row" role="row" key={f.key} style={columns}>
@@ -172,6 +196,7 @@ function MutabaahGrid({ person }) {
             {person.items?.[f.key] || 0}
             <small>/{elapsed}</small>
           </span>
+          {compare && <Delta now={person.items?.[f.key] || 0} before={person.prevItems[f.key] || 0} known={person.hasPrev} what={span} />}
         </div>
       ))}
       <div className="mentee-grid-row total" role="row" style={columns}>
@@ -185,7 +210,15 @@ function MutabaahGrid({ person }) {
           {doneAll}
           <small>/{elapsed * person.mutabaahTotal}</small>
         </span>
+        {compare && <Delta now={doneAll} before={prevAll} known={person.hasPrev} what={span} />}
       </div>
+      {compare && (
+        <p className="perf-grid-note">
+          {person.hasPrev
+            ? `± is the change from ${span === 'week' ? (elapsed < 7 ? 'the same days last week' : 'the week before') : `the ${span} before`}.`
+            : `Nothing was logged the ${span} before, so there is no change to show.`}
+        </p>
+      )}
     </div>
   );
 }
@@ -231,7 +264,7 @@ function PersonRow({ person, rank, isThisWeek, view, studyTarget, span }) {
             showMutabaah && <DayStrip days={person.days} total={person.mutabaahTotal} dayKeys={person.ranged ? person.dayKeys : undefined} />
           )}
         </div>
-        {view === 'mutabaah' && person.grid && <MutabaahGrid person={person} />}
+        {view === 'mutabaah' && person.grid && <MutabaahGrid person={person} span={span} />}
         {/* Two figures side by side, each with a thin bar under it */}
         {(showAcademic || (showMutabaah && !gridView)) && (
           <div className="perf-stats">
