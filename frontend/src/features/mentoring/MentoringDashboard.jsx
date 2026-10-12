@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowDownRight, ArrowUpRight, BarChart3, CheckCircle2, Check, ChevronLeft, ChevronRight, Clock, GraduationCap, Minus, PenLine, Search, Timer, TrendingDown, X } from 'lucide-react';
+import { AlertCircle, ArrowDownRight, ArrowUpRight, CheckCircle2, Check, ChevronLeft, ChevronRight, Clock, GraduationCap, Minus, PenLine, Search, Timer, TrendingDown, X } from 'lucide-react';
 import client from '../../services/apiClient';
 import { WEEKLY_TARGET_HOURS } from '../academic/constants';
 import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../academic/weekUtils';
 import { MUTABAAH_FIELDS } from '../mutabaah/mutabaahFields';
-import { MUTABAAH_ICONS } from '../mutabaah/mutabaahIcons';
 import { hueFor } from '../timetable/timetable';
 
 const todayKey = toDateKey(new Date());
@@ -348,17 +347,6 @@ export default function MentoringDashboard() {
       .filter(({ person }) => !q || person.name.toLowerCase().includes(q) || (person.memberId || '').toLowerCase().includes(q));
   }, [group, query]);
 
-  // Each amal across the whole group for the days so far, least done first.
-  const amal = useMemo(() => {
-    if (!group) return [];
-    const possible = group.people.reduce((sum, p) => sum + (p.daysElapsed || 0), 0);
-    if (!possible || !group.people.some((p) => p.items)) return [];
-    return MUTABAAH_FIELDS.map((f) => {
-      const done = group.people.reduce((sum, p) => sum + (p.items?.[f.key] || 0), 0);
-      return { key: f.key, label: f.label, done, possible, percent: Math.round((done / possible) * 100) };
-    }).sort((a, b) => a.percent - b.percent);
-  }, [group]);
-
   const attention = useMemo(
     () =>
       group && isThisWeek
@@ -545,46 +533,6 @@ export default function MentoringDashboard() {
               </div>
             </div>
           </div>
-
-          {/* ---------- mutabaah, amal by amal: which is skipped most ---------- */}
-          {view !== 'academic' && amal.length > 0 && (
-            <div className="card perf-amal">
-              <div className="log-section-head">
-                <span className="log-section-icon">
-                  <BarChart3 size={16} />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="log-section-title">Mutabaah by amal</div>
-                  <div className="log-section-sub">Least done first, {ranged ? `over the last ${period} days` : isThisWeek ? 'this week so far' : 'that week'}</div>
-                </div>
-              </div>
-              {amal[0].percent < 100 && (
-                <p className="perf-amal-lead">
-                  <strong>{amal[0].label}</strong> is missed the most: done {amal[0].done} of {amal[0].possible} time{amal[0].possible === 1 ? '' : 's'}.
-                </p>
-              )}
-              <div className="perf-amal-list">
-                {amal.map((a, i) => {
-                  const Icon = MUTABAAH_ICONS[a.key];
-                  return (
-                    <div className={`perf-amal-row tone-${tone(a.percent)}${i === 0 && a.percent < 100 ? ' worst' : ''}`} key={a.key}>
-                      <span className="perf-amal-icon">{Icon && <Icon size={14} />}</span>
-                      <span className="perf-amal-name">{a.label}</span>
-                      <span className="perf-bar">
-                        <span className={`perf-bar-fill tone-${tone(a.percent)}`} style={{ width: `${a.percent}%` }} />
-                      </span>
-                      <span className="perf-amal-value">
-                        {a.percent}%
-                        <small>
-                          {a.done}/{a.possible}
-                        </small>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* ---------- who misses the most ---------- */}
           {view === 'mutabaah' && missers.length > 0 && (
