@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Clock,
   PenLine,
+  Pencil,
   BookOpen,
   Camera,
   FileText,
@@ -70,7 +71,7 @@ function todayIndexFor(weekKey) {
 
 const emptyQuestionForm = { subjectId: '', questionCount: '', isValidated: false, photoUrls: [] };
 const MAX_QUESTION_PHOTOS = 6;
-const emptyConsultForm = { subjectId: '', lecturerName: '', detail: '', date: '', venue: '', photoUrl: '' };
+const emptyConsultForm = { subjectId: '', lecturerName: '', detail: '', date: '', venue: '', photoUrl: '', signatureUrl: '' };
 
 // `focus` shows one log on a page of its own (opened from the dashboard):
 // 'study' for study hours, 'question' for practice questions, 'consult' for
@@ -103,6 +104,8 @@ export default function AcademicJournal({ focus = null }) {
   const signatureRef = useRef(null);
   // Counts each time a sheet is opened, so the signature box starts empty.
   const [sheetCount, setSheetCount] = useState(0);
+  // The entry being changed, when the sheet was opened from a row's pencil; null when adding.
+  const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -183,6 +186,7 @@ export default function AcademicJournal({ focus = null }) {
 
   // ---------- add-entry sheet ----------
   function openSheet(kind) {
+    setEditingId(null);
     setFormError('');
     if (kind === 'study') setStudyForm({ day: todayIndexFor(week), subjectId: '', categories: [], hours: '' });
     if (kind === 'question') setQuestionForm(emptyQuestionForm);
@@ -191,9 +195,36 @@ export default function AcademicJournal({ focus = null }) {
     setSheet(kind);
   }
 
+  // The same sheet, filled in with an entry already saved, to change it.
+  function openEdit(kind, entry) {
+    setFormError('');
+    setEditingId(entry._id);
+    if (kind === 'study') {
+      const [y, m, d] = entry.date.split('-').map(Number);
+      setStudyForm({ day: new Date(y, m - 1, d).getDay(), subjectId: entry.subject?._id || '', categories: entry.categories || [], hours: String(entry.hours) });
+    }
+    if (kind === 'question')
+      setQuestionForm({ subjectId: entry.subject?._id || '', questionCount: String(entry.questionCount), isValidated: !!entry.isValidated, photoUrls: entry.photoUrls || [] });
+    if (kind === 'consult')
+      setConsultForm({
+        subjectId: entry.subject?._id || '',
+        lecturerName: entry.lecturerName || '',
+        detail: entry.detail || '',
+        date: entry.date || '',
+        venue: entry.venue || '',
+        photoUrl: entry.photoUrl || '',
+        signatureUrl: entry.signatureUrl || ''
+      });
+    setSheetCount((n) => n + 1);
+    setSheet(kind);
+  }
+
   function closeSheet() {
     if (!saving) setSheet(null);
   }
+
+  // A new entry is posted; one being edited is put back under its own id.
+  const send = (path, body) => (editingId ? client.put(`${path}/${editingId}`, body) : client.post(path, body));
 
   async function submit(kind, addAnother) {
     setSaving(true);
@@ -202,7 +233,7 @@ export default function AcademicJournal({ focus = null }) {
       if (kind === 'study') {
         const hours = Number(studyForm.hours);
         if (!(hours >= 1 && hours <= 24)) throw new Error('Enter between 1 and 24 hours.');
-        await client.post('/academic/weeks/study-sessions', {
+        await send('/academic/weeks/study-sessions', {
           subjectId: studyForm.subjectId || null,
           date: dateForDayInWeek(week, studyForm.day),
           categories: studyForm.categories,
@@ -211,7 +242,7 @@ export default function AcademicJournal({ focus = null }) {
       } else if (kind === 'question') {
         const count = Number(questionForm.questionCount);
         if (!Number.isInteger(count) || count < 1) throw new Error('Enter how many questions you did.');
-        await client.post('/academic/weeks/question-practice', {
+        await send('/academic/weeks/question-practice', {
           subjectId: questionForm.subjectId || null,
           weekStart: week,
           questionCount: count,
@@ -221,7 +252,8 @@ export default function AcademicJournal({ focus = null }) {
       } else {
         if (!consultForm.subjectId && !consultForm.lecturerName.trim()) throw new Error('Choose a subject or enter the lecturer.');
         // The lecturer's signature, if they signed, is uploaded as a picture first.
-        let signatureUrl = '';
+        // When editing, a signature already there is kept unless it was replaced.
+        let signatureUrl = consultForm.signatureUrl || '';
         const signature = await signatureRef.current?.toBlob();
         if (signature) {
           const formData = new FormData();
@@ -233,10 +265,11 @@ export default function AcademicJournal({ focus = null }) {
             throw new Error("Couldn't save the signature. Check your connection and try again.");
           }
         }
-        await client.post('/academic/weeks/consultations', { ...consultForm, signatureUrl, weekStart: week });
+        // "No subject" is sent as none at all, which is what the server accepts.
+        await send('/academic/weeks/consultations', { ...consultForm, subjectId: consultForm.subjectId || null, signatureUrl, weekStart: week });
       }
       loadWeek(week);
-      showToast('Saved');
+      showToast(editingId ? 'Changes saved' : 'Saved');
       if (addAnother) openSheet(kind);
       else setSheet(null);
     } catch (err) {
@@ -539,6 +572,9 @@ export default function AcademicJournal({ focus = null }) {
                         )}
                       </div>
                       <span className="log-amount">{formatHours(s.hours)}</span>
+                      <button className="icon-btn" onClick={() => openEdit('study', s)} aria-label="Edit">
+                        <Pencil size={13} />
+                      </button>
                       <button className="icon-btn log-delete" onClick={() => removeEntry('study', s._id)} aria-label="Delete">
                         <Trash2 size={14} />
                       </button>
@@ -567,6 +603,9 @@ export default function AcademicJournal({ focus = null }) {
                       <div className={`log-meta${q.isValidated ? ' ok' : ''}`}>{q.isValidated ? 'Validated' : 'Not validated'}</div>
                     </div>
                     <span className="log-amount">{q.questionCount} Q</span>
+                    <button className="icon-btn" onClick={() => openEdit('question', q)} aria-label="Edit">
+                      <Pencil size={13} />
+                    </button>
                     <button className="icon-btn log-delete" onClick={() => removeEntry('question', q._id)} aria-label="Delete">
                       <Trash2 size={14} />
                     </button>
@@ -619,6 +658,9 @@ export default function AcademicJournal({ focus = null }) {
                         <Paperclip size={14} />
                       </a>
                     )}
+                    <button className="icon-btn" onClick={() => openEdit('consult', c)} aria-label="Edit">
+                      <Pencil size={13} />
+                    </button>
                     <button className="icon-btn log-delete" onClick={() => removeEntry('consult', c._id)} aria-label="Delete">
                       <Trash2 size={14} />
                     </button>
@@ -737,7 +779,11 @@ export default function AcademicJournal({ focus = null }) {
       <Sheet
         open={!!sheet}
         onClose={closeSheet}
-        title={{ study: 'Log study hours', question: 'Log practice questions', consult: 'Log a consultation' }[sheet] || ''}
+        title={
+          (editingId
+            ? { study: 'Edit study hours', question: 'Edit practice questions', consult: 'Edit consultation' }
+            : { study: 'Log study hours', question: 'Log practice questions', consult: 'Log a consultation' })[sheet] || ''
+        }
       >
         {sheet === 'study' && studyForm && (
           <div className="entry-form">
@@ -947,7 +993,16 @@ export default function AcademicJournal({ focus = null }) {
             </div>
             <div className="field">
               <label>Lecturer's signature (optional)</label>
-              <SignaturePad key={sheetCount} padRef={signatureRef} label="Ask your lecturer to sign here" />
+              {consultForm.signatureUrl ? (
+                <div className="signature-kept">
+                  <img src={consultForm.signatureUrl} alt="Lecturer's signature" />
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConsultForm((f) => ({ ...f, signatureUrl: '' }))}>
+                    Sign again
+                  </button>
+                </div>
+              ) : (
+                <SignaturePad key={sheetCount} padRef={signatureRef} label="Ask your lecturer to sign here" />
+              )}
               <span className="field-hint">Hand the phone to your lecturer to sign with a finger. It is saved with this consultation and printed on the report.</span>
             </div>
             <div className="field">
@@ -967,11 +1022,13 @@ export default function AcademicJournal({ focus = null }) {
           <>
             {formError && <p className="form-error">{formError}</p>}
             <div className="entry-actions">
-              <button className="btn btn-ghost" onClick={() => submit(sheet, true)} disabled={saving || uploadingPhoto}>
-                Save & add another
-              </button>
+              {!editingId && (
+                <button className="btn btn-ghost" onClick={() => submit(sheet, true)} disabled={saving || uploadingPhoto}>
+                  Save & add another
+                </button>
+              )}
               <button className="btn btn-primary" onClick={() => submit(sheet, false)} disabled={saving || uploadingPhoto}>
-                {saving ? 'Saving…' : 'Save'}
+                {saving ? 'Saving…' : editingId ? 'Save changes' : 'Save'}
               </button>
             </div>
           </>

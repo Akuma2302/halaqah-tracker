@@ -12,6 +12,18 @@ async function addStudySession(req, res) {
   res.status(201).json(row);
 }
 
+async function updateStudySession(req, res) {
+  res.json(await weeklyLogService.updateStudySession(req.params.id, req.userId, req.body));
+}
+
+async function updateQuestionPractice(req, res) {
+  res.json(await weeklyLogService.updateQuestionPractice(req.params.id, req.userId, req.body));
+}
+
+async function updateConsultation(req, res) {
+  res.json(await weeklyLogService.updateConsultation(req.params.id, req.userId, req.body));
+}
+
 async function removeStudySession(req, res) {
   await weeklyLogService.removeStudySession(req.params.id, req.userId);
   res.json({ ok: true });
@@ -62,5 +74,8 @@ module.exports = {
   addConsultation,
   removeConsultation,
   setMentorValidation,
-  uploadPhoto
+  uploadPhoto,
+  updateStudySession,
+  updateQuestionPractice,
+  updateConsultation
 };

@@ -61,6 +61,7 @@ router.put(
 );
 
 router.post('/weeks/study-sessions', validate(createStudySessionSchema), asyncHandler(weeklyLogController.addStudySession));
+router.put('/weeks/study-sessions/:id', validate(createStudySessionSchema), asyncHandler(weeklyLogController.updateStudySession));
 router.delete('/weeks/study-sessions/:id', asyncHandler(weeklyLogController.removeStudySession));
 
 router.post(
@@ -68,9 +69,15 @@ router.post(
   validate(createQuestionPracticeSchema),
   asyncHandler(weeklyLogController.addQuestionPractice)
 );
+router.put(
+  '/weeks/question-practice/:id',
+  validate(createQuestionPracticeSchema),
+  asyncHandler(weeklyLogController.updateQuestionPractice)
+);
 router.delete('/weeks/question-practice/:id', asyncHandler(weeklyLogController.removeQuestionPractice));
 
 router.post('/weeks/consultations', validate(createConsultationSchema), asyncHandler(weeklyLogController.addConsultation));
+router.put('/weeks/consultations/:id', validate(createConsultationSchema), asyncHandler(weeklyLogController.updateConsultation));
 router.delete('/weeks/consultations/:id', asyncHandler(weeklyLogController.removeConsultation));
 
 router.post('/weeks/upload', upload.single('file'), asyncHandler(weeklyLogController.uploadPhoto));

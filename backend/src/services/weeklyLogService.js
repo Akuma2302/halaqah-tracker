@@ -33,6 +33,19 @@ async function addStudySession(userId, { subjectId, date, categories, hours }) {
   return serializeStudySession(row);
 }
 
+function notFound(what) {
+  const err = new Error(`${what} not found`);
+  err.status = 404;
+  return err;
+}
+
+// A changed date can move the session into another week.
+async function updateStudySession(id, userId, { subjectId, date, categories, hours }) {
+  const row = await studySessionRepository.update(id, userId, { subjectId, weekStart: getWeekStart(date), date, categories, hours });
+  if (!row) throw notFound('Study session');
+  return serializeStudySession(row);
+}
+
 async function removeStudySession(id, userId) {
   await studySessionRepository.remove(id, userId);
 }
@@ -42,12 +55,24 @@ async function addQuestionPractice(userId, { subjectId, weekStart, questionCount
   return serializeQuestionPractice(row);
 }
 
+async function updateQuestionPractice(id, userId, fields) {
+  const row = await questionPracticeRepository.update(id, userId, fields);
+  if (!row) throw notFound('Practice questions');
+  return serializeQuestionPractice(row);
+}
+
 async function removeQuestionPractice(id, userId) {
   await questionPracticeRepository.remove(id, userId);
 }
 
 async function addConsultation(userId, { subjectId, weekStart, lecturerName, detail, date, venue, photoUrl, signatureUrl }) {
   const row = await consultationRepository.create(userId, { subjectId, weekStart, lecturerName, detail, date, venue, photoUrl, signatureUrl });
+  return serializeConsultation(row);
+}
+
+async function updateConsultation(id, userId, fields) {
+  const row = await consultationRepository.update(id, userId, fields);
+  if (!row) throw notFound('Consultation');
   return serializeConsultation(row);
 }
 
@@ -68,5 +93,8 @@ module.exports = {
   removeQuestionPractice,
   addConsultation,
   removeConsultation,
-  setMentorValidation
+  setMentorValidation,
+  updateStudySession,
+  updateQuestionPractice,
+  updateConsultation
 };

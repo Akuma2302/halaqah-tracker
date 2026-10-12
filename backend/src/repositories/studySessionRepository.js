@@ -52,9 +52,22 @@ async function create(userId, { subjectId, weekStart, date, categories, hours })
   return data;
 }
 
+// Changes one of the user's own sessions; null if it isn't theirs.
+async function update(id, userId, { subjectId, weekStart, date, categories, hours }) {
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .update({ subject_id: subjectId || null, week_start: weekStart, date, categories: categories || [], hours })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('*, subject:subjects(id, name, code)')
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 async function remove(id, userId) {
   const { error } = await supabase.from('study_sessions').delete().eq('id', id).eq('user_id', userId);
   if (error) throw error;
 }
 
-module.exports = { findForWeek, sumHoursForWeek, sumHoursForUsersAndWeek, create, remove };
+module.exports = { findForWeek, sumHoursForWeek, sumHoursForUsersAndWeek, create, update, remove };
