@@ -45,7 +45,11 @@ export default function SemesterOverview({ subjects, timetable, embedded = false
   }).filter((t) => t.total > 0);
   const maxOfType = Math.max(1, ...byType.map((t) => t.total));
 
-  const byKind = CLASS_KINDS.map(([value]) => ({ value, total: classes.filter((e) => e.kind === value).length })).filter((k) => k.total > 0);
+  // Each kind of class: how many a week, and how long they run in all.
+  const byKind = CLASS_KINDS.map(([value]) => {
+    const list = classes.filter((e) => e.kind === value);
+    return { value, total: list.length, mins: list.reduce((sum, e) => sum + Math.max(0, minutes(e.endTime) - minutes(e.startTime)), 0) };
+  }).filter((k) => k.total > 0);
 
   return (
     <div className={embedded ? 'sem-overview sem-embedded' : 'card sem-overview'}>
@@ -144,11 +148,22 @@ export default function SemesterOverview({ subjects, timetable, embedded = false
       {byKind.length > 0 && (
         <>
           <div className="sem-heading">Classes each week</div>
+          {/* One bar split by time in class, then a line for each kind */}
+          {classMinutes > 0 && (
+            <div className="sem-kind-bar" role="img" aria-label={byKind.map((k) => `${plural(KIND_LABEL[k.value], k.total)}: ${hoursText(k.mins)}`).join(', ')}>
+              {byKind.map((k) => (
+                <span key={k.value} className={`kind-${k.value}`} style={{ flexGrow: Math.max(k.mins, classMinutes * 0.04) }} />
+              ))}
+            </div>
+          )}
           <div className="sem-kinds">
             {byKind.map((k) => (
-              <span className="sem-kind" key={k.value}>
-                <strong>{k.total}</strong> {plural(KIND_LABEL[k.value], k.total)}
-              </span>
+              <div className={`sem-kind kind-${k.value}`} key={k.value}>
+                <i />
+                <span className="sem-kind-name">{plural(KIND_LABEL[k.value], k.total)}</span>
+                <strong>{k.total}</strong>
+                <small>{k.mins ? `${hoursText(k.mins)} a week` : 'No time set'}</small>
+              </div>
             ))}
           </div>
         </>
