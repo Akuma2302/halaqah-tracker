@@ -11751,3 +11751,8 @@ button.adm-group:hover {
 .perf-amal-facts .perf-fact.tone-low strong {
   color: var(--danger);
 }
+
+/* The mentee page's weekly grid, with the same "Done" column */
+.mentee-grid.with-sum .mentee-grid-row {
+  grid-template-columns: minmax(0, 1fr) repeat(7, 26px) 40px;
+}

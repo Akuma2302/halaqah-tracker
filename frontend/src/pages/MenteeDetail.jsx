@@ -361,7 +361,7 @@ export default function MenteeDetail() {
           sub={`${weekDone} of ${elapsed.length * MUTABAAH_FIELDS.length} done`}
           aside={<span className={`md-pill${weekPercent >= 80 ? ' ok' : weekPercent >= 50 ? ' mid' : ' low'}`}>{weekPercent}%</span>}
         >
-          <div className="mentee-grid" role="table" aria-label="Mutabaah by day">
+          <div className="mentee-grid perf-grid with-sum" role="table" aria-label="Mutabaah by day">
             <div className="mentee-grid-row head" role="row">
               <span />
               {mutabaah.week.map((day, i) => (
@@ -369,6 +369,9 @@ export default function MenteeDetail() {
                   {SHORT_DAYS[i][0]}
                 </span>
               ))}
+              <span className="perf-grid-sum" role="columnheader">
+                Done
+              </span>
             </div>
             {MUTABAAH_FIELDS.map((f) => (
               <div className="mentee-grid-row" role="row" key={f.key}>
@@ -383,6 +386,20 @@ export default function MenteeDetail() {
                     {day[f.key] ? <Check size={11} strokeWidth={3} /> : day.date > todayKey ? '' : <Minus size={10} />}
                   </span>
                 ))}
+                {/* How many of the days so far this amal was done */}
+                {(() => {
+                  const done = elapsed.filter((day) => day[f.key]).length;
+                  return (
+                    <span
+                      role="cell"
+                      className={`perf-grid-sum${elapsed.length && done === elapsed.length ? ' full' : done * 2 < elapsed.length ? ' low' : ''}`}
+                      title={`${f.label}: done on ${done} of ${elapsed.length} day${elapsed.length === 1 ? '' : 's'}`}
+                    >
+                      {done}
+                      <small>/{elapsed.length}</small>
+                    </span>
+                  );
+                })()}
               </div>
             ))}
             <div className="mentee-grid-row total" role="row">
@@ -392,6 +409,10 @@ export default function MenteeDetail() {
                   {day.date > todayKey ? '' : doneOn(day)}
                 </span>
               ))}
+              <span role="cell" className="perf-grid-sum">
+                {weekDone}
+                <small>/{elapsed.length * MUTABAAH_FIELDS.length}</small>
+              </span>
             </div>
           </div>
         </Section>
