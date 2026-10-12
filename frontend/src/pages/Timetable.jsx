@@ -1,12 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Bell, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
-import { CLASS_KINDS, DAYS, KIND_LABEL, SHORT_DAYS, TASK_KINDS, clock, hueFor, minutes } from '../features/timetable/timetable';
+import {
+  CLASS_KINDS,
+  DAYS,
+  MAX_REMINDERS,
+  MAX_REMINDER_MINUTES,
+  REMINDER_UNITS,
+  SHORT_DAYS,
+  TASK_KINDS,
+  clock,
+  hueFor,
+  kindLabel,
+  minutes,
+  reminderMinutes,
+  reminderParts,
+  reminderText
+} from '../features/timetable/timetable';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
 import { addDays, toDateKey } from '../features/academic/weekUtils';
 
@@ -17,7 +32,23 @@ function duration(mins) {
 }
 
 function nameOf(entry) {
-  return entry.title || entry.subject?.name || KIND_LABEL[entry.kind] || 'Task';
+  return entry.title || entry.subject?.name || kindLabel(entry);
+}
+
+const dateOf = (key) => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+// "Wed, 14 Oct"
+const shortDay = (key) => dateOf(key).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+
+// When an entry happens, in words: every week, on one day, or across several.
+function whenText(entry) {
+  const from = clock(entry.startTime);
+  const to = clock(entry.endTime);
+  if (!entry.startDate) return `${DAYS[entry.dayOfWeek]}s, ${from} to ${to}`;
+  const end = entry.endDate || entry.startDate;
+  return end === entry.startDate ? `${shortDay(entry.startDate)}, ${from} to ${to}` : `${shortDay(entry.startDate)} ${from} to ${shortDay(end)} ${to}`;
 }
 
 // "d4f8", "8" or "D4F-0008" -> "D4F-0008"; null when it isn't a User ID.
@@ -28,8 +59,24 @@ function tidyMemberId(input) {
   return /^\d{1,9}$/.test(digits) ? `D4F-${digits.padStart(4, '0')}` : null;
 }
 
-function emptyForm(day) {
-  return { subjectId: '', title: '', kind: 'study', days: [day], startTime: '09:00', endTime: '10:00', venue: '', people: [] };
+// `repeat` is 'weekly' (on chosen days, every week) or 'once' (from one date
+// and time to another). `reminders` are { n, unit } rows.
+function emptyForm(day, date) {
+  return {
+    subjectId: '',
+    title: '',
+    kind: 'study',
+    customKind: '',
+    repeat: 'weekly',
+    days: [day],
+    startDate: date,
+    endDate: date,
+    startTime: '09:00',
+    endTime: '10:00',
+    venue: '',
+    people: [],
+    reminders: []
+  };
 }
 
 // Weekly class timetable: a day at a time or the whole week, with what's on
@@ -46,7 +93,14 @@ export default function Timetable() {
   const [pickedDate, setPickedDate] = useState(() => toDateKey(new Date()));
 
   const [editing, setEditing] = useState(null); // null = closed, 'new', or the entry being edited
-  const [form, setForm] = useState(emptyForm(1));
+  const [form, setForm] = useState(() => emptyForm(1, toDateKey(new Date())));
+  // My own task types, kept in my account and offered beside the built-in ones.
+  const [myKinds, setMyKinds] = useState([]);
+  const [newKind, setNewKind] = useState(null); // null = not adding; otherwise what is typed
+  // Finding people to add: what is typed, and who it matches.
+  const [found, setFound] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const searchSeq = useRef(0);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [idInput, setIdInput] = useState('');
@@ -69,7 +123,32 @@ export default function Timetable() {
       .get('/academic/subjects')
       .then((res) => setSubjects(res.data))
       .catch(() => setSubjects([]));
+    client
+      .get('/timetable/kinds')
+      .then((res) => setMyKinds(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setMyKinds([]));
   }, []);
+
+  // Look people up as the box is typed in: by User ID, or by two or more letters of a name.
+  useEffect(() => {
+    const q = idInput.trim();
+    if (!editing || (q.length < 2 && !tidyMemberId(q))) {
+      setFound([]);
+      setSearching(false);
+      return undefined;
+    }
+    const seq = (searchSeq.current += 1);
+    setSearching(true);
+    const timer = setTimeout(() => {
+      client
+        .get('/timetable/people', { params: { q } })
+        .then((res) => seq === searchSeq.current && setFound(Array.isArray(res.data) ? res.data : []))
+        .catch(() => seq === searchSeq.current && setFound([]))
+        .finally(() => seq === searchSeq.current && setSearching(false));
+    }, 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idInput, !!editing]);
 
   // Keep "now" fresh so the current / next class moves on by itself.
   useEffect(() => {
@@ -83,11 +162,30 @@ export default function Timetable() {
   // Classes of a subject hidden in Subjects are left out here.
   const shown = useMemo(() => (entries || []).filter((e) => e.subject?.isVisible !== false), [entries]);
 
+  // What repeats every week, by weekday.
+  const weekly = useMemo(() => shown.filter((e) => !e.startDate), [shown]);
   const byDay = useMemo(() => {
     const groups = DAYS.map(() => []);
-    shown.forEach((e) => groups[e.dayOfWeek]?.push(e));
+    weekly.forEach((e) => groups[e.dayOfWeek]?.push(e));
     groups.forEach((g) => g.sort((a, b) => a.startTime.localeCompare(b.startTime)));
     return groups;
+  }, [weekly]);
+
+  // One-off events, on every date they cover (an event can run over several days).
+  const eventsByDate = useMemo(() => {
+    const map = {};
+    shown
+      .filter((e) => e.startDate)
+      .forEach((e) => {
+        const end = e.endDate || e.startDate;
+        let day = dateOf(e.startDate);
+        for (let i = 0; i < 62 && toDateKey(day) <= end; i += 1) {
+          (map[toDateKey(day)] ||= []).push(e);
+          day = addDays(day, 1);
+        }
+      });
+    Object.values(map).forEach((list) => list.sort((a, b) => a.startTime.localeCompare(b.startTime)));
+    return map;
   }, [shown]);
 
   // Dated things from the subjects, still to come, soonest first: quizzes,
@@ -175,6 +273,25 @@ export default function Timetable() {
     return new Date(y, m - 1, d).getDay();
   })();
 
+  // One-off events still to come (or going on now), soonest first.
+  const upcomingEvents = useMemo(
+    () =>
+      shown
+        .filter((e) => e.startDate && (e.endDate || e.startDate) >= todayKey)
+        .sort((a, b) => `${a.startDate}${a.startTime}`.localeCompare(`${b.startDate}${b.startTime}`)),
+    [shown, todayKey]
+  );
+
+  // One-off events in the next 7 days, by weekday, to sit with that day's classes.
+  const eventsByDay = useMemo(() => {
+    const groups = DAYS.map(() => []);
+    for (let i = 0; i < 7; i += 1) {
+      const day = addDays(dateOf(todayKey), i);
+      groups[day.getDay()] = eventsByDate[toDateKey(day)] || [];
+    }
+    return groups;
+  }, [eventsByDate, todayKey]);
+
   // The ones in the next 7 days, by weekday, so they sit with that day's classes.
   const examsByDay = useMemo(() => {
     const groups = DAYS.map(() => []);
@@ -190,29 +307,45 @@ export default function Timetable() {
   }, [exams, todayKey]);
 
   // Today: the class in progress, and the next one still to start.
-  const todays = byDay[today];
+  // (A one-off event counts on the day it starts and ends on the same day.)
+  const todays = useMemo(
+    () =>
+      [...byDay[today], ...(eventsByDate[todayKey] || []).filter((e) => e.startDate === todayKey && (e.endDate || e.startDate) === todayKey)].sort((a, b) =>
+        a.startTime.localeCompare(b.startTime)
+      ),
+    [byDay, eventsByDate, today, todayKey]
+  );
   const current = todays.find((e) => minutes(e.startTime) <= nowMinutes && nowMinutes < minutes(e.endTime));
   const next = todays.find((e) => minutes(e.startTime) > nowMinutes);
 
+  // Adding from the month view starts as a one-off event on the day picked there.
   function openNew(forDay = day) {
-    setForm(emptyForm(forDay));
+    const fromMonth = view === 'month';
+    setForm({ ...emptyForm(fromMonth ? pickedWeekday : forDay, fromMonth ? pickedDate : todayKey), repeat: fromMonth ? 'once' : 'weekly' });
     setFormError('');
     setIdInput('');
+    setNewKind(null);
     setEditing('new');
   }
 
   function openEdit(entry) {
     if (entry.shared) return setViewing(entry);
     setIdInput('');
+    setNewKind(null);
     setForm({
       people: (entry.participants || []).map((p) => ({ memberId: p.memberId, name: p.name })),
       subjectId: entry.subject?._id || '',
       title: entry.title || '',
       kind: entry.kind || 'lecture',
+      customKind: entry.customKind || '',
+      repeat: entry.startDate ? 'once' : 'weekly',
       days: [entry.dayOfWeek],
+      startDate: entry.startDate || todayKey,
+      endDate: entry.endDate || entry.startDate || todayKey,
       startTime: entry.startTime,
       endTime: entry.endTime,
-      venue: entry.venue || ''
+      venue: entry.venue || '',
+      reminders: (entry.reminders || []).map(reminderParts)
     });
     setFormError('');
     setEditing(entry);
@@ -220,24 +353,55 @@ export default function Timetable() {
 
   // Other classes that overlap what's in the form (same day, times crossing).
   const clashes = useMemo(() => {
-    if (!editing || !form.startTime || !form.endTime || form.endTime <= form.startTime) return [];
-    return shown.filter(
+    // Only weekly entries are checked against each other.
+    if (!editing || form.repeat === 'once' || !form.startTime || !form.endTime || form.endTime <= form.startTime) return [];
+    return weekly.filter(
       (e) =>
         e._id !== editing?._id &&
         form.days.includes(e.dayOfWeek) &&
         minutes(e.startTime) < minutes(form.endTime) &&
         minutes(form.startTime) < minutes(e.endTime)
     );
-  }, [editing, form, shown]);
+  }, [editing, form, weekly]);
 
-  // Add the User ID in the box to the people on this task.
-  function addPerson() {
-    const memberId = tidyMemberId(idInput);
-    if (!memberId) return setFormError('Enter a User ID such as D4F-0008.');
+  // Put someone found by the search on this task.
+  function addPerson(person) {
     setFormError('');
     setIdInput('');
-    setForm((f) => (f.people.some((p) => p.memberId === memberId) ? f : { ...f, people: [...f.people, { memberId }] }));
+    setFound([]);
+    setForm((f) => (f.people.some((p) => p.memberId === person.memberId) ? f : { ...f, people: [...f.people, { memberId: person.memberId, name: person.name }] }));
   }
+
+  // Keep my own types in my account, then use the new one for this task.
+  async function saveKinds(kinds, pick) {
+    setMyKinds(kinds);
+    if (pick !== undefined) setForm((f) => ({ ...f, kind: 'other', customKind: pick }));
+    try {
+      const res = await client.put('/timetable/kinds', { kinds });
+      setMyKinds(res.data);
+    } catch {
+      showToast("Couldn't save your types. They are kept for this task only.");
+    }
+  }
+
+  function addKind() {
+    const name = (newKind || '').trim().slice(0, 30);
+    if (!name) return;
+    setNewKind(null);
+    // A built-in type typed by name just selects it.
+    const builtIn = TASK_KINDS.find(([value, label]) => value !== 'other' && label.toLowerCase() === name.toLowerCase());
+    if (builtIn) return setForm((f) => ({ ...f, kind: builtIn[0], customKind: '' }));
+    const existing = myKinds.find((k) => k.toLowerCase() === name.toLowerCase());
+    if (existing) return setForm((f) => ({ ...f, kind: 'other', customKind: existing }));
+    saveKinds([...myKinds, name], name);
+  }
+
+  function removeKind(name) {
+    saveKinds(myKinds.filter((k) => k !== name));
+    setForm((f) => (f.customKind === name ? { ...f, kind: 'other', customKind: '' } : f));
+  }
+
+  const setReminder = (i, change) => setForm((f) => ({ ...f, reminders: f.reminders.map((r, j) => (j === i ? { ...r, ...change } : r)) }));
 
   async function leave() {
     const left = viewing;
@@ -253,11 +417,22 @@ export default function Timetable() {
   }
 
   async function save() {
+    const once = form.repeat === 'once';
     if (!form.subjectId && !form.title.trim()) return setFormError('Choose a subject or give it a name.');
-    if (idInput.trim()) return setFormError('Tap Add to include that User ID, or clear the box.');
-    if (!form.days.length) return setFormError('Choose at least one day.');
+    if (idInput.trim()) return setFormError('Pick the person from the list under the search box, or clear the box.');
+    if (newKind !== null && newKind.trim()) return setFormError('Tap Add to keep the new type, or clear it.');
     if (!form.startTime || !form.endTime) return setFormError('Set the start and end time.');
-    if (form.endTime <= form.startTime) return setFormError('The end time must be after the start time.');
+    if (once) {
+      if (!form.startDate || !form.endDate) return setFormError('Set the start and end date.');
+      if (form.endDate < form.startDate) return setFormError('The end date must not be before the start date.');
+      if (form.endDate === form.startDate && form.endTime <= form.startTime) return setFormError('The end time must be after the start time.');
+    } else {
+      if (!form.days.length) return setFormError('Choose at least one day.');
+      if (form.endTime <= form.startTime) return setFormError('The end time must be after the start time.');
+    }
+    const reminders = form.reminders.map(reminderMinutes);
+    if (reminders.some((m) => !Number.isFinite(m) || m < 0)) return setFormError('Each reminder needs a number.');
+    if (reminders.some((m) => m > MAX_REMINDER_MINUTES)) return setFormError('A reminder can be at most 4 weeks before.');
 
     setSaving(true);
     setFormError('');
@@ -265,25 +440,37 @@ export default function Timetable() {
       subjectId: form.subjectId || null,
       title: form.title.trim(),
       kind: form.kind,
-      dayOfWeek,
+      customKind: form.kind === 'other' ? form.customKind : '',
+      // A one-off event is placed by its dates; a weekly one by its weekday.
+      ...(once ? { startDate: form.startDate, endDate: form.endDate } : { dayOfWeek, startDate: null, endDate: null }),
       startTime: form.startTime,
       endTime: form.endTime,
       venue: form.venue.trim(),
+      reminders,
       memberIds: form.people.map((p) => p.memberId)
     });
+    // After saving a one-off event, show the month on its date.
+    const showDate = (dateKey) => {
+      const d = dateOf(dateKey);
+      setMonthStart(new Date(d.getFullYear(), d.getMonth(), 1));
+      setPickedDate(dateKey);
+      setView('month');
+    };
     try {
       if (editing === 'new') {
         // One class per chosen day (e.g. the same lecture on Monday and Wednesday).
         const created = [];
-        for (const d of [...form.days].sort()) created.push((await client.post('/timetable', body(d))).data);
+        for (const d of once ? [null] : [...form.days].sort()) created.push((await client.post('/timetable', body(d))).data);
         setEntries((list) => [...(list || []), ...created]);
+        if (once) showDate(created[0].startDate);
         // Stay on the day being viewed if the class was added there too.
-        if (!created.some((c) => c.dayOfWeek === day)) setDay(created[0].dayOfWeek);
-        showToast(created.length > 1 ? `Added on ${created.length} days` : 'Added to your timetable');
+        else if (!created.some((c) => c.dayOfWeek === day)) setDay(created[0].dayOfWeek);
+        showToast(created.length > 1 ? `Added on ${created.length} days` : once ? 'Added to your calendar' : 'Added to your timetable');
       } else {
         const res = await client.put(`/timetable/${editing._id}`, body(form.days[0]));
         setEntries((list) => list.map((e) => (e._id === res.data._id ? res.data : e)));
-        setDay(res.data.dayOfWeek);
+        if (res.data.startDate) showDate(res.data.startDate);
+        else setDay(res.data.dayOfWeek);
         showToast('Updated');
       }
       setEditing(null);
@@ -296,7 +483,7 @@ export default function Timetable() {
   }
 
   async function remove() {
-    if (!window.confirm(`Remove ${nameOf(editing)} on ${DAYS[editing.dayOfWeek]} from your timetable?`)) return;
+    if (!window.confirm(`Remove ${nameOf(editing)} (${whenText(editing)}) from your timetable?`)) return;
     const removed = editing;
     setEditing(null);
     setEntries((list) => list.filter((e) => e._id !== removed._id));
@@ -340,7 +527,12 @@ export default function Timetable() {
             {isNow && <span className="badge badge-gold">Now</span>}
           </span>
           <span className="class-meta">
-            {[entry.subject?.code, KIND_LABEL[entry.kind] || entry.kind, duration(end - start)].filter(Boolean).join(' · ')}
+            {[entry.subject?.code, kindLabel(entry), duration(end - start)].filter(Boolean).join(' · ')}
+            {entry.reminders?.length > 0 && (
+              <span className="class-bell" title={entry.reminders.map(reminderText).join(', ')}>
+                <Bell size={10} /> {entry.reminders.length}
+              </span>
+            )}
           </span>
           {(entry.venue || entry.subject?.lecturerName) && (
             <span className="class-meta">
@@ -351,6 +543,59 @@ export default function Timetable() {
               )}
               {entry.venue && entry.subject?.lecturerName ? ' · ' : ''}
               {entry.subject?.lecturerName}
+            </span>
+          )}
+          {entry.shared ? (
+            <span className="class-meta class-people">
+              <Users size={11} /> Added by {entry.owner?.name || 'someone'}
+            </span>
+          ) : (
+            entry.participants?.length > 0 && (
+              <span className="class-meta class-people">
+                <Users size={11} /> With {entry.participants.map((p) => p.name.split(' ')[0]).join(', ')}
+              </span>
+            )
+          )}
+        </span>
+      </button>
+    );
+  }
+
+  // A one-off event, on one of the days it covers (`on`): its start time on
+  // its first day, "until" on its last, all day in between.
+  function EventCard({ entry, on }) {
+    const end = entry.endDate || entry.startDate;
+    const single = end === entry.startDate;
+    const isNow = single && entry.startDate === todayKey && minutes(entry.startTime) <= nowMinutes && nowMinutes < minutes(entry.endTime);
+    const over = end < todayKey || (end === todayKey && minutes(entry.endTime) <= nowMinutes);
+    const first = !on || on === entry.startDate;
+    return (
+      <button
+        type="button"
+        className={`class-card event-card${isNow ? ' now' : ''}${over ? ' past' : ''}`}
+        style={{ '--hue': hueFor(entry.subject?.name || entry.title) }}
+        onClick={() => openEdit(entry)}
+      >
+        <span className="class-time">
+          <strong>{first ? clock(entry.startTime) : on === end ? 'Until' : 'All day'}</strong>
+          <span>{first ? (single ? clock(entry.endTime) : formatDueDate(entry.startDate)) : on === end ? clock(entry.endTime) : formatDueDate(on)}</span>
+        </span>
+        <span className="class-body">
+          <span className="class-name">
+            {nameOf(entry)}
+            {isNow && <span className="badge badge-gold">Now</span>}
+          </span>
+          <span className="class-meta">
+            {[kindLabel(entry), single ? shortDay(entry.startDate) : `${shortDay(entry.startDate)} to ${shortDay(end)}`].join(' · ')}
+            {entry.reminders?.length > 0 && (
+              <span className="class-bell" title={entry.reminders.map(reminderText).join(', ')}>
+                <Bell size={10} /> {entry.reminders.length}
+              </span>
+            )}
+          </span>
+          {entry.venue && (
+            <span className="class-meta">
+              <MapPin size={11} /> {entry.venue}
             </span>
           )}
           {entry.shared ? (
@@ -398,6 +643,7 @@ export default function Timetable() {
   }
 
   const total = shown.length;
+  const weeklyTotal = weekly.length;
   const isClassKind = CLASS_KINDS.some(([value]) => value === form.kind);
   // Who else is on a task someone added me to (not me).
   const others = (viewing?.participants || []).filter((x) => x._id !== user?._id);
@@ -408,7 +654,11 @@ export default function Timetable() {
         <div>
           <h1 className="page-title">Timetable</h1>
           <p className="page-subtitle">
-            {entries ? (total ? `${total} class${total === 1 ? '' : 'es'} a week` : 'Your weekly classes') : 'Your weekly classes'}
+            {entries && total
+              ? [weeklyTotal ? `${weeklyTotal} a week` : '', upcomingEvents.length ? `${upcomingEvents.length} dated event${upcomingEvents.length === 1 ? '' : 's'} coming up` : '']
+                  .filter(Boolean)
+                  .join(' · ') || 'Your classes, tasks and events'
+              : 'Your classes, tasks and events'}
           </p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => openNew()}>
@@ -500,12 +750,12 @@ export default function Timetable() {
                     onClick={() => setDay(d)}
                   >
                     <span>{label}</span>
-                    <small>{byDay[d].length + examsByDay[d].length || '·'}</small>
+                    <small>{byDay[d].length + examsByDay[d].length + eventsByDay[d].length || '·'}</small>
                   </button>
                 ))}
               </div>
 
-              {byDay[day].length + examsByDay[day].length === 0 ? (
+              {byDay[day].length + examsByDay[day].length + eventsByDay[day].length === 0 ? (
                 <div className="card class-empty">
                   <p>No classes on {DAYS[day]}.</p>
                   <button className="btn btn-ghost btn-sm" onClick={() => openNew(day)}>
@@ -517,6 +767,9 @@ export default function Timetable() {
                   {examsByDay[day].map((x) => (
                     <ExamCard key={x.id} exam={x} />
                   ))}
+                  {eventsByDay[day].map((e) => (
+                    <EventCard key={e._id} entry={e} on={toDateKey(addDays(dateOf(todayKey), (day - today + 7) % 7))} />
+                  ))}
                   {byDay[day].map((e) => (
                     <ClassCard key={e._id} entry={e} showState />
                   ))}
@@ -525,7 +778,7 @@ export default function Timetable() {
             </>
           ) : view === 'week' ? (
             DAYS.map((label, d) =>
-              byDay[d].length + examsByDay[d].length ? (
+              byDay[d].length + examsByDay[d].length + eventsByDay[d].length ? (
                 <section key={label} className="week-group">
                   <h2 className={`week-group-title${d === today ? ' today' : ''}`}>
                     {label}
@@ -537,6 +790,9 @@ export default function Timetable() {
                   <div className="class-list">
                     {examsByDay[d].map((x) => (
                       <ExamCard key={x.id} exam={x} />
+                    ))}
+                    {eventsByDay[d].map((e) => (
+                      <EventCard key={e._id} entry={e} on={toDateKey(addDays(dateOf(todayKey), (d - today + 7) % 7))} />
                     ))}
                     {byDay[d].map((e) => (
                       <ClassCard key={e._id} entry={e} showState />
@@ -574,7 +830,7 @@ export default function Timetable() {
                   {monthCells.map((dateKey, i) => {
                     if (!dateKey) return <span key={`blank-${i}`} />;
                     const dated = datedByDate[dateKey] || [];
-                    const classes = byDay[i % 7].length;
+                    const classes = byDay[i % 7].length + (eventsByDate[dateKey] || []).length;
                     return (
                       <button
                         key={dateKey}
@@ -614,14 +870,20 @@ export default function Timetable() {
                 })()}
                 {pickedDate === todayKey && <span className="badge badge-primary">Today</span>}
               </h2>
-              {(datedByDate[pickedDate] || []).length + byDay[pickedWeekday].length === 0 ? (
+              {(datedByDate[pickedDate] || []).length + byDay[pickedWeekday].length + (eventsByDate[pickedDate] || []).length === 0 ? (
                 <div className="card class-empty">
                   <p>Nothing on this day.</p>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openNew()}>
+                    <Plus size={13} /> Add an event
+                  </button>
                 </div>
               ) : (
                 <div className="class-list">
                   {(datedByDate[pickedDate] || []).map((x) => (
                     <ExamCard key={x.id} exam={x} />
+                  ))}
+                  {(eventsByDate[pickedDate] || []).map((e) => (
+                    <EventCard key={e._id} entry={e} on={pickedDate} />
                   ))}
                   {byDay[pickedWeekday].map((e) => (
                     <ClassCard key={e._id} entry={e} showState={pickedDate === todayKey} />
@@ -632,13 +894,16 @@ export default function Timetable() {
           )}
 
           {/* ---------- every exam still to come, from the subjects ---------- */}
-          {view !== 'month' && exams.length > 0 && (
+          {view !== 'month' && exams.length + upcomingEvents.length > 0 && (
             <section className="week-group exam-list">
               <h2 className="week-group-title">
                 Coming up
-                <small>Exams and timed tasks from your subjects</small>
+                <small>Your dated events, and exams and timed tasks from your subjects</small>
               </h2>
               <div className="class-list">
+                {upcomingEvents.map((e) => (
+                  <EventCard key={e._id} entry={e} />
+                ))}
                 {exams.map((x) => (
                   <ExamCard key={x.id} exam={x} />
                 ))}
@@ -689,37 +954,142 @@ export default function Timetable() {
             <div className="chip-row">
               {/* Classes are set on the subject; one made earlier keeps its own kind here. */}
               {[...CLASS_KINDS.filter(([value]) => value === form.kind), ...TASK_KINDS].map(([value, label]) => (
-                <button key={value} type="button" className={`chip${form.kind === value ? ' on' : ''}`} onClick={() => setForm((f) => ({ ...f, kind: value }))}>
+                <button
+                  key={value}
+                  type="button"
+                  className={`chip${form.kind === value && !(value === 'other' && form.customKind) ? ' on' : ''}`}
+                  onClick={() => setForm((f) => ({ ...f, kind: value, customKind: '' }))}
+                >
                   {label}
                 </button>
               ))}
+              {/* My own types, and one this task already has that I have since removed */}
+              {[...new Set([...myKinds, ...(form.kind === 'other' && form.customKind ? [form.customKind] : [])])].map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={`chip${form.kind === 'other' && form.customKind === name ? ' on' : ''}`}
+                  onClick={() => setForm((f) => ({ ...f, kind: 'other', customKind: name }))}
+                >
+                  {name}
+                </button>
+              ))}
+              {newKind === null && myKinds.length < 12 && (
+                <button type="button" className="chip chip-add" onClick={() => setNewKind('')}>
+                  <Plus size={12} /> New type
+                </button>
+              )}
             </div>
+            {newKind !== null && (
+              <div className="tt-person-row tt-kind-row">
+                <input
+                  className="input"
+                  value={newKind}
+                  onChange={(e) => setNewKind(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addKind();
+                    }
+                  }}
+                  placeholder="Your own type, e.g. Gym, Usrah"
+                  maxLength={30}
+                  aria-label="Your own type"
+                  autoFocus
+                />
+                <button type="button" className="btn btn-ghost" onClick={addKind} disabled={!newKind.trim()}>
+                  Add
+                </button>
+                <button type="button" className="icon-btn" onClick={() => setNewKind(null)} aria-label="Cancel">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            {form.kind === 'other' && form.customKind && myKinds.includes(form.customKind) && (
+              <button type="button" className="tt-kind-remove" onClick={() => removeKind(form.customKind)}>
+                Remove "{form.customKind}" from my types
+              </button>
+            )}
             {editing === 'new' && (
               <p className="field-hint">
                 Lectures, tutorials and labs are added as class times in <strong>Subjects</strong>.
               </p>
             )}
           </div>
-          <div className="field">
-            <label>{editing === 'new' ? 'Days (pick one or more)' : 'Day'}</label>
-            <div className="chip-row">
-              {SHORT_DAYS.map((label, d) => (
-                <button key={label} type="button" className={`chip${form.days.includes(d) ? ' on' : ''}`} onClick={() => toggleDay(d)} aria-pressed={form.days.includes(d)}>
-                  {label}
+          {/* Every week on chosen days, or once from a date and time to another */}
+          {!isClassKind && (
+            <div className="field">
+              <label>When</label>
+              <div className="range-toggle segmented tt-repeat">
+                <button type="button" className={form.repeat === 'weekly' ? 'active' : ''} onClick={() => setForm((f) => ({ ...f, repeat: 'weekly' }))}>
+                  Every week
                 </button>
-              ))}
+                <button type="button" className={form.repeat === 'once' ? 'active' : ''} onClick={() => setForm((f) => ({ ...f, repeat: 'once' }))}>
+                  On a date
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="timetable-times">
-            <div className="field">
-              <label htmlFor="tt-start">Starts</label>
-              <input id="tt-start" className="input" type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label htmlFor="tt-end">Ends</label>
-              <input id="tt-end" className="input" type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
-            </div>
-          </div>
+          )}
+          {form.repeat === 'once' ? (
+            <>
+              <div className="timetable-times">
+                <div className="field">
+                  <label htmlFor="tt-start-date">Starts</label>
+                  <input
+                    id="tt-start-date"
+                    className="input"
+                    type="date"
+                    value={form.startDate}
+                    onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value, endDate: f.endDate < e.target.value ? e.target.value : f.endDate }))}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="tt-start">At</label>
+                  <input id="tt-start" className="input" type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
+                </div>
+              </div>
+              <div className="timetable-times">
+                <div className="field">
+                  <label htmlFor="tt-end-date">Ends</label>
+                  <input
+                    id="tt-end-date"
+                    className="input"
+                    type="date"
+                    min={form.startDate}
+                    value={form.endDate}
+                    onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="tt-end">At</label>
+                  <input id="tt-end" className="input" type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="field">
+                <label>{editing === 'new' ? 'Days (pick one or more)' : 'Day'}</label>
+                <div className="chip-row">
+                  {SHORT_DAYS.map((label, d) => (
+                    <button key={label} type="button" className={`chip${form.days.includes(d) ? ' on' : ''}`} onClick={() => toggleDay(d)} aria-pressed={form.days.includes(d)}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="timetable-times">
+                <div className="field">
+                  <label htmlFor="tt-start">Starts</label>
+                  <input id="tt-start" className="input" type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
+                </div>
+                <div className="field">
+                  <label htmlFor="tt-end">Ends</label>
+                  <input id="tt-end" className="input" type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
+                </div>
+              </div>
+            </>
+          )}
           <div className="field">
             <label htmlFor="tt-venue">Venue</label>
             <input
@@ -732,30 +1102,113 @@ export default function Timetable() {
             />
           </div>
 
+          {/* ---------- reminders: as many as wanted, each any length before ---------- */}
+          <div className="field">
+            <label>
+              <Bell size={12} /> Reminders
+            </label>
+            {form.reminders.map((r, i) => (
+              <div className="tt-reminder" key={i}>
+                <input
+                  className="input"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={r.n}
+                  onChange={(e) => setReminder(i, { n: e.target.value })}
+                  aria-label="How long before"
+                />
+                <select className="input" value={r.unit} onChange={(e) => setReminder(i, { unit: e.target.value })} aria-label="Unit">
+                  {REMINDER_UNITS.map(([key, word]) => (
+                    <option key={key} value={key}>
+                      {word} before
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => setForm((f) => ({ ...f, reminders: f.reminders.filter((_, j) => j !== i) }))}
+                  aria-label="Remove this reminder"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            {form.reminders.length < MAX_REMINDERS && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm tt-reminder-add"
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    // A sensible next one: 10 minutes, then an hour, then a day.
+                    reminders: [...f.reminders, [{ n: 10, unit: 'm' }, { n: 1, unit: 'h' }, { n: 1, unit: 'd' }][f.reminders.length] || { n: 30, unit: 'm' }]
+                  }))
+                }
+              >
+                <Plus size={13} /> Add a reminder
+              </button>
+            )}
+            <p className="field-hint">
+              {form.reminders.length
+                ? `You${form.people.length ? ' and the people added' : ''} get a notification each time. Up to ${MAX_REMINDERS}, each at most 4 weeks before.`
+                : 'No reminder set. Add one to be notified before it starts.'}
+            </p>
+          </div>
+
           <div className="field">
             <label htmlFor="tt-person">
               <UserPlus size={12} /> With other users (optional)
             </label>
-            <div className="tt-person-row">
+            <label className="perf-search tt-people-search">
+              <Search size={15} />
               <input
                 id="tt-person"
-                className="input"
+                type="search"
                 value={idInput}
                 onChange={(e) => setIdInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    addPerson();
+                    if (found.length === 1) addPerson(found[0]);
                   }
                 }}
-                placeholder="Their User ID, e.g. D4F-0008"
-                autoCapitalize="characters"
+                placeholder="Search by name or User ID"
                 autoCorrect="off"
+                autoComplete="off"
               />
-              <button type="button" className="btn btn-ghost" onClick={addPerson} disabled={!idInput.trim()}>
-                Add
-              </button>
-            </div>
+              {idInput && (
+                <button type="button" onClick={() => setIdInput('')} aria-label="Clear">
+                  <X size={13} />
+                </button>
+              )}
+            </label>
+            {idInput.trim() && (
+              <div className="tt-found" role="listbox" aria-label="People found">
+                {searching && found.length === 0 ? (
+                  <p>Searching…</p>
+                ) : found.length === 0 ? (
+                  <p>{idInput.trim().length < 2 && !tidyMemberId(idInput) ? 'Type at least 2 letters of a name, or a User ID.' : 'Nobody found. Check the name or User ID.'}</p>
+                ) : (
+                  found.map((x) => {
+                    const added = form.people.some((q) => q.memberId === x.memberId);
+                    return (
+                      <button type="button" key={x._id} role="option" aria-selected={added} className="tt-found-row" onClick={() => addPerson(x)} disabled={added}>
+                        <span className="avatar mentor-avatar-letter" style={{ '--hue': hueFor(x.name) }}>
+                          {(x.name || '?').trim()[0]?.toUpperCase()}
+                        </span>
+                        <span className="tt-found-text">
+                          <strong>{x.name}</strong>
+                          <small>{[x.memberId, x.kampus].filter(Boolean).join(' · ')}</small>
+                        </span>
+                        <span className="tt-found-add">{added ? 'Added' : 'Add'}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
             {form.people.length > 0 && (
               <div className="tt-people">
                 {form.people.map((p) => (
@@ -790,7 +1243,7 @@ export default function Timetable() {
             </button>
           )}
           <button className="btn btn-primary" onClick={save} disabled={saving}>
-            {saving ? 'Saving…' : editing === 'new' ? 'Add task' : 'Save'}
+            {saving ? 'Saving…' : editing === 'new' ? (form.repeat === 'once' ? 'Add event' : 'Add task') : 'Save'}
           </button>
         </div>
       </Sheet>
@@ -802,14 +1255,12 @@ export default function Timetable() {
               <div className="as-fact">
                 <CalendarDays size={15} />
                 <span>When</span>
-                <strong>
-                  {DAYS[viewing.dayOfWeek]}s, {clock(viewing.startTime)} to {clock(viewing.endTime)}
-                </strong>
+                <strong>{whenText(viewing)}</strong>
               </div>
               <div className="as-fact">
                 <Clock size={15} />
                 <span>Kind</span>
-                <strong>{KIND_LABEL[viewing.kind] || viewing.kind}</strong>
+                <strong>{kindLabel(viewing)}</strong>
               </div>
               {viewing.venue && (
                 <div className="as-fact">
@@ -824,6 +1275,14 @@ export default function Timetable() {
                 <strong>{[viewing.owner?.name, viewing.owner?.memberId].filter(Boolean).join(' · ') || 'Someone'}</strong>
               </div>
             </div>
+            {viewing.reminders?.length > 0 && (
+              <div className="as-block">
+                <div className="as-block-title">
+                  <Bell size={14} /> Reminders
+                </div>
+                <p>{viewing.reminders.map(reminderText).join(', ')}</p>
+              </div>
+            )}
             {others.length > 0 && (
               <div className="as-block">
                 <div className="as-block-title">

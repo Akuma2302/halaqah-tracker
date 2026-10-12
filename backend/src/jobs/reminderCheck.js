@@ -3,6 +3,7 @@ const studyGroupRepository = require('../repositories/studyGroupRepository');
 const notificationService = require('../services/notificationService');
 const mutabaahReminderService = require('../services/mutabaahReminderService');
 const assessmentReminderService = require('../services/assessmentReminderService');
+const timetableReminderService = require('../services/timetableReminderService');
 
 // Look for sessions starting 30-40 minutes from now and send a one-time
 // reminder notification to each member.
@@ -54,6 +55,12 @@ async function runAllReminders() {
   } catch (err) {
     console.error('Assessment reminder error:', err.message);
     result.assessmentsError = err.message;
+  }
+  try {
+    result.timetable = await timetableReminderService.runDueReminders();
+  } catch (err) {
+    console.error('Timetable reminder error:', err.message);
+    result.timetableError = err.message;
   }
   return result;
 }

@@ -532,3 +532,15 @@ alter table users add column if not exists last_active_at timestamptz;
 -- The lecturer's signature for a consultation, drawn on the student's phone
 -- and kept as an image, to show the meeting took place.
 alter table lecturer_consultations add column if not exists signature_url text not null default '';
+
+-- Timetable entries as a calendar. start_date / end_date make an entry a
+-- one-off event from one date and time to another (left empty, it repeats
+-- every week on day_of_week). reminders are how many minutes before the start
+-- to notify, e.g. [10, 60, 1440]. custom_kind is the user's own type, used
+-- when kind is 'other'.
+alter table timetable_entries add column if not exists start_date date;
+alter table timetable_entries add column if not exists end_date date;
+alter table timetable_entries add column if not exists reminders jsonb not null default '[]'::jsonb;
+alter table timetable_entries add column if not exists custom_kind text not null default '';
+-- The types a user has made for their own tasks ("Gym", "Usrah"), kept to offer again.
+alter table users add column if not exists task_kinds jsonb not null default '[]'::jsonb;

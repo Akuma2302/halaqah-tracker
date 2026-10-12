@@ -66,7 +66,19 @@ async function findMentees(mentorId) {
   return data;
 }
 
+// People to add to a task: by the number in a User ID, or by part of a name.
+// Suspended accounts are left out. Never more than a handful.
+async function searchPeople({ memberNo, name, excludeId, limit = 8 }) {
+  let query = supabase.from('users').select('id, member_no, name, kampus').is('suspended_at', null).neq('id', excludeId).limit(limit);
+  if (memberNo !== null && memberNo !== undefined) query = query.eq('member_no', memberNo);
+  else query = query.ilike('name', `%${name}%`).order('name', { ascending: true });
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
 module.exports = {
+  searchPeople,
   findByMemberNo,
   findMentees,
   findByGoogleId,

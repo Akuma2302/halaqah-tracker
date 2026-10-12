@@ -78,7 +78,9 @@ export default function SubjectList() {
       .finally(() => setTimetableReady(true));
   }
 
-  const classesOf = (subjectId) => timetable.filter((e) => e.subject?._id === subjectId);
+  // Class times only: a task or dated event tied to the subject is edited in the Timetable.
+  const classesOf = (subjectId) =>
+    timetable.filter((e) => e.subject?._id === subjectId && !e.startDate && !e.shared && CLASS_KINDS.some(([value]) => value === e.kind));
 
   function load() {
     setLoading(true);

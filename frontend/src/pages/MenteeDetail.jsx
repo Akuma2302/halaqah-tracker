@@ -726,7 +726,7 @@ export default function MenteeDetail() {
                       </span>
                       <span className="class-body">
                         <span className="class-name">{e.title || e.subject?.name || 'Class'}</span>
-                        <span className="class-meta">{[e.subject?.code, KIND_LABEL[e.kind] || e.kind].filter(Boolean).join(' · ')}</span>
+                        <span className="class-meta">{[e.subject?.code, e.customKind || KIND_LABEL[e.kind] || e.kind].filter(Boolean).join(' · ')}</span>
                         {e.venue && (
                           <span className="class-meta">
                             <MapPin size={11} /> {e.venue}

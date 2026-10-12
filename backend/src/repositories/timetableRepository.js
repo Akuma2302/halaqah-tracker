@@ -59,7 +59,9 @@ async function removeParticipant(entryId, userId) {
   if (error) throw error;
 }
 
-function toRow({ subjectId, title, dayOfWeek, startTime, endTime, venue, kind }) {
+// Reminders and the custom type are only touched when they are sent, so the
+// subject editor (which knows nothing of them) leaves them as they are.
+function toRow({ subjectId, title, dayOfWeek, startTime, endTime, venue, kind, startDate, endDate, reminders, customKind }) {
   return {
     subject_id: subjectId || null,
     title: title || '',
@@ -67,8 +69,19 @@ function toRow({ subjectId, title, dayOfWeek, startTime, endTime, venue, kind })
     start_time: startTime,
     end_time: endTime,
     venue: venue || '',
-    kind: kind || 'lecture'
+    kind: kind || 'lecture',
+    start_date: startDate || null,
+    end_date: startDate ? endDate || startDate : null,
+    ...(reminders !== undefined ? { reminders } : {}),
+    ...(customKind !== undefined ? { custom_kind: kind === 'other' ? customKind : '' } : {})
   };
+}
+
+// Every entry that has at least one reminder set, whoever owns it.
+async function findWithReminders() {
+  const { data, error } = await supabase.from('timetable_entries').select(WITH_SUBJECT).neq('reminders', '[]');
+  if (error) throw error;
+  return data;
 }
 
 async function create(userId, entry) {
@@ -108,6 +121,13 @@ function serialize(row) {
     endTime: String(row.end_time).slice(0, 5),
     venue: row.venue,
     kind: row.kind,
+    // The user's own type, when the kind is 'other'.
+    customKind: row.custom_kind || '',
+    // A one-off event has dates; a weekly one has none.
+    startDate: row.start_date || null,
+    endDate: row.end_date || null,
+    // Minutes before the start to send a reminder.
+    reminders: Array.isArray(row.reminders) ? row.reminders : [],
     subject: row.subject
       ? {
           _id: row.subject.id,
@@ -131,5 +151,6 @@ module.exports = {
   create,
   update,
   remove,
+  findWithReminders,
   serialize
 };

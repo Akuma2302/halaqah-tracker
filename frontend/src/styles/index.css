@@ -12318,3 +12318,140 @@ button.adm-group:hover {
   min-width: 0;
   margin-top: 0;
 }
+
+/* ---------- Timetable as a calendar: dated events, reminders, people search, own types ---------- */
+.range-toggle.segmented.tt-repeat {
+  margin: 0;
+}
+
+/* A one-off event: its date shows where a class shows its end time */
+.class-card.event-card {
+  border-style: dashed;
+}
+
+.class-bell {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  color: var(--gold-ink);
+  font-weight: 700;
+}
+
+/* A new type of my own: the box sits under the chips */
+.chip.chip-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-style: dashed;
+}
+
+.tt-person-row.tt-kind-row {
+  margin-top: 8px;
+}
+
+.tt-kind-remove {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* One reminder: how many, of what, and a button to take it off */
+.tt-reminder {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.btn.tt-reminder-add {
+  align-self: flex-start;
+  margin: 0;
+}
+
+/* People found by the search, to tap and add */
+.perf-search.tt-people-search {
+  margin: 0;
+}
+
+.tt-found {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.tt-found p {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.tt-found-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tt-found-row:first-child {
+  border-top: none;
+}
+
+.tt-found-row:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.tt-found-row:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tt-found-row .avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+}
+
+.tt-found-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tt-found-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+}
+
+.tt-found-text small {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.tt-found-add {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--primary);
+}

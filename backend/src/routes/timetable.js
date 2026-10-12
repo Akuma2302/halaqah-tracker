@@ -26,23 +26,50 @@ const KIND_LABEL = {
 };
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const weekdayOf = (dateKey) => new Date(`${dateKey}T00:00:00Z`).getUTCDay();
+// Characters that mean something in a search pattern are dropped from what people type.
+const cleanText = (text) =>
+  String(text || '')
+    .replace(/[%_,()*\\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 40);
+const kindsSchema = z.object({ kinds: z.array(z.string().trim().min(1).max(30)).max(12) });
 
 // A weekly slot: a day (0 = Sunday), a start and end time ("HH:MM", 24h),
 // and either one of the user's subjects or a free-text title (or both).
+// With `startDate` it is a one-off event instead, from that date and start
+// time to `endDate` and the end time. `reminders` are minutes before the
+// start; `customKind` is the user's own type for kind 'other'.
 // `memberIds` are the User IDs of other people to add; left out, whoever is
 // on it already stays.
 const entrySchema = z
   .object({
     subjectId: z.string().uuid().nullish(),
     title: z.string().trim().max(80).optional(),
-    dayOfWeek: z.number().int().min(0).max(6),
+    dayOfWeek: z.number().int().min(0).max(6).optional(),
     startTime: z.string().regex(TIME, 'Start time must be HH:MM'),
     endTime: z.string().regex(TIME, 'End time must be HH:MM'),
+    startDate: z.string().regex(DATE, 'Start date must be a date').nullish(),
+    endDate: z.string().regex(DATE, 'End date must be a date').nullish(),
     venue: z.string().trim().max(80).optional(),
     kind: z.enum(KINDS).optional(),
+    customKind: z.string().trim().max(30).optional(),
+    // Up to five, each at most four weeks ahead.
+    reminders: z.array(z.number().int().min(0).max(40320)).max(5).optional(),
     memberIds: z.array(z.string().trim().max(20)).max(20).optional()
   })
-  .refine((e) => e.endTime > e.startTime, { message: 'End time must be after the start time' })
+  .refine((e) => e.startDate || e.dayOfWeek !== undefined, { message: 'Choose a day or a date' })
+  .refine((e) => !e.startDate || (e.endDate || e.startDate) >= e.startDate, { message: 'The end date must not be before the start date' })
+  // On one day the end must come after the start; across days any times will do.
+  .refine((e) => (e.startDate && (e.endDate || e.startDate) > e.startDate) || e.endTime > e.startTime, { message: 'End time must be after the start time' })
+  // A dated event sits on the weekday of its start date.
+  .transform((e) => ({
+    ...e,
+    dayOfWeek: e.startDate ? weekdayOf(e.startDate) : e.dayOfWeek,
+    reminders: e.reminders ? [...new Set(e.reminders)].sort((a, b) => a - b) : undefined
+  }))
   .refine((e) => e.subjectId || (e.title && e.title.length > 0), { message: 'Choose a subject or give it a name' });
 
 const person = (row) => {
@@ -104,14 +131,21 @@ async function applyPeople(req, row, people) {
   if (!added.length) return;
 
   const owner = await userRepository.findById(req.userId);
-  const name = row.title || row.subject?.name || KIND_LABEL[row.kind] || 'a task';
-  const when = `${DAYS[row.day_of_week]}s, ${clock(String(row.start_time).slice(0, 5))} to ${clock(String(row.end_time).slice(0, 5))}`;
+  const name = row.title || row.subject?.name || row.custom_kind || KIND_LABEL[row.kind] || 'a task';
+  const from = clock(String(row.start_time).slice(0, 5));
+  const to = clock(String(row.end_time).slice(0, 5));
+  const dateText = (key) => new Date(`${key}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const when = !row.start_date
+    ? `${DAYS[row.day_of_week]}s, ${from} to ${to}`
+    : row.end_date && row.end_date !== row.start_date
+      ? `${dateText(row.start_date)} ${from} to ${dateText(row.end_date)} ${to}`
+      : `${dateText(row.start_date)}, ${from} to ${to}`;
   const notifications = await notificationService.notifyMany(
     added.map((p) => ({
       userId: p.id,
       type: 'reminder',
       title: `${owner?.name || 'Someone'} added you to ${name}`,
-      body: `${KIND_LABEL[row.kind] || 'Task'} · ${when}${row.venue ? ` · ${row.venue}` : ''}. It is in your Timetable; open it there to take yourself off.`,
+      body: `${row.custom_kind || KIND_LABEL[row.kind] || 'Task'} · ${when}${row.venue ? ` · ${row.venue}` : ''}. It is in your Timetable; open it there to take yourself off.`,
       relatedId: row.id
     }))
   );
@@ -127,6 +161,39 @@ router.get(
   asyncHandler(async (req, res) => {
     const [own, shared] = await Promise.all([timetableRepository.findByUser(req.userId), timetableRepository.findSharedWith(req.userId)]);
     res.json(await decorate([...own, ...shared], req.userId));
+  })
+);
+
+// People to add to a task, found by User ID or by part of their name.
+router.get(
+  '/people',
+  asyncHandler(async (req, res) => {
+    const q = cleanText(req.query.q);
+    const memberNo = parseMemberNo(q);
+    // A name needs two letters, so the whole list of users can't be paged through.
+    if (memberNo === null && q.length < 2) return res.json([]);
+    const rows = await userRepository.searchPeople({ memberNo, name: q, excludeId: req.userId });
+    res.json(rows.map((row) => ({ ...person(row), kampus: row.kampus || '' })));
+  })
+);
+
+// The user's own task types, offered again each time they add a task.
+router.get(
+  '/kinds',
+  asyncHandler(async (req, res) => {
+    const me = await userRepository.findById(req.userId);
+    res.json(Array.isArray(me?.task_kinds) ? me.task_kinds : []);
+  })
+);
+
+router.put(
+  '/kinds',
+  validate(kindsSchema),
+  asyncHandler(async (req, res) => {
+    // One of each, whatever the capitals.
+    const kinds = req.body.kinds.filter((k, i, all) => all.findIndex((x) => x.toLowerCase() === k.toLowerCase()) === i);
+    await userRepository.update(req.userId, { task_kinds: kinds });
+    res.json(kinds);
   })
 );
 

@@ -215,7 +215,8 @@ async function getMenteeDetail(viewerId, menteeId, { date, weekStart, days = nul
     mutabaah: { today: todayEntry, week, prevItems, hasPrev },
     academic,
     // Their weekly class timetable (the same every week).
-    timetable: timetableRows.filter((row) => row.subject?.is_visible !== false).map(timetableRepository.serialize),
+    // Only what repeats every week; their one-off events are their own.
+    timetable: timetableRows.filter((row) => row.subject?.is_visible !== false && !row.start_date).map(timetableRepository.serialize),
     // Their exams and other assessments still to come; a mentor can send a reminder for one.
     deadlines
   };

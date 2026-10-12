@@ -75,11 +75,11 @@ function datedItems(subjects) {
 }
 
 function entryTitle(row) {
-  return row.title || row.subject?.name || KIND_LABEL[row.kind] || 'Class';
+  return row.title || row.subject?.name || row.custom_kind || KIND_LABEL[row.kind] || 'Class';
 }
 
 function entryDetail(row) {
-  return [row.subject?.code, KIND_LABEL[row.kind] || row.kind, row.venue].filter(Boolean).join(' · ');
+  return [row.subject?.code, row.custom_kind || KIND_LABEL[row.kind] || row.kind, row.venue].filter(Boolean).join(' · ');
 }
 
 // The next two weeks, day by day: the weekly timetable laid onto real dates,
@@ -96,13 +96,16 @@ async function getAgenda(token, tz) {
   for (let i = 0; i < AGENDA_DAYS; i += 1) {
     const date = widgetService.shiftDate(today, i);
     entries
-      .filter((row) => row.day_of_week === weekdayOf(date))
+      // Weekly entries on their weekday; a one-off event on each day it covers.
+      .filter((row) => (row.start_date ? date >= row.start_date && date <= (row.end_date || row.start_date) : row.day_of_week === weekdayOf(date)))
       .forEach((row) =>
         events.push({
           date,
-          time: hhmm(row.start_time),
-          end: hhmm(row.end_time),
-          allDay: false,
+          // An event over several days: its start time on the first day, its
+          // end time on the last, and all day in between.
+          time: row.start_date && date !== row.start_date ? '' : hhmm(row.start_time),
+          end: row.start_date && date !== (row.end_date || row.start_date) ? '' : hhmm(row.end_time),
+          allDay: !!row.start_date && date !== row.start_date,
           title: entryTitle(row),
           detail: entryDetail(row),
           kind: CLASS_KINDS.includes(row.kind) ? 'class' : 'task'
@@ -195,6 +198,18 @@ async function getCalendar(token, tz) {
   const now = stamp(new Date());
 
   const events = entries.map((row) => {
+    // A one-off event: a single entry from its start to its end.
+    if (row.start_date) {
+      return vevent([
+        `UID:timetable-${row.id}@double4flat`,
+        `DTSTAMP:${now}`,
+        `DTSTART:${stamp(zonedToUtc(row.start_date, hhmm(row.start_time), timeZone))}`,
+        `DTEND:${stamp(zonedToUtc(row.end_date || row.start_date, hhmm(row.end_time), timeZone))}`,
+        `SUMMARY:${escapeText(entryTitle(row))}`,
+        entryDetail(row) && `DESCRIPTION:${escapeText(entryDetail(row))}`,
+        row.venue && `LOCATION:${escapeText(row.venue)}`
+      ]);
+    }
     // The first one falls in the current week, so it shows straight away.
     const first = widgetService.shiftDate(today, (row.day_of_week - weekdayOf(today) + 7) % 7);
     return vevent([
