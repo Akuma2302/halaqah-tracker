@@ -79,7 +79,8 @@ const createConsultationSchema = z.object({
   detail: z.string().trim().optional(),
   date: z.string().nullish(),
   venue: z.string().trim().optional(),
-  photoUrl: z.string().trim().optional()
+  photoUrl: z.string().trim().optional(),
+  signatureUrl: z.string().trim().max(600).optional()
 });
 
 const setMentorValidationSchema = z.object({

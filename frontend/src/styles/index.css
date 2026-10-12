@@ -12028,3 +12028,74 @@ button.adm-group:hover {
     overflow-wrap: anywhere;
   }
 }
+
+/* ---------- Signature: a box to sign in, and a signature shown on an entry ---------- */
+.signature-pad {
+  position: relative;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.signature-pad.signed {
+  border-style: solid;
+  border-color: var(--primary);
+}
+
+.signature-pad canvas {
+  display: block;
+  width: 100%;
+  height: 130px;
+  /* Drawing, not scrolling the sheet, while a finger is on the box */
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.signature-pad-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #8a9a95;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.btn.signature-pad-clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  margin: 0;
+  background: #ffffff;
+  color: #16302b;
+  border-color: #d5ddd9;
+}
+
+.field-hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.log-signature {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.log-signature img {
+  height: 34px;
+  max-width: 120px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  object-fit: contain;
+}

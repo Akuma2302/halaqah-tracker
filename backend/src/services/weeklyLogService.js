@@ -46,8 +46,8 @@ async function removeQuestionPractice(id, userId) {
   await questionPracticeRepository.remove(id, userId);
 }
 
-async function addConsultation(userId, { subjectId, weekStart, lecturerName, detail, date, venue, photoUrl }) {
-  const row = await consultationRepository.create(userId, { subjectId, weekStart, lecturerName, detail, date, venue, photoUrl });
+async function addConsultation(userId, { subjectId, weekStart, lecturerName, detail, date, venue, photoUrl, signatureUrl }) {
+  const row = await consultationRepository.create(userId, { subjectId, weekStart, lecturerName, detail, date, venue, photoUrl, signatureUrl });
   return serializeConsultation(row);
 }
 

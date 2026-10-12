@@ -528,3 +528,7 @@ alter table quran_tadabbur enable row level security;
 alter table users add column if not exists is_admin boolean not null default false;
 alter table users add column if not exists suspended_at timestamptz;
 alter table users add column if not exists last_active_at timestamptz;
+
+-- The lecturer's signature for a consultation, drawn on the student's phone
+-- and kept as an image, to show the meeting took place.
+alter table lecturer_consultations add column if not exists signature_url text not null default '';

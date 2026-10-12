@@ -67,11 +67,28 @@ async function gather(userId, weekStart) {
         }))
     )
     .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
-  return { week, user: userRow ? serializeUser(userRow) : null, upcoming };
+  // Who validates the week, to name them beside the signature line.
+  const mentorRow = userRow?.mentor_id ? await userRepository.findById(userRow.mentor_id).catch(() => null) : null;
+  return { week, user: userRow ? serializeUser(userRow) : null, upcoming, mentorName: mentorRow?.name || '' };
+}
+
+// A signature image from storage, for the PDF. Best-effort: a signature that
+// can't be fetched in a few seconds is left as a blank line to sign by hand.
+async function fetchImage(url) {
+  if (!/^https:\/\//.test(url || '')) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
 }
 
 async function generatePdf(userId, weekStart, userName) {
-  const { week, user, upcoming } = await gather(userId, weekStart);
+  const { week, user, upcoming, mentorName } = await gather(userId, weekStart);
+  // Lecturers' signatures, fetched before drawing starts.
+  const signatures = await Promise.all(week.consultations.map((c) => (c.signatureUrl ? fetchImage(c.signatureUrl) : null)));
   const weekEnd = getWeekEnd(weekStart);
   const sessions = [...week.studySessions].sort((a, b) => a.date.localeCompare(b.date));
   const totalHours = sessions.reduce((sum, s) => sum + s.hours, 0);
@@ -234,8 +251,16 @@ async function generatePdf(userId, weekStart, userName) {
     need(62);
     drawHead();
     rows.forEach((cells) => {
-      doc.font('Helvetica').fontSize(9.5);
-      const height = Math.max(...cells.map((cell, i) => doc.heightOfString(String(cell ?? ''), { width: widths[i] - 16 }))) + 9;
+      // The first cell is drawn bold, which is wider, so it is measured bold too.
+      const height =
+        Math.max(
+          ...cells.map((cell, i) =>
+            doc
+              .font(i === 0 ? 'Helvetica-Bold' : 'Helvetica')
+              .fontSize(9.5)
+              .heightOfString(String(cell ?? ''), { width: widths[i] - 16 })
+          )
+        ) + 9;
       if (doc.y + height > BOTTOM) {
         doc.addPage();
         drawHead();
@@ -300,6 +325,51 @@ async function generatePdf(userId, weekStart, userName) {
         c.detail || '–'
       ])
     );
+  // A box for each lecturer to sign: their drawn signature if they signed in
+  // the app, otherwise an empty line to sign on the printed page.
+  if (week.consultations.length) {
+    const perRow = 3;
+    const boxGap = 10;
+    const boxWidth = (WIDTH - boxGap * (perRow - 1)) / perRow;
+    const boxHeight = 78;
+    // Drawing text moves the cursor, so the row's top is kept here instead.
+    let rowY = doc.y + 10;
+    week.consultations.forEach((c, i) => {
+      const col = i % perRow;
+      if (col === 0) {
+        if (i > 0) rowY += boxHeight + 8;
+        if (rowY + boxHeight > BOTTOM) {
+          doc.addPage();
+          rowY = doc.y;
+        }
+      }
+      const x = LEFT + col * (boxWidth + boxGap);
+      const y = rowY;
+      doc.roundedRect(x, y, boxWidth, boxHeight, 6).lineWidth(0.6).strokeColor(LINE).stroke();
+      doc.fillColor(SOFT).font('Helvetica').fontSize(7.5).text("LECTURER'S SIGNATURE", x + 8, y + 7, { characterSpacing: 0.3, lineBreak: false });
+      let drawn = false;
+      if (signatures[i]) {
+        try {
+          doc.image(signatures[i], x + 8, y + 18, { fit: [boxWidth - 16, 34], align: 'center', valign: 'center' });
+          drawn = true;
+        } catch {
+          // Not an image pdfkit can read: fall back to the empty line.
+        }
+      }
+      doc.moveTo(x + 8, y + 54).lineTo(x + boxWidth - 8, y + 54).lineWidth(0.6).strokeColor(drawn ? LINE : SOFT).stroke();
+      doc
+        .fillColor(INK)
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .text(c.lecturerName || c.subject?.lecturerName || 'Lecturer', x + 8, y + 58, { width: boxWidth - 16, height: 10, ellipsis: true });
+      doc
+        .fillColor(SOFT)
+        .font('Helvetica')
+        .fontSize(7.5)
+        .text(c.date ? prettyDate(c.date, { year: true }) : 'Date:', x + 8, y + 68, { width: boxWidth - 16, lineBreak: false });
+    });
+    doc.y = rowY + boxHeight;
+  }
   doc.y += 14;
 
   // ---------- what is coming up ----------
@@ -322,6 +392,36 @@ async function generatePdf(userId, weekStart, userName) {
         `${a.progress}%`
       ])
     );
+
+  // ---------- validated by my mentor: a place to sign ----------
+  doc.y += 18;
+  need(118);
+  heading('Validated by my mentor', validated ? 'Validated in the app' : 'Not validated in the app yet');
+  const signTop = doc.y + 2;
+  const signWidth = WIDTH * 0.56;
+  doc.roundedRect(LEFT, signTop, WIDTH, 84, 8).lineWidth(0.6).strokeColor(LINE).stroke();
+  doc
+    .fillColor(SOFT)
+    .font('Helvetica')
+    .fontSize(8.5)
+    .text('I have checked this week\'s academic journal with my mentee.', LEFT + 12, signTop + 10, { width: WIDTH - 24 });
+  // signature line on the left; name and date on the right
+  doc.moveTo(LEFT + 12, signTop + 60).lineTo(LEFT + signWidth, signTop + 60).lineWidth(0.7).strokeColor(SOFT).stroke();
+  doc.fillColor(SOFT).font('Helvetica').fontSize(7.5).text("MENTOR'S SIGNATURE", LEFT + 12, signTop + 64, { characterSpacing: 0.3, lineBreak: false });
+  const rightX = LEFT + signWidth + 18;
+  const rightWidth = WIDTH - signWidth - 30;
+  doc.fillColor(SOFT).font('Helvetica').fontSize(7.5).text('NAME', rightX, signTop + 28, { characterSpacing: 0.3, lineBreak: false });
+  if (mentorName) doc.fillColor(INK).font('Helvetica-Bold').fontSize(9.5).text(mentorName, rightX + 34, signTop + 26, { width: rightWidth - 34, height: 11, ellipsis: true });
+  doc.moveTo(rightX + 34, signTop + 38).lineTo(rightX + rightWidth, signTop + 38).lineWidth(0.5).strokeColor(LINE).stroke();
+  doc.fillColor(SOFT).font('Helvetica').fontSize(7.5).text('DATE', rightX, signTop + 52, { characterSpacing: 0.3, lineBreak: false });
+  if (validated && week.mentorValidation.validatedDate)
+    doc
+      .fillColor(INK)
+      .font('Helvetica-Bold')
+      .fontSize(9.5)
+      .text(prettyDate(week.mentorValidation.validatedDate, { year: true }), rightX + 34, signTop + 50, { width: rightWidth - 34, lineBreak: false });
+  doc.moveTo(rightX + 34, signTop + 62).lineTo(rightX + rightWidth, signTop + 62).lineWidth(0.5).strokeColor(LINE).stroke();
+  doc.y = signTop + 92;
 
   // ---------- footer on every page ----------
   const pages = doc.bufferedPageRange();

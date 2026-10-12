@@ -664,6 +664,12 @@ export default function MenteeDetail() {
                         )}
                       </div>
                       {c.detail && <p className="md-consult-note">{c.detail}</p>}
+                      {c.signatureUrl && (
+                        <div className="log-signature">
+                          <img src={c.signatureUrl} alt="Lecturer's signature" loading="lazy" />
+                          <span>Signed by the lecturer</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -11,7 +11,7 @@ async function findForWeek(userId, weekStart) {
   return data;
 }
 
-async function create(userId, { subjectId, weekStart, lecturerName, detail, date, venue, photoUrl }) {
+async function create(userId, { subjectId, weekStart, lecturerName, detail, date, venue, photoUrl, signatureUrl }) {
   const { data, error } = await supabase
     .from('lecturer_consultations')
     .insert({
@@ -22,7 +22,8 @@ async function create(userId, { subjectId, weekStart, lecturerName, detail, date
       detail: detail || '',
       date: date || null,
       venue: venue || '',
-      photo_url: photoUrl || ''
+      photo_url: photoUrl || '',
+      signature_url: signatureUrl || ''
     })
     .select('*, subject:subjects(id, name, code, lecturer_name)')
     .single();

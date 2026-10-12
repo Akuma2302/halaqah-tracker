@@ -205,6 +205,7 @@ function serializeConsultation(row) {
     date: row.date,
     venue: row.venue,
     photoUrl: row.photo_url,
+    signatureUrl: row.signature_url || '',
     subject: row.subject
       ? { _id: row.subject.id, name: row.subject.name, code: row.subject.code, lecturerName: row.subject.lecturer_name }
       : null,

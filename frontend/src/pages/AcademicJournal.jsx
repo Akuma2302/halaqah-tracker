@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
+import SignaturePad from '../components/SignaturePad';
 import { useToast } from '../hooks/useToast';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
@@ -98,6 +99,10 @@ export default function AcademicJournal({ focus = null }) {
   const [studyForm, setStudyForm] = useState(null);
   const [questionForm, setQuestionForm] = useState(emptyQuestionForm);
   const [consultForm, setConsultForm] = useState(emptyConsultForm);
+  // Where the lecturer signs; read when the consultation is saved.
+  const signatureRef = useRef(null);
+  // Counts each time a sheet is opened, so the signature box starts empty.
+  const [sheetCount, setSheetCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -182,6 +187,7 @@ export default function AcademicJournal({ focus = null }) {
     if (kind === 'study') setStudyForm({ day: todayIndexFor(week), subjectId: '', categories: [], hours: '' });
     if (kind === 'question') setQuestionForm(emptyQuestionForm);
     if (kind === 'consult') setConsultForm({ ...emptyConsultForm, date: isCurrentWeek ? toDateKey(new Date()) : '' });
+    setSheetCount((n) => n + 1);
     setSheet(kind);
   }
 
@@ -214,7 +220,20 @@ export default function AcademicJournal({ focus = null }) {
         });
       } else {
         if (!consultForm.subjectId && !consultForm.lecturerName.trim()) throw new Error('Choose a subject or enter the lecturer.');
-        await client.post('/academic/weeks/consultations', { ...consultForm, weekStart: week });
+        // The lecturer's signature, if they signed, is uploaded as a picture first.
+        let signatureUrl = '';
+        const signature = await signatureRef.current?.toBlob();
+        if (signature) {
+          const formData = new FormData();
+          formData.append('file', signature, 'signature.png');
+          try {
+            const res = await client.post('/academic/weeks/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            signatureUrl = res.data.url;
+          } catch {
+            throw new Error("Couldn't save the signature. Check your connection and try again.");
+          }
+        }
+        await client.post('/academic/weeks/consultations', { ...consultForm, signatureUrl, weekStart: week });
       }
       loadWeek(week);
       showToast('Saved');
@@ -588,6 +607,12 @@ export default function AcademicJournal({ focus = null }) {
                       </div>
                       <div className="log-meta">{[c.date, c.venue].filter(Boolean).join(' · ') || 'No date or venue'}</div>
                       {c.detail && <div className="log-detail">{c.detail}</div>}
+                      {c.signatureUrl && (
+                        <div className="log-signature">
+                          <img src={c.signatureUrl} alt="Lecturer's signature" loading="lazy" />
+                          <span>Signed by the lecturer</span>
+                        </div>
+                      )}
                     </div>
                     {c.photoUrl && (
                       <a href={c.photoUrl} target="_blank" rel="noreferrer" className="icon-btn" aria-label="View photo">
@@ -919,6 +944,11 @@ export default function AcademicJournal({ focus = null }) {
                 <label>Venue</label>
                 <input className="input" value={consultForm.venue} onChange={(e) => setConsultForm((f) => ({ ...f, venue: e.target.value }))} />
               </div>
+            </div>
+            <div className="field">
+              <label>Lecturer's signature (optional)</label>
+              <SignaturePad key={sheetCount} padRef={signatureRef} label="Ask your lecturer to sign here" />
+              <span className="field-hint">Hand the phone to your lecturer to sign with a finger. It is saved with this consultation and printed on the report.</span>
             </div>
             <div className="field">
               <label>Photo (optional)</label>
