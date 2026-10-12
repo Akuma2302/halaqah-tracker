@@ -12184,3 +12184,77 @@ button.adm-group:hover {
 .log-row .icon-btn + .icon-btn {
   margin-left: -4px;
 }
+
+/* ---------- Practice questions page: the week in figures, then a tile per set ---------- */
+.aj-q-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.aj-q-summary > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 6px;
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  text-align: center;
+}
+
+.aj-q-summary strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.aj-q-summary strong small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.aj-q-summary span {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.aj-q-summary .ok strong {
+  color: var(--primary-dark);
+}
+
+.aj-q-list .md-practice-row {
+  border-left: 3px solid hsl(var(--hue, 165) 55% 50%);
+}
+
+.aj-q-list .md-practice-name {
+  overflow-wrap: anywhere;
+}
+
+.aj-q-list .md-practice-count {
+  font-size: 20px;
+}
+
+.photo-strip.aj-q-photos {
+  margin: 0 0 8px;
+}
+
+/* Whether it is validated on the left; edit and delete on the right */
+.aj-q-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aj-q-foot .md-practice-state {
+  flex: 1;
+  min-width: 0;
+}
+
+.aj-q-foot .icon-btn {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}

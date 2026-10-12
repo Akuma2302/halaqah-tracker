@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Clock,
   PenLine,
+  BadgeCheck,
+  CircleDashed,
   Pencil,
   BookOpen,
   Camera,
@@ -21,6 +23,7 @@ import {
 } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
+import { hueFor } from '../features/timetable/timetable';
 import SignaturePad from '../components/SignaturePad';
 import { useToast } from '../hooks/useToast';
 import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/constants';
@@ -169,6 +172,8 @@ export default function AcademicJournal({ focus = null }) {
   const consultations = weekData?.consultations || [];
   const totalHours = studySessions.reduce((sum, s) => sum + (Number(s.hours) || 0), 0);
   const totalQuestions = questionPractice.reduce((sum, q) => sum + (Number(q.questionCount) || 0), 0);
+  const maxQuestions = Math.max(1, ...questionPractice.map((q) => Number(q.questionCount) || 0));
+  const validatedSets = questionPractice.filter((q) => q.isValidated).length;
   const hoursByDay = useMemo(() => {
     const days = Array(7).fill(0);
     for (const s of studySessions) {
@@ -595,32 +600,61 @@ export default function AcademicJournal({ focus = null }) {
                 empty={!questionPractice.length}
                 emptyText="No practice questions logged for this week yet."
               >
-                {questionPractice.map((q) => (
-                  <div key={q._id}>
-                  <div className="log-row">
-                    <div className="log-body">
-                      <div className="log-title">{subjectLabel(q.subject)}</div>
-                      <div className={`log-meta${q.isValidated ? ' ok' : ''}`}>{q.isValidated ? 'Validated' : 'Not validated'}</div>
-                    </div>
-                    <span className="log-amount">{q.questionCount} Q</span>
-                    <button className="icon-btn" onClick={() => openEdit('question', q)} aria-label="Edit">
-                      <Pencil size={13} />
-                    </button>
-                    <button className="icon-btn log-delete" onClick={() => removeEntry('question', q._id)} aria-label="Delete">
-                      <Trash2 size={14} />
-                    </button>
+                {/* The week in three figures, then a tile for each set */}
+                <div className="aj-q-summary">
+                  <div>
+                    <strong>{totalQuestions}</strong>
+                    <span>Question{totalQuestions === 1 ? '' : 's'}</span>
                   </div>
-                  {q.photoUrls?.length > 0 && (
-                    <div className="photo-strip">
-                      {q.photoUrls.map((url) => (
-                        <a key={url} href={url} target="_blank" rel="noreferrer" aria-label="Open photo">
-                          <img src={url} alt="Questions done" loading="lazy" />
-                        </a>
-                      ))}
-                    </div>
-                  )}
+                  <div>
+                    <strong>{questionPractice.length}</strong>
+                    <span>Set{questionPractice.length === 1 ? '' : 's'}</span>
                   </div>
-                ))}
+                  <div className={validatedSets === questionPractice.length ? 'ok' : ''}>
+                    <strong>
+                      {validatedSets}
+                      <small>/{questionPractice.length}</small>
+                    </strong>
+                    <span>Validated</span>
+                  </div>
+                </div>
+                <div className="md-practice aj-q-list">
+                  {questionPractice.map((q) => (
+                    <div className="md-practice-row" key={q._id} style={{ '--hue': hueFor(q.subject?.name || '') }}>
+                      <div className="md-practice-top">
+                        <span className="md-practice-name">{subjectLabel(q.subject)}</span>
+                        <span className="md-practice-count">
+                          {q.questionCount}
+                          <small> Q</small>
+                        </span>
+                      </div>
+                      <div className="md-practice-bar">
+                        <span style={{ width: `${Math.round(((q.questionCount || 0) / maxQuestions) * 100)}%` }} />
+                      </div>
+                      {q.photoUrls?.length > 0 && (
+                        <div className="photo-strip aj-q-photos">
+                          {q.photoUrls.map((url) => (
+                            <a key={url} href={url} target="_blank" rel="noreferrer" aria-label="Open photo">
+                              <img src={url} alt="Questions done" loading="lazy" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      <div className="aj-q-foot">
+                        <span className={`md-practice-state${q.isValidated ? ' ok' : ''}`}>
+                          {q.isValidated ? <BadgeCheck size={13} /> : <CircleDashed size={13} />}
+                          {q.isValidated ? 'Validated' : 'Not validated yet'}
+                        </span>
+                        <button className="icon-btn" onClick={() => openEdit('question', q)} aria-label="Edit">
+                          <Pencil size={13} />
+                        </button>
+                        <button className="icon-btn log-delete" onClick={() => removeEntry('question', q._id)} aria-label="Delete">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </LogSection>
             </>
           )}
