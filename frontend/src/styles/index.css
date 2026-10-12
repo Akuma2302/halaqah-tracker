@@ -11712,3 +11712,42 @@ button.adm-group:hover {
   font-size: 10.5px;
   color: var(--ink-soft);
 }
+
+/* Mentoring dashboard, Mutabaah view: the seven amal as tiles in the overview */
+/* Four then three on a phone; all seven in a row where there is room */
+.perf-facts.perf-amal-facts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (min-width: 680px) {
+  .perf-facts.perf-amal-facts {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+.perf-amal-facts .perf-fact strong small {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.perf-amal-facts .perf-fact {
+  padding: 9px 4px;
+}
+
+/* A long name ("Subuh Berjemaah") takes a second line rather than being cut */
+.perf-amal-facts .perf-fact > span:last-child {
+  max-width: 100%;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.perf-amal-facts .perf-fact.tone-mid .perf-fact-icon {
+  color: var(--gold);
+}
+
+.perf-amal-facts .perf-fact.tone-low .perf-fact-icon,
+.perf-amal-facts .perf-fact.tone-low strong {
+  color: var(--danger);
+}

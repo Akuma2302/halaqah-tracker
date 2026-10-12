@@ -5,6 +5,7 @@ import client from '../../services/apiClient';
 import { WEEKLY_TARGET_HOURS } from '../academic/constants';
 import { addDays, formatWeekLabel, getWeekStart, toDateKey } from '../academic/weekUtils';
 import { MUTABAAH_FIELDS } from '../mutabaah/mutabaahFields';
+import { MUTABAAH_ICONS } from '../mutabaah/mutabaahIcons';
 import { hueFor } from '../timetable/timetable';
 
 const todayKey = toDateKey(new Date());
@@ -365,6 +366,16 @@ export default function MentoringDashboard() {
       .filter(({ person }) => !q || person.name.toLowerCase().includes(q) || (person.memberId || '').toLowerCase().includes(q));
   }, [group, query]);
 
+  // Each amal across the group: times done out of every person's days in the period.
+  const amalTotals = useMemo(() => {
+    if (!group) return [];
+    const possible = group.people.reduce((sum, p) => sum + (p.daysElapsed || 0), 0);
+    return MUTABAAH_FIELDS.map((f) => {
+      const done = group.people.reduce((sum, p) => sum + (p.items?.[f.key] || 0), 0);
+      return { key: f.key, label: f.label, done, possible, percent: possible ? Math.round((done / possible) * 100) : 0 };
+    });
+  }, [group]);
+
   const attention = useMemo(
     () =>
       group && isThisWeek
@@ -515,41 +526,60 @@ export default function MentoringDashboard() {
                 )}
               </div>
             </div>
-            <div className="perf-facts">
-              {view === 'academic' ? (
+            {view === 'mutabaah' ? (
+              /* Each amal: how many times the group did it, out of every day it could have */
+              <div className="perf-facts perf-amal-facts">
+                {amalTotals.map((a) => {
+                  const Icon = MUTABAAH_ICONS[a.key];
+                  return (
+                    <div className={`perf-fact tone-${tone(a.percent)}`} key={a.key} title={`${a.label}: done ${a.done} of ${a.possible} times (${a.percent}%)`}>
+                      <span className="perf-fact-icon">{Icon && <Icon size={15} />}</span>
+                      <strong>
+                        {a.done}
+                        <small>/{a.possible}</small>
+                      </strong>
+                      <span>{a.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="perf-facts">
+                {view === 'academic' ? (
+                  <div className="perf-fact">
+                    <span className="perf-fact-icon">
+                      <PenLine size={15} />
+                    </span>
+                    <strong>{summary.questions}</strong>
+                    <span>Questions</span>
+                  </div>
+                ) : (
+                  <div className="perf-fact">
+                    <span className="perf-fact-icon">
+                      <Timer size={15} />
+                    </span>
+                    <strong>{summary.avgStudyHours}h</strong>
+                    <span>Avg study</span>
+                  </div>
+                )}
                 <div className="perf-fact">
                   <span className="perf-fact-icon">
-                    <PenLine size={15} />
+                    <Clock size={15} />
                   </span>
-                  <strong>{summary.questions}</strong>
-                  <span>Questions</span>
+                  <strong>{isThisWeek ? `${summary.studiedToday}/${summary.count}` : '–'}</strong>
+                  <span>Studied today</span>
                 </div>
-              ) : (
                 <div className="perf-fact">
                   <span className="perf-fact-icon">
-                    <Timer size={15} />
+                    <GraduationCap size={15} />
                   </span>
-                  <strong>{summary.avgStudyHours}h</strong>
-                  <span>Avg study</span>
+                  <strong>
+                    {summary.metLecturer}/{summary.count}
+                  </strong>
+                  <span>Met lecturer</span>
                 </div>
-              )}
-              <div className="perf-fact">
-                <span className="perf-fact-icon">
-                  <Clock size={15} />
-                </span>
-                <strong>{isThisWeek ? `${summary.studiedToday}/${summary.count}` : '–'}</strong>
-                <span>Studied today</span>
               </div>
-              <div className="perf-fact">
-                <span className="perf-fact-icon">
-                  <GraduationCap size={15} />
-                </span>
-                <strong>
-                  {summary.metLecturer}/{summary.count}
-                </strong>
-                <span>Met lecturer</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* ---------- who misses the most ---------- */}
