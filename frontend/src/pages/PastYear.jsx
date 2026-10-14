@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { ALL_INSTITUTIONS, COURSES, INSTITUTIONS, PAPER_TYPES } from '../features/pastyear/institutions';
 import { hueFor } from '../features/timetable/timetable';
+import { Select } from '../components/pickers';
 
 dayjs.extend(relativeTime);
 
@@ -364,25 +365,25 @@ export default function PastYear() {
           <div className="edit-grid-2">
             <div className="field">
               <label htmlFor="py-year">Year (optional)</label>
-              <select id="py-year" className="input" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}>
+              <Select id="py-year" className="input" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}>
                 <option value="">Not sure</option>
                 {years.map((y) => (
                   <option key={y} value={y}>
                     {y}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="field">
               <label htmlFor="py-type">Paper (optional)</label>
-              <select id="py-type" className="input" value={form.paperType} onChange={(e) => setForm((f) => ({ ...f, paperType: e.target.value }))}>
+              <Select id="py-type" className="input" value={form.paperType} onChange={(e) => setForm((f) => ({ ...f, paperType: e.target.value }))}>
                 <option value="">Not sure</option>
                 {PAPER_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
           <p className="field-hint">

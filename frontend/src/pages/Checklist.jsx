@@ -20,6 +20,7 @@ import {
 import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
 import CountStepper from '../components/CountStepper';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
+import { DateInput } from '../components/pickers';
 
 const TOTAL = MUTABAAH_FIELDS.length;
 const todayKey = () => dayjs().format('YYYY-MM-DD');
@@ -400,11 +401,11 @@ export default function Checklist() {
         <div className="grid-2 period-dates">
           <div className="field">
             <label>From</label>
-            <input className="input" type="date" value={fromDate} onChange={(e) => loadPeriod(e.target.value, toDate)} max={toDate} />
+            <DateInput required className="input" value={fromDate} onChange={(e) => loadPeriod(e.target.value, toDate)} max={toDate} />
           </div>
           <div className="field">
             <label>To</label>
-            <input className="input" type="date" value={toDate} onChange={(e) => loadPeriod(fromDate, e.target.value)} min={fromDate} max={today} />
+            <DateInput required className="input" value={toDate} onChange={(e) => loadPeriod(fromDate, e.target.value)} min={fromDate} max={today} />
           </div>
         </div>
 

@@ -7,7 +7,7 @@ import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
 import TypeMenu from '../features/timetable/TypeMenu';
-import { DateMenu, SelectMenu, TimeMenu } from '../features/timetable/pickers';
+import { DateMenu, SelectMenu, TimeMenu } from '../components/pickers';
 import {
   CLASS_KINDS,
   DAYS,
@@ -462,6 +462,7 @@ export default function Timetable() {
     <TimeMenu
       value={form[key]}
       ariaLabel={label}
+      align={key === 'endTime' ? 'end' : 'start'}
       from={key === 'endTime' && !(form.repeat === 'once' && endApart) ? form.startTime : undefined}
       onChange={(t) =>
         setForm((f) => {

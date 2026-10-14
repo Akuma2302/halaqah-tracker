@@ -36,6 +36,7 @@ import { useToast } from '../hooks/useToast';
 import { getWeekStart, toDateKey } from '../features/academic/weekUtils';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 import { SHORT_DAYS, clock } from '../features/timetable/timetable';
+import { Select } from '../components/pickers';
 
 dayjs.extend(relativeTime);
 
@@ -336,13 +337,13 @@ function UsersTab({ users, onOpen }) {
           </button>
         ))}
         </div>
-        <select className="input adm-sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort users by">
+        <Select className="input adm-sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort users by">
           {SORTS.map(([key, label]) => (
             <option key={key} value={key}>
               Sort: {label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="dl-result">
@@ -581,7 +582,7 @@ function UserSheet({ userId, users, period, me, onClose, onChanged, showToast })
           <div className="adm-section">Mentoring</div>
           <div className="field">
             <label htmlFor="adm-mentor">Mentor</label>
-            <select
+            <Select
               id="adm-mentor"
               className="input"
               value={detail.mentorId || ''}
@@ -597,12 +598,12 @@ function UserSheet({ userId, users, period, me, onClose, onChanged, showToast })
                     {u.name} ({u.memberId || 'no ID'})
                   </option>
                 ))}
-            </select>
+            </Select>
           </div>
           {detail.mentorId && (
             <div className="field">
               <label htmlFor="adm-group">Mentoring group</label>
-              <select
+              <Select
                 id="adm-group"
                 className="input"
                 value={detail.mentoringGroupId || ''}
@@ -617,7 +618,7 @@ function UserSheet({ userId, users, period, me, onClose, onChanged, showToast })
                     {g.startTime ? ` ${clock(g.startTime)}` : ''}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
           {detail.mentees.length > 0 && (

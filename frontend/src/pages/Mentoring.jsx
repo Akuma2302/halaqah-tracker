@@ -9,6 +9,7 @@ import { ASSESSMENT_LABEL, daysUntil } from '../features/academic/deadlines';
 import { DAYS, SHORT_DAYS, clock } from '../features/timetable/timetable';
 import Sheet from '../components/Sheet';
 import SocialLinks from '../components/SocialLinks';
+import { Select, TimeInput } from '../components/pickers';
 
 // A steady colour per person (from their name), so faces in the tree are easy
 // to tell apart when there is no photo.
@@ -489,21 +490,20 @@ export default function Mentoring() {
             <div className="group-when">
               <div className="field">
                 <label htmlFor="group-day">Day</label>
-                <select id="group-day" className="input" value={groupForm.dayOfWeek} onChange={(e) => setGroupForm((f) => ({ ...f, dayOfWeek: e.target.value }))}>
+                <Select id="group-day" className="input" value={groupForm.dayOfWeek} onChange={(e) => setGroupForm((f) => ({ ...f, dayOfWeek: e.target.value }))}>
                   <option value="">Not set</option>
                   {DAYS.map((label, d) => (
                     <option key={label} value={d}>
                       {label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="field">
                 <label htmlFor="group-time">Time</label>
-                <input
+                <TimeInput
                   id="group-time"
                   className="input"
-                  type="time"
                   value={groupForm.startTime}
                   onChange={(e) => setGroupForm((f) => ({ ...f, startTime: e.target.value }))}
                 />

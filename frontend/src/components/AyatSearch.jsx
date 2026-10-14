@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
+import { Select } from './pickers';
 
 // "Go to ayat" box for the Quran readers.
 //   ranges: [{ surah, from, to }] — the ayat this reader covers. A surah has
@@ -52,7 +53,7 @@ export default function AyatSearch({ ranges, chaptersById = {} }) {
       <form className="ayat-search" onSubmit={go}>
         <Search size={15} />
         {ranges.length > 1 && (
-          <select
+          <Select
             value={range.surah}
             onChange={(e) => {
               setSurah(Number(e.target.value));
@@ -65,7 +66,7 @@ export default function AyatSearch({ ranges, chaptersById = {} }) {
                 {chaptersById[r.surah]?.name_simple || `Surah ${r.surah}`}
               </option>
             ))}
-          </select>
+          </Select>
         )}
         <input
           type="number"

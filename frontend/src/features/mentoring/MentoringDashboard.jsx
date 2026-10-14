@@ -8,6 +8,7 @@ import { MUTABAAH_FIELDS } from '../mutabaah/mutabaahFields';
 import { MUTABAAH_ICONS } from '../mutabaah/mutabaahIcons';
 import { hueFor } from '../timetable/timetable';
 import GroupTimetable from './GroupTimetable';
+import { DateInput, Select } from '../../components/pickers';
 
 const todayKey = toDateKey(new Date());
 const currentWeekKey = toDateKey(getWeekStart());
@@ -447,7 +448,7 @@ export default function MentoringDashboard() {
       <div className="perf-controls-row">
         <label className="field">
           <span>Period</span>
-          <select
+          <Select
             className="input"
             value={period}
             onChange={(e) => setPeriod(['week', 'custom'].includes(e.target.value) ? e.target.value : Number(e.target.value))}
@@ -457,11 +458,11 @@ export default function MentoringDashboard() {
             <option value={14}>Last 14 days</option>
             <option value={30}>Last 30 days</option>
             <option value="custom">Choose dates…</option>
-          </select>
+          </Select>
         </label>
         <label className="field">
           <span>People</span>
-          <select className="input" value={who} onChange={(e) => setWho(e.target.value)}>
+          <Select className="input" value={who} onChange={(e) => setWho(e.target.value)}>
             <optgroup label="My mentees">
               <option value="all">All mentees{count(data?.mentees.summary.count)}</option>
               {myGroups.map((g) => (
@@ -474,17 +475,17 @@ export default function MentoringDashboard() {
             <optgroup label="Under my mentor">
               <option value="mates">Mentoring mates{count(Math.max(0, (data?.mates.summary.count || 1) - 1))}</option>
             </optgroup>
-          </select>
+          </Select>
         </label>
         <label className="field">
           <span>Show</span>
-          <select className="input" value={view} onChange={(e) => setView(e.target.value)}>
+          <Select className="input" value={view} onChange={(e) => setView(e.target.value)}>
             {VIEWS.map(([key, label]) => (
               <option key={key} value={key}>
                 {key === 'all' ? 'Everything' : label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
       {/* Which dates that is; by week, the arrows step back through earlier weeks */}
@@ -497,9 +498,8 @@ export default function MentoringDashboard() {
         <div className="perf-when perf-custom">
           <label>
             <span>From</span>
-            <input
+            <DateInput required
               className="input"
-              type="date"
               value={customFrom}
               max={customTo}
               onChange={(e) => {
@@ -515,9 +515,8 @@ export default function MentoringDashboard() {
           </label>
           <label>
             <span>To</span>
-            <input
+            <DateInput required
               className="input"
-              type="date"
               value={customTo}
               min={customFrom}
               max={todayKey}

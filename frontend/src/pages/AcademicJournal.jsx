@@ -31,6 +31,7 @@ import { STUDY_CATEGORIES, WEEKLY_TARGET_HOURS } from '../features/academic/cons
 import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } from '../features/academic/weekUtils';
 import SemesterOverview from '../features/academic/SemesterOverview';
 import SubjectFiles from '../features/academic/SubjectFiles';
+import { DateInput, Select } from '../components/pickers';
 
 // How many favourite past year papers the Academic page lists before "more".
 const FAVOURITES_SHOWN = 4;
@@ -926,9 +927,9 @@ export default function AcademicJournal({ focus = null }) {
             </div>
             <div className="field">
               <label>Subject</label>
-              <select className="input" value={studyForm.subjectId} onChange={(e) => setStudyForm((f) => ({ ...f, subjectId: e.target.value }))}>
+              <Select className="input" value={studyForm.subjectId} onChange={(e) => setStudyForm((f) => ({ ...f, subjectId: e.target.value }))}>
                 {subjectOptions}
-              </select>
+              </Select>
             </div>
             <div className="field">
               <label>What did you do?</label>
@@ -988,9 +989,9 @@ export default function AcademicJournal({ focus = null }) {
           <div className="entry-form">
             <div className="field">
               <label>Subject</label>
-              <select className="input" value={questionForm.subjectId} onChange={(e) => setQuestionForm((f) => ({ ...f, subjectId: e.target.value }))}>
+              <Select className="input" value={questionForm.subjectId} onChange={(e) => setQuestionForm((f) => ({ ...f, subjectId: e.target.value }))}>
                 {subjectOptions}
-              </select>
+              </Select>
             </div>
             <div className="field">
               <label>How many questions?</label>
@@ -1065,7 +1066,7 @@ export default function AcademicJournal({ focus = null }) {
           <div className="entry-form">
             <div className="field">
               <label>Subject</label>
-              <select
+              <Select
                 className="input"
                 value={consultForm.subjectId}
                 onChange={(e) => {
@@ -1075,7 +1076,7 @@ export default function AcademicJournal({ focus = null }) {
                 }}
               >
                 {subjectOptions}
-              </select>
+              </Select>
             </div>
             <div className="field">
               <label>Lecturer</label>
@@ -1098,9 +1099,8 @@ export default function AcademicJournal({ focus = null }) {
             <div className="grid-2">
               <div className="field">
                 <label>Date</label>
-                <input
+                <DateInput required
                   className="input"
-                  type="date"
                   value={consultForm.date}
                   min={week}
                   max={dateForDayInWeek(week, 6)}

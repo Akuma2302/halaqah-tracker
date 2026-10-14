@@ -5,6 +5,7 @@ import client from '../services/apiClient';
 import { ASSESSMENT_TYPES } from '../features/academic/constants';
 import { daysUntil, upcomingDeadlines } from '../features/academic/deadlines';
 import { AssessmentSheet, DeadlineTile } from '../features/academic/DeadlineTile';
+import { Select } from '../components/pickers';
 
 // When it falls: the first four hide finished ones, "Done" shows only those.
 const DUE_FILTERS = [
@@ -91,7 +92,7 @@ export default function Deadlines() {
           <div className="dl-selects">
             <label className="field">
               <span>Subject</span>
-              <select className="input" value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+              <Select className="input" value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
                 <option value="">All subjects</option>
                 {subjects
                   .filter((s) => s.isVisible !== false)
@@ -100,18 +101,18 @@ export default function Deadlines() {
                     {s.code ? `${s.code} · ${s.name}` : s.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="field">
               <span>Assessment type</span>
-              <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
+              <Select className="input" value={type} onChange={(e) => setType(e.target.value)}>
                 <option value="">All types</option>
                 {ASSESSMENT_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           </div>
 

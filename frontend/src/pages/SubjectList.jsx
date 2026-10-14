@@ -7,6 +7,7 @@ import { useToast } from '../hooks/useToast';
 import { ASSESSMENT_TYPES } from '../features/academic/constants';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
 import { CLASS_KINDS, DAYS, KINDS, KIND_LABEL, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
+import { DateInput, Select, TimeInput } from '../components/pickers';
 
 const TYPE_LABEL = ASSESSMENT_LABEL;
 const CREDIT_PRESETS = [2, 3, 4];
@@ -588,34 +589,34 @@ export default function SubjectList() {
                       <div className="edit-grid-2">
                         <label className="edit-field">
                           <span>Day</span>
-                          <select className="input" value={c.dayOfWeek} onChange={(e) => updateClass(i, { dayOfWeek: Number(e.target.value) })}>
+                          <Select className="input" value={c.dayOfWeek} onChange={(e) => updateClass(i, { dayOfWeek: Number(e.target.value) })}>
                             {DAYS.map((label, d) => (
                               <option key={label} value={d}>
                                 {label}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </label>
                         <label className="edit-field">
                           <span>Type</span>
-                          <select className="input" value={c.kind} onChange={(e) => updateClass(i, { kind: e.target.value })}>
+                          <Select className="input" value={c.kind} onChange={(e) => updateClass(i, { kind: e.target.value })}>
                             {/* Class kinds only; a slot saved earlier as something else keeps its own. */}
                             {[...CLASS_KINDS, ...KINDS.filter(([value]) => value === c.kind && !CLASS_KINDS.some(([k]) => k === value))].map(([value, label]) => (
                               <option key={value} value={value}>
                                 {label}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </label>
                       </div>
                       <div className="edit-grid-2">
                         <label className="edit-field">
                           <span>Starts</span>
-                          <input className="input" type="time" value={c.startTime} onChange={(e) => updateClass(i, { startTime: e.target.value })} />
+                          <TimeInput className="input" value={c.startTime} onChange={(e) => updateClass(i, { startTime: e.target.value })} />
                         </label>
                         <label className="edit-field">
                           <span>Ends</span>
-                          <input className="input" type="time" value={c.endTime} onChange={(e) => updateClass(i, { endTime: e.target.value })} />
+                          <TimeInput className="input" value={c.endTime} onChange={(e) => updateClass(i, { endTime: e.target.value })} />
                         </label>
                       </div>
                       <label className="edit-field">
@@ -684,13 +685,13 @@ export default function SubjectList() {
                       <div className="edit-grid-2 edit-grid-type">
                         <label className="edit-field">
                           <span>Type</span>
-                          <select className="input" value={a.type} onChange={(e) => updateAssessment(i, { type: e.target.value })}>
+                          <Select className="input" value={a.type} onChange={(e) => updateAssessment(i, { type: e.target.value })}>
                             {ASSESSMENT_TYPES.map((t) => (
                               <option key={t.value} value={t.value}>
                                 {t.label}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </label>
                         <label className="edit-field">
                           <span>Weight</span>
@@ -714,13 +715,12 @@ export default function SubjectList() {
                       <div className="edit-grid-2 edit-grid-when">
                         <label className="edit-field">
                           <span>{exam ? 'Exam date' : 'Due date'}</span>
-                          <input className="input" type="date" value={a.dueDate} onChange={(e) => updateAssessment(i, { dueDate: e.target.value })} />
+                          <DateInput className="input" value={a.dueDate} onChange={(e) => updateAssessment(i, { dueDate: e.target.value })} />
                         </label>
                         <label className="edit-field">
                           <span>Time</span>
-                          <input
+                          <TimeInput
                             className="input"
-                            type="time"
                             value={a.dueTime}
                             onChange={(e) => updateAssessment(i, { dueTime: e.target.value })}
                             disabled={!a.dueDate}
@@ -800,17 +800,15 @@ export default function SubjectList() {
                               maxLength={120}
                               aria-label="Task"
                             />
-                            <input
+                            <DateInput
                               className="input assess-task-date"
-                              type="date"
                               value={t.dueDate}
                               max={a.dueDate || undefined}
                               onChange={(e) => updateTask(i, j, { dueDate: e.target.value })}
                               aria-label="Task due date"
                             />
-                            <input
+                            <TimeInput
                               className="input assess-task-time"
-                              type="time"
                               value={t.dueTime}
                               onChange={(e) => updateTask(i, j, { dueTime: e.target.value })}
                               disabled={!t.dueDate}

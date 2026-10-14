@@ -5209,7 +5209,8 @@ a.perf-row:hover .perf-name {
   font-size: 14px;
 }
 
-.ayat-search select {
+.ayat-search select,
+.ayat-search .pk-native {
   max-width: 38%;
   padding: 4px 0;
   border: none;
@@ -6735,7 +6736,8 @@ input.input::-webkit-date-and-time-value {
 }
 
 /* A dropdown takes the width it is given, however long its options are */
-select.input {
+select.input,
+.pk-native.input {
   min-width: 0;
   max-width: 100%;
   text-overflow: ellipsis;
@@ -8115,7 +8117,8 @@ select.input {
   flex: 0 0 74px;
 }
 
-.class-slot input[type='time'] {
+.class-slot input[type='time'],
+.class-slot .pk-native-time {
   flex: 1 1 0;
 }
 
@@ -8164,10 +8167,12 @@ select.input {
     order: 1;
   }
   .class-slot input[type='time'],
+  .class-slot .pk-native-time,
   .class-slot-to {
     order: 2;
   }
-  .class-slot input[type='time'] {
+  .class-slot input[type='time'],
+  .class-slot .pk-native-time {
     flex: 1 1 calc(50% - 24px);
   }
 }
@@ -11872,7 +11877,8 @@ button.adm-group:hover {
   color: var(--ink-soft);
 }
 
-.perf-controls select.input {
+.perf-controls select.input,
+.perf-controls .pk-native.input {
   min-height: 40px;
   padding: 8px 10px;
   background: var(--paper);
@@ -13695,4 +13701,74 @@ button.adm-group:hover {
 .pk-cal-foot {
   margin-top: 2px;
   padding-top: 4px;
+}
+
+/* ---------- Pickers that float over the page ---------- */
+.tm-menu.pk-float {
+  position: fixed;
+  z-index: 1000;
+  right: auto;
+  bottom: auto;
+  margin: 0;
+}
+
+.tm-menu.pk-float.pk-list {
+  max-width: calc(100vw - 16px);
+  max-height: min(340px, calc(100vh - 24px));
+}
+
+/* A stand-in for a dropdown, date or time box: the button takes the box's
+   place in the layout, styled by the class it was given */
+.pk:has(> .pk-native) {
+  display: contents;
+}
+
+.pk-button.pk-native {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pk-button.pk-native span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pk-button.pk-native .tm-chev {
+  flex-shrink: 0;
+}
+
+.pk-button.pk-native.empty span {
+  color: var(--ink-soft);
+}
+
+.pk-button.pk-native:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.pk-button.pk-native[aria-expanded='true'] {
+  border-color: var(--primary);
+}
+
+.pk-cal-foot {
+  justify-content: space-between;
+}
+
+.pk-clear {
+  color: var(--ink-soft);
+}
+
+/* A date and a time side by side, as one field */
+.pk-datetime {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 8px;
 }

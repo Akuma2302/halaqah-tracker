@@ -6,6 +6,7 @@ import client from '../services/apiClient';
 import socket from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
+import { DateInput, TimeInput } from '../components/pickers';
 
 export default function StudyGroupRoom() {
   const { id } = useParams();
@@ -366,12 +367,19 @@ export default function StudyGroupRoom() {
               </div>
               <div className="field">
                 <label>Date & time</label>
-                <input
-                  className="input"
-                  type="datetime-local"
-                  value={sessionTime}
-                  onChange={(e) => setSessionTime(e.target.value)}
-                />
+                {/* The date and the time, kept together as "YYYY-MM-DDTHH:MM" */}
+                <div className="pk-datetime">
+                  <DateInput
+                    value={sessionTime.slice(0, 10)}
+                    onChange={(e) => setSessionTime(e.target.value ? `${e.target.value}T${sessionTime.slice(11, 16) || '20:00'}` : '')}
+                    aria-label="Date"
+                  />
+                  <TimeInput
+                    value={sessionTime.slice(11, 16)}
+                    onChange={(e) => setSessionTime(`${sessionTime.slice(0, 10) || new Date().toLocaleDateString('en-CA')}T${e.target.value}`)}
+                    aria-label="Time"
+                  />
+                </div>
               </div>
               <div className="field">
                 <label>Notes (optional)</label>
