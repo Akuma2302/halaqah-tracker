@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BadgeCheck, BellRing, CalendarClock, CalendarDays, CalendarRange, Check, ChevronLeft, ChevronRight, CircleDashed, Clock, ListChecks, MapPin, MessagesSquare, Minus, PencilLine } from 'lucide-react';
 import client from '../services/apiClient';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
@@ -11,6 +11,8 @@ import { ASSESSMENT_LABEL, isExam } from '../features/academic/deadlines';
 import { useToast } from '../hooks/useToast';
 import SocialLinks from '../components/SocialLinks';
 import { Delta } from '../features/mentoring/MentoringDashboard';
+import { PeopleStrip, usePeople } from '../features/mentoring/PeopleStrip';
+import { useSwipe } from '../hooks/useSwipe';
 
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
 const todayKey = toDateKey(new Date());
@@ -95,6 +97,24 @@ export default function MenteeDetail() {
   const [alerts, setAlerts] = useState({});
   const [toast, showToast] = useToast();
 
+  // Everyone whose page I can open, to move between them without going back
+  // to the tree: tap a picture at the top, or swipe left / right.
+  const people = usePeople();
+  const navigate = useNavigate();
+  const [slide, setSlide] = useState(null);
+  const at = (people || []).findIndex((p) => p._id === id);
+  const go = (n) => {
+    if (!people || at < 0) return;
+    const next = people[at + n];
+    if (!next) return;
+    setSlide(n > 0 ? 'next' : 'prev');
+    navigate(`/mentoring/${next._id}`, { replace: true });
+  };
+  const swipe = useSwipe(
+    () => go(1),
+    () => go(-1)
+  );
+
   useEffect(() => {
     setPickedDay(null);
     setAlerts({});
@@ -134,9 +154,12 @@ export default function MenteeDetail() {
   }, [requestKey]);
 
   const back = (
-    <Link to="/mentoring" className="quran-back">
-      <ChevronLeft size={16} /> Mentoring Tree
-    </Link>
+    <>
+      <Link to="/mentoring" className="quran-back">
+        <ChevronLeft size={16} /> Mentoring Tree
+      </Link>
+      <PeopleStrip people={people} currentId={id} />
+    </>
   );
 
   if (error) {
@@ -228,9 +251,9 @@ export default function MenteeDetail() {
   };
 
   return (
-    <div className="page">
+    <div className="page" {...swipe}>
       {back}
-      <div className="md-stack">
+      <div className={`md-stack${slide ? ` tt-swipe slide-${slide}` : ''}`} key={id}>
         {/* ---------- who, and today at a glance ---------- */}
         <div className="card md-hero" style={{ '--hue': hueFor(user.name) }}>
           <div className="md-hero-band" />

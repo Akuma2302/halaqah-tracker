@@ -14606,3 +14606,87 @@ button.adm-group:hover {
     transform: translateX(-28px);
   }
 }
+
+/* ---------- A person's page: everyone I can open, as small pictures along the top ---------- */
+.ps {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  margin: 2px -14px 12px;
+  padding: 2px 14px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+.ps::-webkit-scrollbar {
+  display: none;
+}
+
+.ps-slot {
+  display: flex;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.ps-split {
+  align-self: center;
+  width: 1px;
+  height: 34px;
+  margin: 0 6px 14px;
+  background: var(--border);
+}
+
+.ps-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 58px;
+  scroll-snap-align: center;
+  color: var(--ink-soft);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ps-pic {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--border);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.ps-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--hue, 165) 35% 22%);
+  color: hsl(var(--hue, 165) 70% 72%);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ps-person small {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ps-person.on {
+  color: var(--ink);
+}
+
+.ps-person.on .ps-pic {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary);
+  transform: scale(1.06);
+}
+
+.ps-person:not(.on) .ps-pic {
+  opacity: 0.8;
+}
