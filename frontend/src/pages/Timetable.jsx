@@ -133,7 +133,11 @@ export default function Timetable() {
   const [subjects, setSubjects] = useState([]);
   const [error, setError] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const [day, setDay] = useState(() => new Date().getDay());
+  // Day view: the date on show; the tabs are that week, Sunday to Saturday.
+  const [dayKey, setDayKey] = useState(() => toDateKey(new Date()));
+  const day = dateOf(dayKey).getDay();
+  // Pick a weekday in the week on show.
+  const setDay = (weekday) => setDayKey((k) => shiftKey(sundayOf(k), weekday));
   const [view, setView] = useState('day');
   // Month view: the month on show (its first day) and the date picked in it.
   const [monthStart, setMonthStart] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
@@ -238,8 +242,6 @@ export default function Timetable() {
     return groups;
   }, [weekly]);
 
-  // The date each weekday falls on in the coming seven days (the day and week views).
-  const weekDates = useMemo(() => DAYS.map((_, d) => toDateKey(addDays(dateOf(toDateKey(now)), (d - now.getDay() + 7) % 7))), [now]);
   // The weekly entries on a weekday, leaving out a date they were deleted on.
   const onDay = (d, dateKey) => byDay[d].filter((e) => occursOn(e, dateKey));
 
@@ -387,7 +389,7 @@ export default function Timetable() {
   // the one before; the view slides in from that side.
   const [slide, setSlide] = useState(null); // { dir: 'next' | 'prev', n } to replay the slide
   const step = (n) => {
-    if (view === 'day') setDay((d) => (d + n + 7) % 7);
+    if (view === 'day') setDayKey((k) => shiftKey(k, n));
     else if (view === 'week') setWeekStart((k) => shiftKey(k, 7 * n));
     else if (view === 'month') shiftMonth(n);
     else setYear((y) => y + n);
@@ -415,29 +417,10 @@ export default function Timetable() {
     [shown, todayKey]
   );
 
-  // One-off events in the next 7 days, by weekday, to sit with that day's classes.
-  const eventsByDay = useMemo(() => {
-    const groups = DAYS.map(() => []);
-    for (let i = 0; i < 7; i += 1) {
-      const day = addDays(dateOf(todayKey), i);
-      groups[day.getDay()] = eventsByDate[toDateKey(day)] || [];
-    }
-    return groups;
-  }, [eventsByDate, todayKey]);
-
-  // The ones in the next 7 days, by weekday, so they sit with that day's classes.
-  const examsByDay = useMemo(() => {
-    const groups = DAYS.map(() => []);
-    const [y, m, d] = todayKey.split('-').map(Number);
-    const limit = toDateKey(addDays(new Date(y, m - 1, d), 6));
-    exams
-      .filter((x) => x.date <= limit)
-      .forEach((x) => {
-        const [ey, em, ed] = x.date.split('-').map(Number);
-        groups[new Date(ey, em - 1, ed).getDay()].push(x);
-      });
-    return groups;
-  }, [exams, todayKey]);
+  // The day view: the week on show, and what is on each date of it.
+  const dayWeek = useMemo(() => Array.from({ length: 7 }, (_, i) => shiftKey(sundayOf(dayKey), i)), [dayKey]);
+  const examsOn = (key) => exams.filter((x) => x.date === key);
+  const countOn = (key) => onDay(dateOf(key).getDay(), key).length + examsOn(key).length + (eventsByDate[key] || []).length;
 
   // Today: the class in progress, and the next one still to start.
   // (A one-off event counts on the day it starts and ends on the same day.)
@@ -454,7 +437,8 @@ export default function Timetable() {
   // Adding from the month view starts as a one-off event on the day picked there.
   function openNew(forDay = day) {
     const fromMonth = view === 'month';
-    setForm({ ...emptyForm(fromMonth ? pickedWeekday : forDay, fromMonth ? pickedDate : nextDateOn(forDay)), repeat: fromMonth ? 'once' : 'weekly' });
+    const date = fromMonth ? pickedDate : view === 'day' && forDay === day ? dayKey : nextDateOn(forDay);
+    setForm({ ...emptyForm(fromMonth ? pickedWeekday : forDay, date), repeat: fromMonth ? 'once' : 'weekly' });
     setFormError('');
     setCustomDays(false);
     setEndApart(false);
@@ -956,39 +940,55 @@ export default function Timetable() {
           <div className={`tt-swipe${slide ? ` slide-${slide.dir}` : ''}`} key={slide?.n || 0} {...swipe}>
           {view === 'day' ? (
             <>
-              <div className="day-tabs" role="tablist" aria-label="Day of the week">
-                {SHORT_DAYS.map((label, d) => (
-                  <button
-                    key={label}
-                    type="button"
-                    role="tab"
-                    aria-selected={d === day}
-                    className={`day-tab${d === day ? ' selected' : ''}${d === today ? ' today' : ''}`}
-                    onClick={() => setDay(d)}
-                  >
-                    <span>{label}</span>
-                    <small>{onDay(d, weekDates[d]).length + examsByDay[d].length + eventsByDay[d].length || '·'}</small>
-                  </button>
-                ))}
+              <div className="day-tabs" role="tablist" aria-label="Days of the week">
+                {dayWeek.map((key, d) => {
+                  const n = countOn(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={key === dayKey}
+                      aria-label={`${longDay(key)}: ${n || 'nothing'} on`}
+                      className={`day-tab${key === dayKey ? ' selected' : ''}${key === todayKey ? ' today' : ''}${key < todayKey ? ' past' : ''}`}
+                      onClick={() => setDayKey(key)}
+                    >
+                      <span>{SHORT_DAYS[d]}</span>
+                      <b>{Number(key.slice(8))}</b>
+                      <small>{n || '·'}</small>
+                    </button>
+                  );
+                })}
               </div>
 
-              {onDay(day, weekDates[day]).length + examsByDay[day].length + eventsByDay[day].length === 0 ? (
+              <h2 className={`week-group-title month-day-title day-title${dayKey === todayKey ? ' today' : ''}`}>
+                {longDay(dayKey)}
+                {dayKey === todayKey ? (
+                  <span className="badge badge-primary">Today</span>
+                ) : (
+                  <button type="button" className="week-bar-today" onClick={() => setDayKey(todayKey)}>
+                    Back to today
+                  </button>
+                )}
+              </h2>
+
+              {countOn(dayKey) === 0 ? (
                 <div className="card class-empty">
-                  <p>No classes on {DAYS[day]}.</p>
+                  <p>Nothing on {longDay(dayKey)}.</p>
                   <button className="btn btn-ghost btn-sm" onClick={() => openNew(day)}>
                     <Plus size={13} /> Add a task
                   </button>
                 </div>
               ) : (
                 <div className="class-list">
-                  {examsByDay[day].map((x) => (
+                  {examsOn(dayKey).map((x) => (
                     <ExamCard key={x.id} exam={x} />
                   ))}
-                  {eventsByDay[day].map((e) => (
-                    <EventCard key={e._id} entry={e} on={toDateKey(addDays(dateOf(todayKey), (day - today + 7) % 7))} />
+                  {(eventsByDate[dayKey] || []).map((e) => (
+                    <EventCard key={e._id} entry={e} on={dayKey} />
                   ))}
-                  {onDay(day, weekDates[day]).map((e) => (
-                    <ClassCard key={e._id} entry={e} showState on={weekDates[day]} />
+                  {onDay(day, dayKey).map((e) => (
+                    <ClassCard key={e._id} entry={e} showState={dayKey === todayKey} on={dayKey} />
                   ))}
                 </div>
               )}

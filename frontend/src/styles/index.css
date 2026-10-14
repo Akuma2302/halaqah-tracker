@@ -14844,3 +14844,39 @@ button.adm-group:hover {
     opacity: 0.3;
   }
 }
+
+/* Day view: each tab is the weekday, its date, and how many things are on */
+.day-tab {
+  gap: 1px;
+  padding: 6px 0 7px;
+}
+
+.day-tab span {
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+}
+
+.day-tab b {
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.day-tab small {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.day-tab.past:not(.selected) b {
+  color: var(--ink-soft);
+}
+
+.day-tab.selected b,
+.day-tab.selected small {
+  color: var(--on-primary);
+}
+
+.week-group-title.day-title {
+  margin: 4px 0 10px;
+}
