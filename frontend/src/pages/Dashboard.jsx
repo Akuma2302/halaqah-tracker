@@ -25,6 +25,7 @@ import { WEEKLY_TARGET_HOURS } from '../features/academic/constants';
 import { daysUntil, upcomingDeadlines } from '../features/academic/deadlines';
 import { AssessmentSheet, DeadlineTile } from '../features/academic/DeadlineTile';
 import { lastReadPath, readLastRead } from '../services/quranApi';
+import Skeleton from '../components/Skeleton';
 
 const SETUP_DISMISSED_KEY = 'mutabaah_setup_dismissed';
 const TOTAL = MUTABAAH_FIELDS.length;
@@ -398,7 +399,7 @@ export default function Dashboard() {
         </div>
 
         {loading ? (
-          <div className="spinner" />
+          <Skeleton variant="lines" count={4} />
         ) : (
           <>
             <p className="trend-summary">

@@ -6,6 +6,7 @@ import { ASSESSMENT_TYPES } from '../features/academic/constants';
 import { daysUntil, upcomingDeadlines } from '../features/academic/deadlines';
 import { AssessmentSheet, DeadlineTile } from '../features/academic/DeadlineTile';
 import { Select } from '../components/pickers';
+import Skeleton from '../components/Skeleton';
 
 // When it falls: the first four hide finished ones, "Done" shows only those.
 const DUE_FILTERS = [
@@ -77,7 +78,7 @@ export default function Deadlines() {
           </button>
         </div>
       ) : !subjects ? (
-        <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
+        <Skeleton variant="cards" count={4} />
       ) : (
         <>
           <div className="notif-filters" role="tablist" aria-label="When it is due">

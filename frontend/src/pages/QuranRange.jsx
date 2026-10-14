@@ -14,6 +14,7 @@ import { useAudioSpeed } from '../hooks/useAudioSpeed';
 import { useAyatPlayer } from '../hooks/useAyatPlayer';
 import SpeedButton from '../components/SpeedButton';
 import BookmarkButton from '../components/BookmarkButton';
+import Skeleton from '../components/Skeleton';
 
 // Reader for a whole juzuk (/quran/juz/:number) or a single mushaf page
 // (/quran/page/:number). Both can cross surah boundaries, so verses are shown
@@ -216,7 +217,7 @@ function QuranRangeReader({ kind }) {
           />
         ) : (
           <div className="mushaf mushaf-loading">
-            <div className="spinner" />
+            <Skeleton variant="mushaf" />
           </div>
         )
       ) : (
@@ -243,7 +244,7 @@ function QuranRangeReader({ kind }) {
         </div>
       ) : hasMore ? (
         <div ref={sentinelRef} className="quran-more">
-          <div className="spinner" />
+          <Skeleton variant="verses" />
         </div>
       ) : (
         verses.length > 0 && pager('bottom')

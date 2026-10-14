@@ -6,6 +6,7 @@ import client from '../services/apiClient';
 import socket from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
 import MutabaahReminderCard from '../components/MutabaahReminderCard';
+import Skeleton from '../components/Skeleton';
 
 dayjs.extend(relativeTime);
 
@@ -140,7 +141,7 @@ export default function Notifications() {
       </div>
 
       {loading ? (
-        <div className="spinner" />
+        <Skeleton variant="cards" count={5} />
       ) : shown.length === 0 ? (
         <div className="card empty-state notif-empty">
           {(() => {

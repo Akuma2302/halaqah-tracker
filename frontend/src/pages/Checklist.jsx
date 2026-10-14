@@ -21,6 +21,7 @@ import { MUTABAAH_ICONS } from '../features/mutabaah/mutabaahIcons';
 import CountStepper from '../components/CountStepper';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { DateInput } from '../components/pickers';
+import Skeleton from '../components/Skeleton';
 
 const TOTAL = MUTABAAH_FIELDS.length;
 const todayKey = () => dayjs().format('YYYY-MM-DD');
@@ -294,7 +295,7 @@ export default function Checklist() {
       )}
 
       {loading ? (
-        <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
+        <Skeleton variant="cards" count={5} compact />
       ) : error || !entry ? (
         <p className="page-subtitle">Couldn't load this day's checklist. Please refresh the page.</p>
       ) : (
@@ -412,7 +413,7 @@ export default function Checklist() {
         {periodError && <p className="form-error">{periodError}</p>}
 
         {periodLoading && !periodData ? (
-          <div className="spinner" style={{ margin: '18px auto', display: 'block' }} />
+          <Skeleton variant="lines" count={4} />
         ) : (
           periodData && (
             <div className={`period-result${periodLoading ? ' loading' : ''}`}>

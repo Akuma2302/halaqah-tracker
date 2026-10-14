@@ -11,6 +11,7 @@ import { useToast } from '../hooks/useToast';
 import { ALL_INSTITUTIONS, COURSES, INSTITUTIONS, PAPER_TYPES } from '../features/pastyear/institutions';
 import { hueFor } from '../features/timetable/timetable';
 import { Select } from '../components/pickers';
+import Skeleton from '../components/Skeleton';
 
 dayjs.extend(relativeTime);
 
@@ -198,7 +199,7 @@ export default function PastYear() {
           <p>Check your connection and try again.</p>
         </div>
       ) : !papers ? (
-        <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
+        <Skeleton variant="cards" count={4} />
       ) : (
         <>
           <div className="dl-result">

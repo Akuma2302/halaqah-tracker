@@ -5,6 +5,7 @@ import { fetchChapters, fetchJuzs, lastReadPath, readLastRead, TOTAL_PAGES } fro
 import { bookmarkPath, removeBookmark, useBookmarks } from '../features/quran/bookmarks';
 import { useTadabbur } from '../features/quran/tadabbur';
 import TadabburSheet from '../components/TadabburSheet';
+import Skeleton from '../components/Skeleton';
 
 const VIEWS = [
   ['surah', 'Surah'],
@@ -213,7 +214,7 @@ export default function QuranIndex() {
           </>
         )
       ) : loading ? (
-        <div className="spinner" style={{ margin: '24px auto' }} />
+        <Skeleton variant="cards" count={6} />
       ) : error ? (
         <div className="card empty-state">
           <h3>Couldn't load Al-Quran</h3>

@@ -28,6 +28,7 @@ import {
 } from '../features/timetable/timetable';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
 import { addDays, toDateKey } from '../features/academic/weekUtils';
+import Skeleton from '../components/Skeleton';
 
 function duration(mins) {
   const h = Math.floor(mins / 60);
@@ -886,7 +887,7 @@ export default function Timetable() {
           </button>
         </div>
       ) : !entries ? (
-        <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
+        <Skeleton variant="cards" count={4} />
       ) : total === 0 && exams.length === 0 ? (
         <div className="card empty-state">
           <CalendarDays size={28} style={{ color: 'var(--primary)' }} />

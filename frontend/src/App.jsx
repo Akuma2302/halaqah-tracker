@@ -18,6 +18,7 @@ import Timetable from './pages/Timetable';
 import Deadlines from './pages/Deadlines';
 import PastYear from './pages/PastYear';
 import MenteeDetail from './pages/MenteeDetail';
+import Skeleton from './components/Skeleton';
 
 // Loaded on demand: the Mathurat text is the largest chunk of the app.
 const Mathurat = lazy(() => import('./pages/Mathurat'));
@@ -30,7 +31,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 
 const pageFallback = (
   <div className="page">
-    <div className="spinner" />
+    <Skeleton variant="page" />
   </div>
 );
 

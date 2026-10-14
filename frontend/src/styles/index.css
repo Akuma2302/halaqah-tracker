@@ -14691,3 +14691,133 @@ button.adm-group:hover {
 .ps-person:not(.on) .ps-pic {
   opacity: 0.8;
 }
+
+/* ---------- Loading: grey shapes where the content will be ---------- */
+.sk {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.sk-bar {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--sk-base) 0%, var(--sk-shine) 45%, var(--sk-base) 90%);
+  background-size: 300% 100%;
+  animation: sk-shine 1.4s ease-in-out infinite;
+}
+
+:root {
+  --sk-base: color-mix(in srgb, var(--ink) 8%, transparent);
+  --sk-shine: color-mix(in srgb, var(--ink) 15%, transparent);
+}
+
+@keyframes sk-shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-bar {
+    animation: none;
+  }
+}
+
+.sk-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.sk-pic.big {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+}
+
+.sk-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sk-lines.center {
+  align-items: center;
+}
+
+.sk-lines.right {
+  align-items: flex-end;
+}
+
+.sk-text {
+  padding: 4px 0;
+}
+
+.sk-text.compact {
+  gap: 6px;
+}
+
+.sk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card.sk-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+}
+
+.card.sk-hero,
+.card.sk-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 16px;
+}
+
+.sk-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sk-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.sk-mushaf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 18px;
+}
+
+.sk-verses {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Where a spinner sat in a narrow spot, the shapes take the width */
+.quran-more .sk,
+.mushaf-loading .sk {
+  max-width: 100%;
+}

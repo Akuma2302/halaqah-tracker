@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronUp } from 'lucide-react';
 import MushafPage from './MushafPage';
 import MushafWordPanel from './MushafWordPanel';
+import Skeleton from './Skeleton';
 
 const BATCH = 2; // pages added each time the end of the list comes into view
 
@@ -97,7 +98,7 @@ export default function MushafPages({ from, to, startPage, chaptersById, focusSu
       ))}
       {range[1] < to && (
         <div ref={sentinelRef} className="quran-more">
-          <div className="spinner" />
+          <Skeleton variant="mushaf" count={6} />
         </div>
       )}
       <MushafWordPanel selection={selection} chaptersById={chaptersById} onClose={closePanel} />

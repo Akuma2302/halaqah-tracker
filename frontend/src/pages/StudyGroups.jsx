@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, GraduationCap, FolderPlus, Folder, X, Trophy, LogIn, ChevronRight, Users } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
+import Skeleton from '../components/Skeleton';
 
 export default function StudyGroups() {
   const [groups, setGroups] = useState([]);
@@ -331,7 +332,7 @@ export default function StudyGroups() {
 
       <div>
         {loading ? (
-          <div className="spinner" />
+          <Skeleton variant="cards" count={3} />
         ) : visibleGroups.length === 0 ? (
           <div className="card empty-state">
             <GraduationCap size={26} style={{ marginBottom: 8, color: 'var(--ink-soft)' }} />

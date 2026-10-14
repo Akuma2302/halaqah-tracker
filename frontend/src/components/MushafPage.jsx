@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { fetchPageWords, loadMushafFont, mushafFontFamily, TOTAL_PAGES } from '../services/quranApi';
 import { BISMILLAH } from './QuranVerses';
+import Skeleton from './Skeleton';
 
 const LINES_PER_PAGE = 15;
 const BASE_FONT = 30; // px, before fitting to the screen width
@@ -105,7 +106,7 @@ export default function MushafPage({ page, chaptersById = {}, onLoaded, focusSur
   if (!data || !fontReady) {
     return (
       <div className="mushaf mushaf-loading">
-        <div className="spinner" />
+        <Skeleton variant="mushaf" />
       </div>
     );
   }

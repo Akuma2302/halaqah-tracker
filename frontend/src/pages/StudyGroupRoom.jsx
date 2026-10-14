@@ -7,6 +7,7 @@ import socket from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 import { DateInput, TimeInput } from '../components/pickers';
+import Skeleton from '../components/Skeleton';
 
 export default function StudyGroupRoom() {
   const { id } = useParams();
@@ -172,7 +173,7 @@ export default function StudyGroupRoom() {
   if (!group) {
     return (
       <div className="page">
-        <div className="spinner" style={{ margin: '40px auto', display: 'block' }} />
+        <Skeleton variant="page" />
       </div>
     );
   }
@@ -313,7 +314,7 @@ export default function StudyGroupRoom() {
             Scoreboard
           </span>
           {!scoreboard ? (
-            <div className="spinner" style={{ margin: '10px auto' }} />
+            <Skeleton variant="lines" count={3} compact />
           ) : scoreboard.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Couldn't load the scoreboard.</p>
           ) : (

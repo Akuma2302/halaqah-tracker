@@ -6,6 +6,7 @@ import TadabburSheet from './TadabburSheet';
 import { toggleBookmark, useBookmarks } from '../features/quran/bookmarks';
 import { useTadabbur } from '../features/quran/tadabbur';
 import { fetchPageWordMeanings, fetchVerseText, fetchVerseTranslation } from '../services/quranApi';
+import Skeleton from './Skeleton';
 
 // Panel for a tapped word (meaning, transliteration, pronunciation) or a
 // tapped ayah marker (that verse's Malay translation) in Membaca view.
@@ -131,7 +132,7 @@ export default function MushafWordPanel({ selection, chaptersById = {}, onClose 
       {error ? (
         <p className="word-panel-muted">Couldn't load this. Check your connection and tap again.</p>
       ) : !detail ? (
-        <div className="spinner" style={{ margin: '10px auto' }} />
+        <Skeleton variant="lines" count={3} compact />
       ) : selection.end ? (
         <p className="word-panel-verse">{detail.verse}</p>
       ) : (

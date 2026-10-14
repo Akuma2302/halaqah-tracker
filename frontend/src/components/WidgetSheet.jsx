@@ -4,6 +4,7 @@ import Sheet from './Sheet';
 import client from '../services/apiClient';
 import { buildScriptableScript } from '../features/widget/scriptableScript';
 import { buildAgendaScript } from '../features/widget/agendaScript';
+import Skeleton from './Skeleton';
 
 // The widget URL must be absolute (it's used outside the app). In production
 // the API lives on Render (VITE_API_URL); in dev it's proxied on this origin.
@@ -83,7 +84,7 @@ export default function WidgetSheet({ open, onClose }) {
   return (
     <Sheet open={open} onClose={onClose} title="Home screen widget">
       {loading ? (
-        <div className="spinner" style={{ margin: '20px auto' }} />
+        <Skeleton variant="lines" count={4} />
       ) : !token ? (
         <div className="widget-intro">
           <span className="widget-intro-icon">

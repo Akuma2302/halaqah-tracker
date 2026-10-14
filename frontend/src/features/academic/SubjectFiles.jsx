@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, File as FileIcon, Folder, FolderInput, FolderPlus, MoreHorizontal, Pencil, Trash2, Upload, X } from 'lucide-react';
 import client from '../../services/apiClient';
 import Sheet from '../../components/Sheet';
+import Skeleton from '../../components/Skeleton';
 
 function formatFileSize(bytes) {
   if (!bytes) return '';
@@ -163,7 +164,7 @@ export default function SubjectFiles({ subject, showToast }) {
       )}
 
       {files === null ? (
-        <div className="spinner" style={{ margin: '8px auto' }} />
+        <Skeleton variant="cards" count={2} compact />
       ) : (
         <>
           {!currentFolder &&

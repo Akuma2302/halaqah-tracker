@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { fiZilalSection, fiZilalStripUrl, loadFiZilalIndex } from '../features/quran/fiZilal';
 import { fiZilalLink } from '../features/quran/tafsirLinks';
+import Skeleton from './Skeleton';
 
 // Tafsir Fi Zilalil Quran for one ayat: the book's own pages (as column
 // strips), opened at the section that explains the ayat. Surahs that haven't
@@ -33,7 +34,7 @@ export default function FiZilalReader({ surah, ayat, surahName }) {
     scroller.scrollTo({ top: Math.max(0, top - 10) });
   }, [entry, section?.strip, section?.y]);
 
-  if (index === undefined) return <div className="spinner" style={{ margin: '18px auto', display: 'block' }} />;
+  if (index === undefined) return <Skeleton variant="lines" count={6} />;
 
   if (!entry) {
     const pdf = fiZilalLink(surah);

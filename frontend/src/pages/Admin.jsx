@@ -37,6 +37,7 @@ import { getWeekStart, toDateKey } from '../features/academic/weekUtils';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 import { SHORT_DAYS, clock } from '../features/timetable/timetable';
 import { Select } from '../components/pickers';
+import Skeleton from '../components/Skeleton';
 
 dayjs.extend(relativeTime);
 
@@ -484,7 +485,7 @@ function UserSheet({ userId, users, period, me, onClose, onChanged, showToast })
           </button>
         </div>
       ) : !detail ? (
-        <div className="spinner" style={{ margin: '24px auto' }} />
+        <Skeleton variant="cards" count={5} />
       ) : (
         <div className="adm-detail">
           <div className="adm-detail-head">
@@ -1077,7 +1078,7 @@ function GroupSheet({ groupId, onClose }) {
           </button>
         </div>
       ) : !group ? (
-        <div className="spinner" style={{ margin: '24px auto' }} />
+        <Skeleton variant="cards" count={4} />
       ) : (
         <div className="adm-detail">
           <p className="adm-foot" style={{ marginTop: 0 }}>
@@ -1332,7 +1333,7 @@ export default function Admin() {
               </button>
             </div>
           ) : !overview || !users || !papers || !groups || !mentoringGroups ? (
-            <div className="spinner" style={{ margin: '40px auto' }} />
+            <Skeleton variant="page" />
           ) : section.key === 'dashboard' ? (
             <Overview data={overview} users={users} onOpen={setOpenUser} />
           ) : section.key === 'users' ? (

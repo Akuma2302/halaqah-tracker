@@ -9,6 +9,7 @@ import { MUTABAAH_ICONS } from '../mutabaah/mutabaahIcons';
 import { hueFor } from '../timetable/timetable';
 import GroupTimetable from './GroupTimetable';
 import { DateInput, Select } from '../../components/pickers';
+import Skeleton from '../../components/Skeleton';
 
 const todayKey = toDateKey(new Date());
 const currentWeekKey = toDateKey(getWeekStart());
@@ -574,7 +575,7 @@ export default function MentoringDashboard() {
     return (
       <>
         {controls}
-        <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
+        <Skeleton variant="page" />
       </>
     );
   }

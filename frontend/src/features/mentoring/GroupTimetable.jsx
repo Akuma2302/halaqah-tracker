@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarCheck, CalendarClock, Users } from 'lucide-react';
 import client from '../../services/apiClient';
 import { DAYS, SHORT_DAYS, clock, hueFor, kindLabel, minutes } from '../timetable/timetable';
+import Skeleton from '../../components/Skeleton';
 
 // The whole day is looked at for a time to meet, 12 am to 12 am.
 const DAY_START = 0;
@@ -99,7 +100,7 @@ export default function GroupTimetable({ people }) {
       </div>
     );
   }
-  if (!timetables) return <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />;
+  if (!timetables) return <Skeleton variant="cards" count={3} compact />;
 
   const n = rows.length;
   const everyone = n === 1 ? firstName(rows[0].person) : n === 2 ? 'both' : `all ${n}`;

@@ -13,6 +13,7 @@ import SocialLinks from '../components/SocialLinks';
 import { Delta } from '../features/mentoring/MentoringDashboard';
 import { PeopleStrip, usePeople } from '../features/mentoring/PeopleStrip';
 import { useSwipe } from '../hooks/useSwipe';
+import Skeleton from '../components/Skeleton';
 
 const CATEGORY_LABEL = Object.fromEntries(STUDY_CATEGORIES.map((c) => [c.value, c.label]));
 const todayKey = toDateKey(new Date());
@@ -177,7 +178,7 @@ export default function MenteeDetail() {
     return (
       <div className="page">
         {back}
-        <div className="spinner" style={{ margin: '24px auto', display: 'block' }} />
+        <Skeleton variant="page" count={3} />
       </div>
     );
   }

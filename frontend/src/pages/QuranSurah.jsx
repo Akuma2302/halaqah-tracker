@@ -11,6 +11,7 @@ import { useStartPage } from '../hooks/useStartPage';
 import { useAudioSpeed } from '../hooks/useAudioSpeed';
 import SpeedButton from '../components/SpeedButton';
 import BookmarkButton from '../components/BookmarkButton';
+import Skeleton from '../components/Skeleton';
 
 function QuranSurahReader() {
   const { surah } = useParams();
@@ -154,7 +155,7 @@ function QuranSurahReader() {
             </p>
           </>
         ) : (
-          <div className="spinner" style={{ margin: '12px auto' }} />
+          <Skeleton variant="lines" count={2} compact />
         )}
 
         <QuranModeSwitch reading={reading} onChange={switchMode} />
@@ -197,7 +198,7 @@ function QuranSurahReader() {
           />
         ) : (
           <div className="mushaf mushaf-loading">
-            <div className="spinner" />
+            <Skeleton variant="mushaf" />
           </div>
         )
       ) : (
@@ -229,7 +230,7 @@ function QuranSurahReader() {
         </div>
       ) : hasMore ? (
         <div ref={sentinelRef} className="quran-more">
-          <div className="spinner" />
+          <Skeleton variant="verses" />
         </div>
       ) : (
         verses.length > 0 && surahPager

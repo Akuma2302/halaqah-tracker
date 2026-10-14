@@ -4,6 +4,7 @@ import { ExternalLink } from 'lucide-react';
 import { fetchTafsir } from '../services/quranApi';
 import { ibnuKatsirLink } from '../features/quran/tafsirLinks';
 import FiZilalReader from './FiZilalReader';
+import Skeleton from './Skeleton';
 
 // The tafsir HTML is headings, paragraphs and Arabic snippets. Rebuild it as
 // React elements from a short whitelist instead of injecting the HTML.
@@ -138,7 +139,7 @@ export default function TafsirSheet({ verseKey, chaptersById = {}, onClose }) {
           ) : state.error && state.key === loadKey ? (
             <p className="log-empty">Couldn't load the tafsir. Check your connection and try again.</p>
           ) : !tafsir ? (
-            <div className="spinner" style={{ margin: '18px auto', display: 'block' }} />
+            <Skeleton variant="lines" count={7} />
           ) : empty ? (
             <p className="log-empty">Ibn Kathir has no separate commentary for this ayat.</p>
           ) : (
