@@ -12701,3 +12701,31 @@ button.adm-group:hover {
   font-weight: 600;
   color: var(--primary-dark);
 }
+
+/* Mentoring dashboard: chosen dates, from and to */
+.perf-when.perf-custom {
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.perf-custom label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.perf-custom .input {
+  width: auto;
+  min-height: 36px;
+  padding: 6px 8px;
+}
+
+.perf-custom small {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--ink-soft);
+}

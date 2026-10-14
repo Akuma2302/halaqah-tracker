@@ -47,8 +47,10 @@ router.get(
   asyncHandler(async (req, res) => {
     const date = dateParam(req, res, 'date');
     const weekStart = date && dateParam(req, res, 'weekStart');
-    // ?days=7|14|30 looks back that many days from today instead of at the week.
-    const days = [7, 14, 30].includes(Number(req.query.days)) ? Number(req.query.days) : null;
+    // ?days=N looks back N days (up to about three months) from `date` instead
+    // of at the week: the last 7, 14 or 30 days, or any dates chosen.
+    const n = Number(req.query.days);
+    const days = Number.isInteger(n) && n >= 1 && n <= 92 ? n : null;
     if (weekStart) res.json(await mentoringService.getDashboard(req.userId, { date, weekStart, days }));
   })
 );

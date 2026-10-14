@@ -335,24 +335,34 @@ export default function MentoringDashboard() {
   const [error, setError] = useState(false);
   const [groupKey, setGroupKey] = useState(null); // chosen by the user; null = pick a sensible default
   const [query, setQuery] = useState('');
-  // 'week', or the number of days to look back from today.
+  // 'week', the number of days to look back from today, or 'custom' for chosen dates.
   const [period, setPeriod] = useState('week');
+  const [customFrom, setCustomFrom] = useState(() => toDateKey(addDays(new Date(), -13)));
+  const [customTo, setCustomTo] = useState(todayKey);
   const [view, setView] = useState('all');
   // A mentor's own mentoring group to narrow the mentees to: '' = all, 'none' = in no group.
   const [mentoringGroup, setMentoringGroup] = useState('');
   const ranged = period !== 'week';
+  const custom = period === 'custom';
+  // A range: how many days, and the last of them (today, unless dates were chosen).
+  const rangeEnd = custom ? customTo : todayKey;
+  const rangeDays = custom
+    ? Math.max(1, Math.round((new Date(`${customTo}T00:00:00`) - new Date(`${customFrom}T00:00:00`)) / 86400000) + 1)
+    : period;
   // "Today" figures make sense whenever the period reaches today.
-  const isThisWeek = ranged || week === currentWeekKey;
-  const requestKey = ranged ? `days-${period}` : week;
-  const span = ranged ? `${period} days` : 'week';
+  const isThisWeek = ranged ? rangeEnd === todayKey : week === currentWeekKey;
+  const requestKey = ranged ? `days-${rangeDays}-${rangeEnd}` : week;
+  const span = ranged ? `${rangeDays} days` : 'week';
+  // How the period reads in a sentence.
+  const periodText = custom ? `from ${rangeLabel(customFrom, customTo)}` : `over the last ${period} days`;
   // The weekly study target, stretched to the length of the range.
-  const studyTarget = ranged ? Math.round((WEEKLY_TARGET_HOURS * period) / 7) : WEEKLY_TARGET_HOURS;
+  const studyTarget = ranged ? Math.round((WEEKLY_TARGET_HOURS * rangeDays) / 7) : WEEKLY_TARGET_HOURS;
 
   useEffect(() => {
     let cancelled = false;
     setError(false);
     client
-      .get('/mentoring/dashboard', { params: { date: todayKey, weekStart: ranged ? currentWeekKey : week, days: ranged ? period : undefined } })
+      .get('/mentoring/dashboard', { params: { date: ranged ? rangeEnd : todayKey, weekStart: ranged ? currentWeekKey : week, days: ranged ? rangeDays : undefined } })
       .then((res) => !cancelled && setData({ ...res.data, key: requestKey }))
       .catch(() => !cancelled && setError(true));
     return () => {
@@ -417,11 +427,11 @@ export default function MentoringDashboard() {
       group && isThisWeek
         ? group.people
             .filter((p) => !p.isMe)
-            .map((p) => ({ person: p, why: concerns(p, view, ranged ? `in ${period} days` : 'this week') }))
+            .map((p) => ({ person: p, why: concerns(p, view, ranged ? `in ${rangeDays} days` : 'this week') }))
             .filter((x) => x.why.length)
         : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [group, isThisWeek, view, period]
+    [group, isThisWeek, view, rangeDays]
   );
 
   // One row of three dropdowns (when, who, what) instead of rows of buttons.
@@ -437,11 +447,16 @@ export default function MentoringDashboard() {
       <div className="perf-controls-row">
         <label className="field">
           <span>Period</span>
-          <select className="input" value={period} onChange={(e) => setPeriod(e.target.value === 'week' ? 'week' : Number(e.target.value))}>
+          <select
+            className="input"
+            value={period}
+            onChange={(e) => setPeriod(['week', 'custom'].includes(e.target.value) ? e.target.value : Number(e.target.value))}
+          >
             <option value="week">By week</option>
             <option value={7}>Last 7 days</option>
             <option value={14}>Last 14 days</option>
             <option value={30}>Last 30 days</option>
+            <option value="custom">Choose dates…</option>
           </select>
         </label>
         <label className="field">
@@ -476,6 +491,49 @@ export default function MentoringDashboard() {
       {view === 'timetable' ? (
         <div className="perf-when">
           <span>Everyone's weekly timetable</span>
+        </div>
+      ) : custom ? (
+        /* Chosen dates: from and to, up to today and at most about three months apart */
+        <div className="perf-when perf-custom">
+          <label>
+            <span>From</span>
+            <input
+              className="input"
+              type="date"
+              value={customFrom}
+              max={customTo}
+              onChange={(e) => {
+                const from = e.target.value;
+                if (!from) return;
+                setCustomFrom(from);
+                // Keep the span within 92 days by moving the end along.
+                const limit = toDateKey(addDays(new Date(`${from}T00:00:00`), 91));
+                if (customTo < from) setCustomTo(from);
+                else if (customTo > limit) setCustomTo(limit < todayKey ? limit : todayKey);
+              }}
+            />
+          </label>
+          <label>
+            <span>To</span>
+            <input
+              className="input"
+              type="date"
+              value={customTo}
+              min={customFrom}
+              max={todayKey}
+              onChange={(e) => {
+                const to = e.target.value;
+                if (!to) return;
+                setCustomTo(to > todayKey ? todayKey : to);
+                const limit = toDateKey(addDays(new Date(`${to}T00:00:00`), -91));
+                if (customFrom > to) setCustomFrom(to);
+                else if (customFrom < limit) setCustomFrom(limit);
+              }}
+            />
+          </label>
+          <small>
+            {rangeDays} day{rangeDays === 1 ? '' : 's'}
+          </small>
         </div>
       ) : (
       <div className="perf-when">
@@ -639,7 +697,7 @@ export default function MentoringDashboard() {
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="log-section-title">Who misses the most</div>
-                  <div className="log-section-sub">Amal not done, {ranged ? `over the last ${period} days` : isThisWeek ? 'this week so far' : 'that week'}</div>
+                  <div className="log-section-sub">Amal not done, {ranged ? periodText : isThisWeek ? 'this week so far' : 'that week'}</div>
                 </div>
               </div>
               {missers[0].missed === 0 ? (
@@ -726,7 +784,7 @@ export default function MentoringDashboard() {
 
           <p className="mentor-note">
             {ranged
-              ? `Mutabaah is the share of items done over the last ${period} days; the arrow compares it with the ${period} days before. Study is against a ${studyTarget}-hour target for the period. Each square is a day, oldest first: the fuller it is, the more was done.`
+              ? `Mutabaah is the share of items done ${periodText}; the arrow compares it with the ${rangeDays} days before. Study is against a ${studyTarget}-hour target for the period. Each square is a day, oldest first: the fuller it is, the more was done.`
               : `Mutabaah is the share of items done on the days of the week so far; the arrow compares it with the whole week before. Study is against the ${WEEKLY_TARGET_HOURS}-hour weekly target. The letters are Sunday to Saturday: the fuller the square, the more was done that day.`}
           </p>
         </>
