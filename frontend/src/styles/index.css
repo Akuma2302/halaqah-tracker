@@ -2092,12 +2092,22 @@ a {
 }
 
 .mentor-meta.tree-my-group {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 5px;
+  max-width: 100%;
   margin-top: 2px;
+  white-space: normal;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
   font-weight: 600;
   color: var(--gold-ink);
+}
+
+/* On a long line the clock stays at the top, beside the first line */
+.mentor-meta.tree-my-group svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .group-when {
