@@ -454,6 +454,18 @@ export default function Timetable() {
     });
   }
 
+  // A time box; tapping anywhere on it opens the picker.
+  const timeBox = (key, label) => (
+    <input
+      className="input gc-time"
+      type="time"
+      value={form[key]}
+      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+      onClick={(e) => e.currentTarget.showPicker?.()}
+      aria-label={label}
+    />
+  );
+
   const setReminder = (i, change) => setForm((f) => ({ ...f, reminders: f.reminders.map((r, j) => (j === i ? { ...r, ...change } : r)) }));
 
   async function leave() {
@@ -1048,50 +1060,50 @@ export default function Timetable() {
           <div className="gc-row">
             <Clock size={18} className="gc-icon" />
             <div className="gc-body">
-              <div className="gc-when">
-                <label className="gc-date">
-                  <span>{form.startDate ? longDay(form.startDate) : 'Pick a date'}</span>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={(e) => pickDate(e.target.value)}
-                    onClick={(e) => e.currentTarget.showPicker?.()}
-                    aria-label={form.repeat === 'once' ? 'Date' : 'Starting on'}
-                  />
-                </label>
-                <span className="gc-times">
-                <input
-                  className="input gc-time"
-                  type="time"
-                  value={form.startTime}
-                  onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
-                  aria-label="Starts at"
-                />
-                <span className="gc-dash">–</span>
-                {form.repeat === 'once' && endApart && (
+              {/* Over several days: a line for the start and a line for the end. Otherwise the date, then from and to. */}
+              {form.repeat === 'once' && endApart ? (
+                <div className="gc-when gc-span">
+                  <div className="gc-span-line">
+                    <label className="gc-date">
+                      <span>{longDay(form.startDate)}</span>
+                      <input type="date" value={form.startDate} onChange={(e) => pickDate(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} aria-label="Start date" />
+                    </label>
+                    {timeBox('startTime', 'Starts at')}
+                  </div>
+                  <div className="gc-span-line">
+                    <label className="gc-date">
+                      <span>{longDay(form.endDate)}</span>
+                      <input
+                        type="date"
+                        min={form.startDate}
+                        value={form.endDate}
+                        onChange={(e) => e.target.value && setForm((f) => ({ ...f, endDate: e.target.value }))}
+                        onClick={(e) => e.currentTarget.showPicker?.()}
+                        aria-label="End date"
+                      />
+                    </label>
+                    {timeBox('endTime', 'Ends at')}
+                  </div>
+                </div>
+              ) : (
+                <div className="gc-when">
                   <label className="gc-date">
-                    <span>{longDay(form.endDate)}</span>
+                    <span>{form.startDate ? longDay(form.startDate) : 'Pick a date'}</span>
                     <input
                       type="date"
-                      min={form.startDate}
-                      value={form.endDate}
-                      onChange={(e) => e.target.value && setForm((f) => ({ ...f, endDate: e.target.value }))}
+                      value={form.startDate}
+                      onChange={(e) => pickDate(e.target.value)}
                       onClick={(e) => e.currentTarget.showPicker?.()}
-                      aria-label="End date"
+                      aria-label={form.repeat === 'once' ? 'Date' : 'Starting on'}
                     />
                   </label>
-                )}
-                <input
-                  className="input gc-time"
-                  type="time"
-                  value={form.endTime}
-                  onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
-                  onClick={(e) => e.currentTarget.showPicker?.()}
-                  aria-label="Ends at"
-                />
-                </span>
-              </div>
+                  <span className="gc-times">
+                    {timeBox('startTime', 'Starts at')}
+                    <span className="gc-dash">–</span>
+                    {timeBox('endTime', 'Ends at')}
+                  </span>
+                </div>
+              )}
               <div className="gc-when-more">
                 {isClassKind ? (
                   <span className="gc-note">Weekly on {DAYS[form.days[0]]}. Class times are set in Subjects.</span>
