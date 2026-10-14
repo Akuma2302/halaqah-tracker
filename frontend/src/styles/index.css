@@ -14451,3 +14451,107 @@ button.adm-group:hover {
     font-size: 9px;
   }
 }
+
+/* ---------- Timetable: the year, twelve small months ---------- */
+.card.yr-card {
+  padding: 14px;
+}
+
+.yr-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 16px;
+}
+
+@media (max-width: 860px) {
+  .yr-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .yr-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 10px;
+  }
+}
+
+.yr-month h3 {
+  margin: 0 0 6px 4px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.yr-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  row-gap: 2px;
+}
+
+.yr-wd {
+  padding: 2px 0 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.yr-day {
+  position: relative;
+  justify-self: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.yr-day:hover {
+  background: var(--paper);
+}
+
+.yr-day.past {
+  color: var(--ink-soft);
+}
+
+/* Something on: a small dot under the date */
+.yr-day.busy::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.yr-day.today {
+  background: var(--primary);
+  color: #fff;
+}
+
+.yr-day.today::after {
+  background: #fff;
+}
+
+@media (max-width: 560px) {
+  .yr-day {
+    width: 21px;
+    height: 21px;
+    font-size: 10px;
+  }
+}
+
+.yr-day.busy.exam::after {
+  background: var(--gold);
+}

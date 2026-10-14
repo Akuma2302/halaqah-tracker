@@ -202,3 +202,70 @@ export function MonthCellItems({ items, max }) {
     </span>
   );
 }
+
+// The whole year: twelve small months. Today is circled, a day with
+// something dated on it (an event, an exam, a due date) has a dot, gold for
+// an exam, and tapping a day opens it in the month.
+export function YearGrid({ year, todayKey, datedOn, onPick, onShift, onToday }) {
+  const months = Array.from({ length: 12 }, (_, m) => {
+    const first = new Date(year, m, 1);
+    const count = new Date(year, m + 1, 0).getDate();
+    const cells = Array(first.getDay()).fill(null);
+    for (let d = 1; d <= count; d += 1) cells.push(keyOf(new Date(year, m, d)));
+    while (cells.length % 7) cells.push(null);
+    return { m, name: first.toLocaleDateString(undefined, { month: 'long' }), cells };
+  });
+  const thisYear = Number(todayKey.slice(0, 4)) === year;
+
+  return (
+    <div className="card yr-card">
+      <div className="month-head">
+        <button type="button" className="icon-btn" onClick={() => onShift(-1)} aria-label="Previous year">
+          <ChevronLeft size={16} />
+        </button>
+        <div className="month-title">
+          <strong>{year}</strong>
+          {!thisYear && (
+            <button type="button" className="week-bar-today" onClick={onToday}>
+              Back to this year
+            </button>
+          )}
+        </div>
+        <button type="button" className="icon-btn" onClick={() => onShift(1)} aria-label="Next year">
+          <ChevronRight size={16} />
+        </button>
+      </div>
+      <div className="yr-grid">
+        {months.map(({ m, name, cells }) => (
+          <section key={m} className="yr-month">
+            <h3>{name}</h3>
+            <div className="yr-days">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((w, i) => (
+                <span key={i} className="yr-wd">
+                  {w}
+                </span>
+              ))}
+              {cells.map((key, i) => {
+                if (!key) return <span key={`b${i}`} />;
+                const dated = datedOn(key);
+                const n = dated.length;
+                const exam = dated.some((x) => x.tone === 'exam');
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`yr-day${key === todayKey ? ' today' : ''}${key < todayKey ? ' past' : ''}${n ? ' busy' : ''}${exam ? ' exam' : ''}`}
+                    onClick={() => onPick(key)}
+                    aria-label={`${dateOf(key).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}${n ? `, ${n} on` : ''}`}
+                  >
+                    {Number(key.slice(8))}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}

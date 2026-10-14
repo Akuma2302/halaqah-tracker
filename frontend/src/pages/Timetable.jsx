@@ -7,7 +7,7 @@ import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
 import TypeMenu from '../features/timetable/TypeMenu';
-import { MonthCellItems, WeekGrid, shiftKey, sundayOf } from '../features/timetable/CalendarViews';
+import { MonthCellItems, WeekGrid, YearGrid, shiftKey, sundayOf } from '../features/timetable/CalendarViews';
 import { DateMenu, SelectMenu, TimeMenu } from '../components/pickers';
 import {
   CLASS_KINDS,
@@ -136,6 +136,8 @@ export default function Timetable() {
   // Month view: the month on show (its first day) and the date picked in it.
   const [monthStart, setMonthStart] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [pickedDate, setPickedDate] = useState(() => toDateKey(new Date()));
+  // Year view: the year on show.
+  const [year, setYear] = useState(() => new Date().getFullYear());
   // Week view: the Sunday of the week on show.
   const [weekStart, setWeekStart] = useState(() => sundayOf(toDateKey(new Date())));
   // On a phone a month cell has room for two things, otherwise three.
@@ -929,6 +931,9 @@ export default function Timetable() {
             <button className={view === 'month' ? 'active' : ''} onClick={() => setView('month')}>
               Month
             </button>
+            <button className={view === 'year' ? 'active' : ''} onClick={() => setView('year')}>
+              Year
+            </button>
           </div>
 
           {view === 'day' ? (
@@ -970,6 +975,22 @@ export default function Timetable() {
                 </div>
               )}
             </>
+          ) : view === 'year' ? (
+            <YearGrid
+              year={year}
+              todayKey={todayKey}
+              // Only dated things: weekly classes would mark nearly every day.
+              datedOn={(key) => itemsOn(key).filter((x) => !x.key.startsWith('w-'))}
+              onShift={(n) => setYear((y) => y + n)}
+              onToday={() => setYear(now.getFullYear())}
+              onPick={(key) => {
+                // Open that day in the month.
+                const d = dateOf(key);
+                setMonthStart(new Date(d.getFullYear(), d.getMonth(), 1));
+                setPickedDate(key);
+                setView('month');
+              }}
+            />
           ) : view === 'week' ? (
             <WeekGrid
               weekStart={weekStart}
@@ -1056,7 +1077,7 @@ export default function Timetable() {
           )}
 
           {/* ---------- every exam still to come, from the subjects ---------- */}
-          {view !== 'month' && exams.length + upcomingEvents.length > 0 && (
+          {(view === 'day' || view === 'week') && exams.length + upcomingEvents.length > 0 && (
             <section className="week-group exam-list">
               <h2 className="week-group-title">
                 Coming up
