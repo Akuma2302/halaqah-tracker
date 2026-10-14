@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Bell, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
@@ -41,6 +41,25 @@ const dateOf = (key) => {
 };
 // "Wed, 14 Oct"
 const shortDay = (key) => dateOf(key).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+// "Wednesday, 14 October"
+const longDay = (key) => dateOf(key).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+const weekdayOf = (key) => dateOf(key).getDay();
+// The next date (from today) that falls on a weekday.
+const nextDateOn = (weekday) => {
+  const d = new Date();
+  return toDateKey(addDays(d, (weekday - d.getDay() + 7) % 7));
+};
+
+// How the form repeats, as the repeat menu shows it.
+function repeatOf(f, custom) {
+  if (f.repeat === 'once') return 'none';
+  if (custom) return 'custom';
+  const days = [...f.days].sort().join();
+  if (days === '0,1,2,3,4,5,6') return 'daily';
+  if (days === '1,2,3,4,5') return 'weekdays';
+  if (f.days.length === 1 && f.days[0] === weekdayOf(f.startDate)) return 'weekly';
+  return 'custom';
+}
 
 // When an entry happens, in words: every week, on one day, or across several.
 function whenText(entry) {
@@ -103,6 +122,9 @@ export default function Timetable() {
   const searchSeq = useRef(0);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  // The repeat menu's "Custom…" (pick the days), and a one-off that ends on a later day.
+  const [customDays, setCustomDays] = useState(false);
+  const [endApart, setEndApart] = useState(false);
   const [idInput, setIdInput] = useState('');
   // Someone else's task I was added to, open to look at (it can't be edited).
   const [viewing, setViewing] = useState(null);
@@ -321,8 +343,10 @@ export default function Timetable() {
   // Adding from the month view starts as a one-off event on the day picked there.
   function openNew(forDay = day) {
     const fromMonth = view === 'month';
-    setForm({ ...emptyForm(fromMonth ? pickedWeekday : forDay, fromMonth ? pickedDate : todayKey), repeat: fromMonth ? 'once' : 'weekly' });
+    setForm({ ...emptyForm(fromMonth ? pickedWeekday : forDay, fromMonth ? pickedDate : nextDateOn(forDay)), repeat: fromMonth ? 'once' : 'weekly' });
     setFormError('');
+    setCustomDays(false);
+    setEndApart(false);
     setIdInput('');
     setNewKind(null);
     setEditing('new');
@@ -340,14 +364,17 @@ export default function Timetable() {
       customKind: entry.customKind || '',
       repeat: entry.startDate ? 'once' : 'weekly',
       days: [entry.dayOfWeek],
-      startDate: entry.startDate || todayKey,
-      endDate: entry.endDate || entry.startDate || todayKey,
+      // A weekly one shows the next date it falls on.
+      startDate: entry.startDate || nextDateOn(entry.dayOfWeek),
+      endDate: entry.endDate || entry.startDate || nextDateOn(entry.dayOfWeek),
       startTime: entry.startTime,
       endTime: entry.endTime,
       venue: entry.venue || '',
       reminders: (entry.reminders || []).map(reminderParts)
     });
     setFormError('');
+    setCustomDays(false);
+    setEndApart(!!entry.endDate && entry.endDate !== entry.startDate);
     setEditing(entry);
   }
 
@@ -399,6 +426,25 @@ export default function Timetable() {
   function removeKind(name) {
     saveKinds(myKinds.filter((k) => k !== name));
     setForm((f) => (f.customKind === name ? { ...f, kind: 'other', customKind: '' } : f));
+  }
+
+  // The date picked: a one-off moves to it; "weekly on" follows its weekday.
+  function pickDate(value) {
+    if (!value) return;
+    setForm((f) => {
+      const next = { ...f, startDate: value, endDate: !endApart || f.endDate < value ? value : f.endDate };
+      if (repeatOf(f, customDays) === 'weekly') next.days = [weekdayOf(value)];
+      return next;
+    });
+  }
+
+  function pickRepeat(value) {
+    setCustomDays(value === 'custom');
+    setForm((f) => {
+      if (value === 'none') return { ...f, repeat: 'once', endDate: f.endDate < f.startDate ? f.startDate : f.endDate };
+      const days = { daily: [0, 1, 2, 3, 4, 5, 6], weekdays: [1, 2, 3, 4, 5], weekly: [weekdayOf(f.startDate)] }[value] || f.days;
+      return { ...f, repeat: 'weekly', days };
+    });
   }
 
   const setReminder = (i, change) => setForm((f) => ({ ...f, reminders: f.reminders.map((r, j) => (j === i ? { ...r, ...change } : r)) }));
@@ -917,41 +963,19 @@ export default function Timetable() {
       <HomeScreenShortcut />
 
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add task' : isClassKind ? 'Edit class' : 'Edit task'}>
-        <div className="entry-form">
-          {subjects.length > 0 && (
-            <div className="field">
-              <label htmlFor="tt-subject">Subject</label>
-              <select
-                id="tt-subject"
-                className="input"
-                value={form.subjectId}
-                onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value }))}
-              >
-                <option value="">Not one of my subjects</option>
-                {subjects
-                  .filter((s) => s.isVisible !== false || s._id === form.subjectId)
-                  .map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.code ? `${s.name} (${s.code})` : s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="field">
-            <label htmlFor="tt-title">{form.subjectId ? 'Title (optional)' : 'Title'}</label>
-            <input
-              id="tt-title"
-              className="input"
-              value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              placeholder={form.subjectId ? 'e.g. Revise chapter 3' : 'e.g. Study group, Halaqah mingguan'}
-              maxLength={80}
-            />
-          </div>
-          <div className="field">
-            <label>Type</label>
-            <div className="chip-row">
+        <div className="entry-form gc-form">
+          <input
+            className="gc-title"
+            value={form.title}
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            placeholder={form.subjectId ? 'Add title (optional)' : 'Add title'}
+            aria-label="Title"
+            maxLength={80}
+          />
+
+          {/* The type, like Event / Task: the built-in ones, then my own */}
+          <div className="gc-kinds">
+            <div className="chip-row gc-kind-row">
               {/* Classes are set on the subject; one made earlier keeps its own kind here. */}
               {[...CLASS_KINDS.filter(([value]) => value === form.kind), ...TASK_KINDS].map(([value, label]) => (
                 <button
@@ -1010,222 +1034,246 @@ export default function Timetable() {
                 Remove "{form.customKind}" from my types
               </button>
             )}
-            {editing === 'new' && (
-              <p className="field-hint">
-                Lectures, tutorials and labs are added as class times in <strong>Subjects</strong>.
-              </p>
-            )}
           </div>
-          {/* Every week on chosen days, or once from a date and time to another */}
-          {!isClassKind && (
-            <div className="field">
-              <label>When</label>
-              <div className="range-toggle segmented tt-repeat">
-                <button type="button" className={form.repeat === 'weekly' ? 'active' : ''} onClick={() => setForm((f) => ({ ...f, repeat: 'weekly' }))}>
-                  Every week
-                </button>
-                <button type="button" className={form.repeat === 'once' ? 'active' : ''} onClick={() => setForm((f) => ({ ...f, repeat: 'once' }))}>
-                  On a date
-                </button>
-              </div>
-            </div>
-          )}
-          {form.repeat === 'once' ? (
-            <>
-              <div className="timetable-times">
-                <div className="field">
-                  <label htmlFor="tt-start-date">Starts</label>
+
+          {/* ---------- when: the date, from and to, and how it repeats ---------- */}
+          <div className="gc-row">
+            <Clock size={18} className="gc-icon" />
+            <div className="gc-body">
+              <div className="gc-when">
+                <label className="gc-date">
+                  <span>{form.startDate ? longDay(form.startDate) : 'Pick a date'}</span>
                   <input
-                    id="tt-start-date"
-                    className="input"
                     type="date"
                     value={form.startDate}
-                    onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value, endDate: f.endDate < e.target.value ? e.target.value : f.endDate }))}
+                    onChange={(e) => pickDate(e.target.value)}
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    aria-label={form.repeat === 'once' ? 'Date' : 'Starting on'}
                   />
-                </div>
-                <div className="field">
-                  <label htmlFor="tt-start">At</label>
-                  <input id="tt-start" className="input" type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
-                </div>
+                </label>
+                <input className="input gc-time" type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} aria-label="Starts at" />
+                <span className="gc-dash">–</span>
+                {form.repeat === 'once' && endApart && (
+                  <label className="gc-date">
+                    <span>{longDay(form.endDate)}</span>
+                    <input
+                      type="date"
+                      min={form.startDate}
+                      value={form.endDate}
+                      onChange={(e) => e.target.value && setForm((f) => ({ ...f, endDate: e.target.value }))}
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      aria-label="End date"
+                    />
+                  </label>
+                )}
+                <input className="input gc-time" type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} aria-label="Ends at" />
               </div>
-              <div className="timetable-times">
-                <div className="field">
-                  <label htmlFor="tt-end-date">Ends</label>
-                  <input
-                    id="tt-end-date"
-                    className="input"
-                    type="date"
-                    min={form.startDate}
-                    value={form.endDate}
-                    onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="tt-end">At</label>
-                  <input id="tt-end" className="input" type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
-                </div>
+              <div className="gc-when-more">
+                {isClassKind ? (
+                  <span className="gc-note">Weekly on {DAYS[form.days[0]]}. Class times are set in Subjects.</span>
+                ) : (
+                  <select className="input gc-repeat" value={repeatOf(form, customDays)} onChange={(e) => pickRepeat(e.target.value)} aria-label="Repeat">
+                    <option value="none">Does not repeat</option>
+                    {editing === 'new' && <option value="daily">Daily</option>}
+                    <option value="weekly">Weekly on {form.startDate ? DAYS[weekdayOf(form.startDate)] : 'this day'}</option>
+                    {editing === 'new' && <option value="weekdays">Every weekday (Monday to Friday)</option>}
+                    {editing === 'new' && <option value="custom">Custom…</option>}
+                  </select>
+                )}
+                {form.repeat === 'once' && !endApart && (
+                  <button type="button" className="gc-link" onClick={() => setEndApart(true)}>
+                    Ends on another day
+                  </button>
+                )}
+                {form.repeat === 'once' && endApart && (
+                  <button
+                    type="button"
+                    className="gc-link"
+                    onClick={() => {
+                      setEndApart(false);
+                      setForm((f) => ({ ...f, endDate: f.startDate }));
+                    }}
+                  >
+                    Same day
+                  </button>
+                )}
               </div>
-            </>
-          ) : (
-            <>
-              <div className="field">
-                <label>{editing === 'new' ? 'Days (pick one or more)' : 'Day'}</label>
-                <div className="chip-row">
+              {repeatOf(form, customDays) === 'custom' && (
+                <div className="chip-row gc-days">
                   {SHORT_DAYS.map((label, d) => (
                     <button key={label} type="button" className={`chip${form.days.includes(d) ? ' on' : ''}`} onClick={() => toggleDay(d)} aria-pressed={form.days.includes(d)}>
                       {label}
                     </button>
                   ))}
                 </div>
-              </div>
-              <div className="timetable-times">
-                <div className="field">
-                  <label htmlFor="tt-start">Starts</label>
-                  <input id="tt-start" className="input" type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
-                </div>
-                <div className="field">
-                  <label htmlFor="tt-end">Ends</label>
-                  <input id="tt-end" className="input" type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
-                </div>
-              </div>
-            </>
-          )}
-          <div className="field">
-            <label htmlFor="tt-venue">Venue</label>
-            <input
-              id="tt-venue"
-              className="input"
-              value={form.venue}
-              onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))}
-              placeholder="e.g. Dewan Kuliah 3"
-              maxLength={80}
-            />
-          </div>
-
-          {/* ---------- reminders: as many as wanted, each any length before ---------- */}
-          <div className="field">
-            <label>
-              <Bell size={12} /> Reminders
-            </label>
-            {form.reminders.map((r, i) => (
-              <div className="tt-reminder" key={i}>
-                <input
-                  className="input"
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  value={r.n}
-                  onChange={(e) => setReminder(i, { n: e.target.value })}
-                  aria-label="How long before"
-                />
-                <select className="input" value={r.unit} onChange={(e) => setReminder(i, { unit: e.target.value })} aria-label="Unit">
-                  {REMINDER_UNITS.map(([key, word]) => (
-                    <option key={key} value={key}>
-                      {word} before
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  onClick={() => setForm((f) => ({ ...f, reminders: f.reminders.filter((_, j) => j !== i) }))}
-                  aria-label="Remove this reminder"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-            {form.reminders.length < MAX_REMINDERS && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm tt-reminder-add"
-                onClick={() =>
-                  setForm((f) => ({
-                    ...f,
-                    // A sensible next one: 10 minutes, then an hour, then a day.
-                    reminders: [...f.reminders, [{ n: 10, unit: 'm' }, { n: 1, unit: 'h' }, { n: 1, unit: 'd' }][f.reminders.length] || { n: 30, unit: 'm' }]
-                  }))
-                }
-              >
-                <Plus size={13} /> Add a reminder
-              </button>
-            )}
-            <p className="field-hint">
-              {form.reminders.length
-                ? `You${form.people.length ? ' and the people added' : ''} get a notification each time. Up to ${MAX_REMINDERS}, each at most 4 weeks before.`
-                : 'No reminder set. Add one to be notified before it starts.'}
-            </p>
-          </div>
-
-          <div className="field">
-            <label htmlFor="tt-person">
-              <UserPlus size={12} /> With other users (optional)
-            </label>
-            <label className="perf-search tt-people-search">
-              <Search size={15} />
-              <input
-                id="tt-person"
-                type="search"
-                value={idInput}
-                onChange={(e) => setIdInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (found.length === 1) addPerson(found[0]);
-                  }
-                }}
-                placeholder="Search by name or User ID"
-                autoCorrect="off"
-                autoComplete="off"
-              />
-              {idInput && (
-                <button type="button" onClick={() => setIdInput('')} aria-label="Clear">
-                  <X size={13} />
-                </button>
               )}
-            </label>
-            {idInput.trim() && (
-              <div className="tt-found" role="listbox" aria-label="People found">
-                {searching && found.length === 0 ? (
-                  <p>Searching…</p>
-                ) : found.length === 0 ? (
-                  <p>{idInput.trim().length < 2 && !tidyMemberId(idInput) ? 'Type at least 2 letters of a name, or a User ID.' : 'Nobody found. Check the name or User ID.'}</p>
-                ) : (
-                  found.map((x) => {
-                    const added = form.people.some((q) => q.memberId === x.memberId);
-                    return (
-                      <button type="button" key={x._id} role="option" aria-selected={added} className="tt-found-row" onClick={() => addPerson(x)} disabled={added}>
-                        <span className="avatar mentor-avatar-letter" style={{ '--hue': hueFor(x.name) }}>
-                          {(x.name || '?').trim()[0]?.toUpperCase()}
-                        </span>
-                        <span className="tt-found-text">
-                          <strong>{x.name}</strong>
-                          <small>{[x.memberId, x.kampus].filter(Boolean).join(' · ')}</small>
-                        </span>
-                        <span className="tt-found-add">{added ? 'Added' : 'Add'}</span>
-                      </button>
-                    );
-                  })
-                )}
+              {editing === 'new' && form.repeat === 'weekly' && form.days.length > 1 && (
+                <p className="gc-note">Added as {form.days.length} weekly times, one on each day.</p>
+              )}
+            </div>
+          </div>
+
+          {/* ---------- subject ---------- */}
+          {subjects.length > 0 && (
+            <div className="gc-row">
+              <BookOpen size={18} className="gc-icon" />
+              <div className="gc-body">
+                <select
+                  id="tt-subject"
+                  className="input gc-plain"
+                  value={form.subjectId}
+                  onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value }))}
+                  aria-label="Subject"
+                >
+                  <option value="">No subject</option>
+                  {subjects
+                    .filter((s) => s.isVisible !== false || s._id === form.subjectId)
+                    .map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.code ? `${s.name} (${s.code})` : s.name}
+                      </option>
+                    ))}
+                </select>
               </div>
-            )}
-            {form.people.length > 0 && (
-              <div className="tt-people">
-                {form.people.map((p) => (
-                  <span className="tt-person" key={p.memberId}>
-                    {p.name ? `${p.name} · ${p.memberId}` : p.memberId}
+            </div>
+          )}
+
+          {/* ---------- guests: other users, found by name or User ID ---------- */}
+          <div className="gc-row">
+            <Users size={18} className="gc-icon" />
+            <div className="gc-body">
+                <label className="perf-search tt-people-search">
+                  <Search size={15} />
+                  <input
+                    id="tt-person"
+                    type="search"
+                    value={idInput}
+                    onChange={(e) => setIdInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (found.length === 1) addPerson(found[0]);
+                      }
+                    }}
+                    placeholder="Add guests: name or User ID"
+                    autoCorrect="off"
+                    autoComplete="off"
+                  />
+                  {idInput && (
+                    <button type="button" onClick={() => setIdInput('')} aria-label="Clear">
+                      <X size={13} />
+                    </button>
+                  )}
+                </label>
+                {idInput.trim() && (
+                  <div className="tt-found" role="listbox" aria-label="People found">
+                    {searching && found.length === 0 ? (
+                      <p>Searching…</p>
+                    ) : found.length === 0 ? (
+                      <p>{idInput.trim().length < 2 && !tidyMemberId(idInput) ? 'Type at least 2 letters of a name, or a User ID.' : 'Nobody found. Check the name or User ID.'}</p>
+                    ) : (
+                      found.map((x) => {
+                        const added = form.people.some((q) => q.memberId === x.memberId);
+                        return (
+                          <button type="button" key={x._id} role="option" aria-selected={added} className="tt-found-row" onClick={() => addPerson(x)} disabled={added}>
+                            <span className="avatar mentor-avatar-letter" style={{ '--hue': hueFor(x.name) }}>
+                              {(x.name || '?').trim()[0]?.toUpperCase()}
+                            </span>
+                            <span className="tt-found-text">
+                              <strong>{x.name}</strong>
+                              <small>{[x.memberId, x.kampus].filter(Boolean).join(' · ')}</small>
+                            </span>
+                            <span className="tt-found-add">{added ? 'Added' : 'Add'}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+                {form.people.length > 0 && (
+                  <div className="tt-people">
+                    {form.people.map((p) => (
+                      <span className="tt-person" key={p.memberId}>
+                        {p.name ? `${p.name} · ${p.memberId}` : p.memberId}
+                        <button
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, people: f.people.filter((x) => x.memberId !== p.memberId) }))}
+                          aria-label={`Remove ${p.name || p.memberId}`}
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              {form.people.length > 0 && <p className="gc-note">It appears in their timetable too, and they get a notification.</p>}
+            </div>
+          </div>
+
+          {/* ---------- location ---------- */}
+          <div className="gc-row">
+            <MapPin size={18} className="gc-icon" />
+            <div className="gc-body">
+              <input
+                id="tt-venue"
+                className="input gc-plain"
+                value={form.venue}
+                onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))}
+                placeholder="Add location"
+                aria-label="Location"
+                maxLength={80}
+              />
+            </div>
+          </div>
+
+          {/* ---------- notifications: as many as wanted, each any length before ---------- */}
+          <div className="gc-row">
+            <Bell size={18} className="gc-icon" />
+            <div className="gc-body">
+                {form.reminders.map((r, i) => (
+                  <div className="tt-reminder" key={i}>
+                    <input
+                      className="input"
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      value={r.n}
+                      onChange={(e) => setReminder(i, { n: e.target.value })}
+                      aria-label="How long before"
+                    />
+                    <select className="input" value={r.unit} onChange={(e) => setReminder(i, { unit: e.target.value })} aria-label="Unit">
+                      {REMINDER_UNITS.map(([key, word]) => (
+                        <option key={key} value={key}>
+                          {word} before
+                        </option>
+                      ))}
+                    </select>
                     <button
                       type="button"
-                      onClick={() => setForm((f) => ({ ...f, people: f.people.filter((x) => x.memberId !== p.memberId) }))}
-                      aria-label={`Remove ${p.name || p.memberId}`}
+                      className="icon-btn"
+                      onClick={() => setForm((f) => ({ ...f, reminders: f.reminders.filter((_, j) => j !== i) }))}
+                      aria-label="Remove this reminder"
                     >
-                      <X size={12} />
+                      <X size={14} />
                     </button>
-                  </span>
+                  </div>
                 ))}
-              </div>
-            )}
-            <p className="field-hint">It appears in their timetable too, and they get a notification. They can take themselves off.</p>
+                {form.reminders.length < MAX_REMINDERS && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm tt-reminder-add"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        // A sensible next one: 10 minutes, then an hour, then a day.
+                        reminders: [...f.reminders, [{ n: 10, unit: 'm' }, { n: 1, unit: 'h' }, { n: 1, unit: 'd' }][f.reminders.length] || { n: 30, unit: 'm' }]
+                      }))
+                    }
+                  >
+                    <Plus size={13} /> Add notification
+                  </button>
+                )}
+            </div>
           </div>
 
           {clashes.length > 0 && (
