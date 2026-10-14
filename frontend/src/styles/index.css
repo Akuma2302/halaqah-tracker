@@ -12886,3 +12886,181 @@ button.adm-group:hover {
 .gc-row .btn.tt-reminder-add {
   padding-left: 0;
 }
+
+/* Add task sheet, tidied: quiet boxes, a line between sections, types on one line */
+.gc-title {
+  font-size: 24px;
+  margin-bottom: 14px;
+}
+
+.chip-row.gc-kind-row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: -18px;
+  padding: 0 18px 2px;
+}
+
+.chip-row.gc-kind-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-row.gc-kind-row .chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.gc-kinds {
+  margin-bottom: 8px;
+}
+
+.gc-row {
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.gc-row:has(.gc-when),
+.gc-row:has(.tt-found),
+.gc-row:has(.tt-reminder) {
+  align-items: start;
+}
+
+.gc-row:has(.gc-when) .gc-icon,
+.gc-row:has(.tt-reminder) .gc-icon {
+  margin-top: 9px;
+}
+
+.gc-icon {
+  margin-top: 0;
+}
+
+.gc-when {
+  gap: 6px 8px;
+}
+
+.gc-times {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Date and times: soft filled boxes, no picker icons (the whole box opens it) */
+.gc-date,
+.input.gc-time {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.input.gc-time {
+  width: auto;
+  min-width: 108px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.input.gc-time::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.gc-date:hover,
+.input.gc-time:hover {
+  border-color: var(--border);
+}
+
+/* The repeat menu reads as a line of text with a small arrow */
+.input.gc-repeat {
+  width: auto;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 2px 26px 2px 0;
+  border: none;
+  background-color: transparent;
+  background-position: right 4px center;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.input.gc-repeat:focus {
+  color: var(--ink);
+}
+
+.gc-when-more {
+  gap: 4px 14px;
+}
+
+/* Guests: the search box without its heavy frame */
+.gc-row .perf-search.tt-people-search {
+  min-height: 38px;
+  margin-left: -8px;
+  padding: 0 8px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.gc-row .perf-search.tt-people-search:focus-within {
+  border-color: var(--border);
+  background: var(--paper);
+}
+
+.gc-link.tt-reminder-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  min-height: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.gc-link.tt-reminder-add:hover {
+  color: var(--primary);
+}
+
+/* On a phone the date takes its own line, the times sit under it */
+@media (max-width: 480px) {
+  .gc-date {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* The repeat choice as text with an arrow; the real menu sits invisibly on top */
+.gc-repeat {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding-left: 10px;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gc-repeat span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gc-repeat select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.gc-repeat:hover,
+.gc-repeat:focus-within {
+  color: var(--ink);
+}

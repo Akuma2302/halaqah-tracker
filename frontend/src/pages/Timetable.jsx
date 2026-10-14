@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
@@ -49,6 +49,13 @@ const nextDateOn = (weekday) => {
   const d = new Date();
   return toDateKey(addDays(d, (weekday - d.getDay() + 7) % 7));
 };
+
+// The repeat menu's choice in words.
+function repeatText(f, custom) {
+  const choice = repeatOf(f, custom);
+  if (choice === 'weekly') return `Weekly on ${f.startDate ? DAYS[weekdayOf(f.startDate)] : 'this day'}`;
+  return { none: 'Does not repeat', daily: 'Daily', weekdays: 'Every weekday', custom: 'Custom' }[choice];
+}
 
 // How the form repeats, as the repeat menu shows it.
 function repeatOf(f, custom) {
@@ -1052,7 +1059,15 @@ export default function Timetable() {
                     aria-label={form.repeat === 'once' ? 'Date' : 'Starting on'}
                   />
                 </label>
-                <input className="input gc-time" type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} aria-label="Starts at" />
+                <span className="gc-times">
+                <input
+                  className="input gc-time"
+                  type="time"
+                  value={form.startTime}
+                  onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  aria-label="Starts at"
+                />
                 <span className="gc-dash">–</span>
                 {form.repeat === 'once' && endApart && (
                   <label className="gc-date">
@@ -1067,19 +1082,32 @@ export default function Timetable() {
                     />
                   </label>
                 )}
-                <input className="input gc-time" type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} aria-label="Ends at" />
+                <input
+                  className="input gc-time"
+                  type="time"
+                  value={form.endTime}
+                  onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  aria-label="Ends at"
+                />
+                </span>
               </div>
               <div className="gc-when-more">
                 {isClassKind ? (
                   <span className="gc-note">Weekly on {DAYS[form.days[0]]}. Class times are set in Subjects.</span>
                 ) : (
-                  <select className="input gc-repeat" value={repeatOf(form, customDays)} onChange={(e) => pickRepeat(e.target.value)} aria-label="Repeat">
-                    <option value="none">Does not repeat</option>
-                    {editing === 'new' && <option value="daily">Daily</option>}
-                    <option value="weekly">Weekly on {form.startDate ? DAYS[weekdayOf(form.startDate)] : 'this day'}</option>
-                    {editing === 'new' && <option value="weekdays">Every weekday (Monday to Friday)</option>}
-                    {editing === 'new' && <option value="custom">Custom…</option>}
-                  </select>
+                  <label className="gc-repeat">
+                    <span>
+                      {repeatText(form, customDays)} <ChevronDown size={14} />
+                    </span>
+                    <select value={repeatOf(form, customDays)} onChange={(e) => pickRepeat(e.target.value)} aria-label="Repeat">
+                      <option value="none">Does not repeat</option>
+                      {editing === 'new' && <option value="daily">Daily</option>}
+                      <option value="weekly">Weekly on {form.startDate ? DAYS[weekdayOf(form.startDate)] : 'this day'}</option>
+                      {editing === 'new' && <option value="weekdays">Every weekday (Monday to Friday)</option>}
+                      {editing === 'new' && <option value="custom">Custom…</option>}
+                    </select>
+                  </label>
                 )}
                 {form.repeat === 'once' && !endApart && (
                   <button type="button" className="gc-link" onClick={() => setEndApart(true)}>
@@ -1262,7 +1290,7 @@ export default function Timetable() {
                 {form.reminders.length < MAX_REMINDERS && (
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm tt-reminder-add"
+                    className="gc-link tt-reminder-add"
                     onClick={() =>
                       setForm((f) => ({
                         ...f,
