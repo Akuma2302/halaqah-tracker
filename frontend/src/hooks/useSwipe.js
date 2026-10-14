@@ -3,6 +3,8 @@ import { useRef } from 'react';
 // A sideways swipe on a touch screen: `onNext` for a swipe to the left,
 // `onPrev` for one to the right. Only a clear, quick sideways move counts,
 // so scrolling up and down (or across a wide grid) is left alone.
+const EDGE = 24; // px from either side of the screen
+
 export function useSwipe(onNext, onPrev) {
   const start = useRef(null);
 
@@ -17,7 +19,14 @@ export function useSwipe(onNext, onPrev) {
   return {
     onTouchStart(e) {
       const t = e.touches[0];
-      start.current = e.touches.length === 1 && !scrollsSideways(e.target) ? { x: t.clientX, y: t.clientY, at: Date.now() } : null;
+      // A swipe from the very edge is the phone's own Back gesture (iPhone,
+      // and Android with gesture navigation): leave it to the phone.
+      const atEdge = t.clientX < EDGE || t.clientX > window.innerWidth - EDGE;
+      start.current = e.touches.length === 1 && !atEdge && !scrollsSideways(e.target) ? { x: t.clientX, y: t.clientY, at: Date.now() } : null;
+    },
+    // A swipe interrupted by the system (a call, a notification pulled down) is no swipe.
+    onTouchCancel() {
+      start.current = null;
     },
     onTouchEnd(e) {
       const s = start.current;

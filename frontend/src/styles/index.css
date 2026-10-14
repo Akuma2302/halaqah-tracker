@@ -14829,8 +14829,18 @@ button.adm-group:hover {
   overflow-x: clip;
 }
 
+/* Older browsers without overflow: clip (iOS before 16, old Android
+   browsers): fade in place instead of sliding, so nothing ever sticks out
+   past the screen; overflow: hidden here would stop sticky bars working. */
 @supports not (overflow: clip) {
-  .page {
-    overflow-x: hidden;
+  .tt-swipe.slide-next,
+  .tt-swipe.slide-prev {
+    animation-name: tt-fade;
+  }
+}
+
+@keyframes tt-fade {
+  from {
+    opacity: 0.3;
   }
 }
