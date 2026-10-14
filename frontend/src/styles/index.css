@@ -14555,3 +14555,25 @@ button.adm-group:hover {
 .yr-day.busy.exam::after {
   background: var(--gold);
 }
+
+/* The group's week at a glance, all 24 hours, in its own scroll box */
+.gt-grid-scroll {
+  position: relative;
+  max-height: 360px;
+  overflow-y: auto;
+  margin-top: 12px;
+  overscroll-behavior: contain;
+}
+
+.gt-grid-scroll .gt-grid {
+  margin-top: 0;
+}
+
+.gt-grid-scroll .gt-grid > span:not(.gt-grid-hour),
+.gt-grid-scroll .gt-grid-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 0;
+  background: var(--surface);
+}

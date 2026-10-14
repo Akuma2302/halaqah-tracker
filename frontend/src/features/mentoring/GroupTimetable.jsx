@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarCheck, CalendarClock, Users } from 'lucide-react';
 import client from '../../services/apiClient';
 import { DAYS, SHORT_DAYS, clock, hueFor, kindLabel, minutes } from '../timetable/timetable';
 
-// The part of the day that is looked at for a time to meet: 8 am to 10 pm.
-const DAY_START = 8 * 60;
-const DAY_END = 22 * 60;
+// The whole day is looked at for a time to meet, 12 am to 12 am.
+const DAY_START = 0;
+const DAY_END = 24 * 60;
 const HOURS = Array.from({ length: (DAY_END - DAY_START) / 60 }, (_, i) => DAY_START + i * 60);
 // A gap shorter than this isn't offered as a time to meet.
 const MIN_WINDOW = 60;
 
-const hhmm = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+// Midnight at the end of the day reads as 12 am, not 12 pm.
+const hhmm = (mins) => {
+  const m = mins % (24 * 60);
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+};
 const span = (from, to) => `${clock(hhmm(from))} to ${clock(hhmm(to))}`;
 const hourLabel = (mins) => clock(hhmm(mins)).replace(':00', '');
 const nameOf = (entry) => entry.title || entry.subject?.name || kindLabel(entry);
@@ -22,7 +26,7 @@ function duration(mins) {
   return h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m} min`;
 }
 
-// The stretches of one day, between 8 am and 10 pm, when none of these
+// The stretches of one day, from midnight to midnight, when none of these
 // entries is on. Each is { from, to } in minutes.
 function freeWindows(entries) {
   const busy = entries
@@ -48,6 +52,7 @@ export default function GroupTimetable({ people }) {
   const [error, setError] = useState(false);
   const [day, setDay] = useState(() => new Date().getDay());
   const [picked, setPicked] = useState(null); // an hour tapped in the grid: { day, hour }
+  const gridScroll = useRef(null);
 
   function load() {
     setError(false);
@@ -57,6 +62,14 @@ export default function GroupTimetable({ people }) {
       .catch(() => setError(true));
   }
   useEffect(load, []);
+
+  // The grid opens at 8 am once it is drawn; the night is a scroll up.
+  const loaded = !!timetables;
+  useEffect(() => {
+    const box = gridScroll.current;
+    const row = box?.querySelector('[data-hour="480"]');
+    if (box && row) box.scrollTop = row.offsetTop - box.querySelector('.gt-grid-head').offsetHeight - 4;
+  }, [loaded]);
 
   // Each person with their own weekly entries.
   const rows = useMemo(() => people.map((p) => ({ person: p, entries: timetables?.[p._id] || [] })), [people, timetables]);
@@ -110,7 +123,7 @@ export default function GroupTimetable({ people }) {
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="log-section-title">When {everyone} {n === 1 ? 'is' : 'are'} free</div>
-            <div className="log-section-sub">Between 8 am and 10 pm, from everyone's weekly timetable</div>
+            <div className="log-section-sub">Across the whole day, from everyone's weekly timetable</div>
           </div>
         </div>
         <p className="gt-lead">
@@ -165,6 +178,8 @@ export default function GroupTimetable({ people }) {
             <div className="log-section-sub">Tap an hour to see who is busy and who is free</div>
           </div>
         </div>
+        {/* The whole day scrolls in its own box, opening at 8 am */}
+        <div className="gt-grid-scroll" ref={gridScroll}>
         <div className="gt-grid" role="grid" aria-label="How many are busy each hour">
           <span />
           {SHORT_DAYS.map((label) => (
@@ -174,7 +189,9 @@ export default function GroupTimetable({ people }) {
           ))}
           {HOURS.map((hour) => (
             <div className="gt-grid-row" key={hour}>
-              <span className="gt-grid-hour">{hourLabel(hour)}</span>
+              <span className="gt-grid-hour" data-hour={hour}>
+                {hourLabel(hour)}
+              </span>
               {DAYS.map((_, d) => {
                 const busy = busyAt(d, hour).length;
                 const level = busy === 0 ? 'free' : busy === n ? 'full' : 'some';
@@ -195,6 +212,7 @@ export default function GroupTimetable({ people }) {
               })}
             </div>
           ))}
+        </div>
         </div>
         <div className="gt-legend">
           <span>
@@ -258,7 +276,7 @@ export default function GroupTimetable({ people }) {
           ))}
         </div>
         <div className="gt-scale" aria-hidden="true">
-          {[8, 11, 14, 17, 20].map((h) => (
+          {[0, 6, 12, 18].map((h) => (
             <span key={h} style={{ left: `${((h * 60 - DAY_START) / (DAY_END - DAY_START)) * 100}%` }}>
               {hourLabel(h * 60)}
             </span>
@@ -304,7 +322,7 @@ export default function GroupTimetable({ people }) {
                 </div>
               )}
               {items.length > 0 && (
-                <p className="gt-free">{free.length ? `Free: ${free.map((w) => span(w.from, w.to)).join(', ')}` : 'No free hour between 8 am and 10 pm.'}</p>
+                <p className="gt-free">{free.length ? `Free: ${free.map((w) => span(w.from, w.to)).join(', ')}` : 'No free hour all day.'}</p>
               )}
             </div>
           );
