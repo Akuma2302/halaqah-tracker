@@ -66,11 +66,10 @@ export function WeekGrid({ weekStart, todayKey, nowMinutes, itemsOn, onShift, on
   const allDay = perDay.map((list) => list.filter((x) => x.allDay || x.start === null));
   const anyAllDay = allDay.some((l) => l.length);
 
-  // The hours on show: 7am to 10pm, stretched to fit anything earlier or later.
+  // The whole day, midnight to midnight; it opens scrolled to the morning.
   const starts = timed.flat().map((x) => x.start);
-  const ends = timed.flat().map((x) => x.end);
-  const first = Math.min(7, ...starts.map((m) => Math.floor(m / 60)));
-  const last = Math.min(24, Math.max(22, ...ends.map((m) => Math.ceil(m / 60))));
+  const first = 0;
+  const last = 24;
   const hours = Array.from({ length: last - first }, (_, i) => first + i);
   const top = (mins) => ((mins - first * 60) / 60) * HOUR;
 
