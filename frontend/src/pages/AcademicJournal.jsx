@@ -32,7 +32,7 @@ import { formatWeekLabel, getWeekStart, toDateKey, addDays, dateForDayInWeek } f
 import SemesterOverview from '../features/academic/SemesterOverview';
 import SubjectFiles from '../features/academic/SubjectFiles';
 import { DateInput, Select } from '../components/pickers';
-import Skeleton from '../components/Skeleton';
+import { JournalSkeleton } from '../components/PageSkeletons';
 
 // How many favourite past year papers the Academic page lists before "more".
 const FAVOURITES_SHOWN = 4;
@@ -462,7 +462,7 @@ export default function AcademicJournal({ focus = null }) {
       </div>
 
       {weekLoading && !weekData ? (
-        <Skeleton variant="page" />
+        <JournalSkeleton />
       ) : weekError ? (
         <div className="card empty-state">
           <h3>Couldn't load this week</h3>

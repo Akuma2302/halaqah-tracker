@@ -10,7 +10,7 @@ import { DAYS, MAX_REMINDERS, MAX_REMINDER_MINUTES, REMINDER_UNITS, SHORT_DAYS, 
 import Sheet from '../components/Sheet';
 import SocialLinks from '../components/SocialLinks';
 import { Select, SelectMenu, TimeInput } from '../components/pickers';
-import Skeleton from '../components/Skeleton';
+import { TreeSkeleton } from '../components/PageSkeletons';
 
 // A steady colour per person (from their name), so faces in the tree are easy
 // to tell apart when there is no photo.
@@ -338,7 +338,7 @@ export default function Mentoring() {
           </button>
         </div>
       ) : !tree ? (
-        <Skeleton variant="cards" count={4} />
+        <TreeSkeleton />
       ) : (
         <>
           <div className="tree-counts">

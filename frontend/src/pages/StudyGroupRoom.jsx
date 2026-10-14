@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { MUTABAAH_FIELDS } from '../features/mutabaah/mutabaahFields';
 import { DateInput, TimeInput } from '../components/pickers';
 import Skeleton from '../components/Skeleton';
+import { RoomSkeleton } from '../components/PageSkeletons';
 
 export default function StudyGroupRoom() {
   const { id } = useParams();
@@ -173,7 +174,7 @@ export default function StudyGroupRoom() {
   if (!group) {
     return (
       <div className="page">
-        <Skeleton variant="page" />
+        <RoomSkeleton />
       </div>
     );
   }

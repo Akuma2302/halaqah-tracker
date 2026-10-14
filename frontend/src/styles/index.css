@@ -14937,3 +14937,102 @@ button.adm-group:hover {
   height: 24px;
   border-radius: 50%;
 }
+
+/* ---------- Skeletons shaped like their page ---------- */
+.sk.sk-shaped {
+  display: block;
+}
+
+.sk-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.sk-col.center {
+  align-items: center;
+}
+
+.sk-col.right {
+  align-items: flex-end;
+}
+
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sk-row.sk-right {
+  justify-content: flex-end;
+}
+
+/* Cards that take a colour from their subject or person: grey while loading */
+.sk-shaped .class-card,
+.sk-shaped .md-deadline {
+  border-left-color: var(--sk-base);
+  cursor: default;
+}
+
+.sk-shaped .md-hero-band.sk-band {
+  background: var(--sk-base);
+}
+
+.sk-shaped .tree-node {
+  cursor: default;
+}
+
+.sk-shaped .segmented.sk-seg > span {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  height: 27px;
+}
+
+.sk-shaped .class-list + .sk-bar,
+.sk-shaped .day-tabs + .sk-bar {
+  margin: 4px 0 10px;
+}
+
+/* Page styles that reach every span inside them (e.g. .tree-counts span)
+   mustn't restyle the grey bars */
+.sk-shaped .sk-bar {
+  display: block;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: linear-gradient(90deg, var(--sk-base) 0%, var(--sk-shine) 45%, var(--sk-base) 90%) !important;
+  background-size: 300% 100% !important;
+  box-shadow: none;
+}
+
+/* In a skeleton the text parts take the room left, so bars sized in % show */
+.sk-shaped .now-body,
+.sk-shaped .mentor-body,
+.sk-shaped .md-hero-text,
+.sk-shaped .aj-hero-text,
+.sk-shaped .perf-hero-text,
+.sk-shaped .perf-body,
+.sk-shaped .notif-text,
+.sk-shaped .md-deadline-body,
+.sk-shaped .py-body,
+.sk-shaped .quran-row-body,
+.sk-shaped .class-body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ...and the fixed columns keep their size */
+.sk-shaped .class-time.sk-col,
+.sk-shaped .md-date.sk-col,
+.sk-shaped .py-actions.sk-col {
+  flex: none;
+}
+
+.sk-shaped .class-time.sk-col {
+  width: 64px;
+}

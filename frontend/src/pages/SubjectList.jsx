@@ -8,7 +8,7 @@ import { ASSESSMENT_TYPES } from '../features/academic/constants';
 import { ASSESSMENT_LABEL, dueLabel, formatDueDate, isExam } from '../features/academic/deadlines';
 import { CLASS_KINDS, DAYS, KINDS, KIND_LABEL, SHORT_DAYS, clock, hueFor } from '../features/timetable/timetable';
 import { DateInput, Select, TimeInput } from '../components/pickers';
-import Skeleton from '../components/Skeleton';
+import { SubjectsSkeleton } from '../components/PageSkeletons';
 
 const TYPE_LABEL = ASSESSMENT_LABEL;
 const CREDIT_PRESETS = [2, 3, 4];
@@ -362,7 +362,7 @@ export default function SubjectList() {
       </div>
 
       {loading && !subjects.length ? (
-        <Skeleton variant="cards" count={3} />
+        <SubjectsSkeleton />
       ) : loadError ? (
         <div className="card empty-state">
           <h3>Couldn't load your subjects</h3>

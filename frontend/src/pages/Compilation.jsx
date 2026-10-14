@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BookMarked } from 'lucide-react';
 import client from '../services/apiClient';
-import Skeleton from '../components/Skeleton';
+import { CategoriesSkeleton } from '../components/PageSkeletons';
 
 const CATEGORIES = [
   { key: 'mathurat_pagi', label: 'Mathurat Pagi' },
@@ -32,7 +32,7 @@ export default function Compilation() {
       </div>
 
       {loading ? (
-        <Skeleton variant="cards" count={4} />
+        <CategoriesSkeleton />
       ) : (
         CATEGORIES.map((cat) => {
           const catItems = items.filter((i) => i.category === cat.key);

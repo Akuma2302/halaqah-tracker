@@ -22,6 +22,7 @@ import CountStepper from '../components/CountStepper';
 import { updateAppBadge } from '../features/mutabaah/appBadge';
 import { DateInput } from '../components/pickers';
 import Skeleton from '../components/Skeleton';
+import { ChecklistSkeleton } from '../components/PageSkeletons';
 
 const TOTAL = MUTABAAH_FIELDS.length;
 const todayKey = () => dayjs().format('YYYY-MM-DD');
@@ -295,7 +296,7 @@ export default function Checklist() {
       )}
 
       {loading ? (
-        <Skeleton variant="cards" count={5} compact />
+        <ChecklistSkeleton />
       ) : error || !entry ? (
         <p className="page-subtitle">Couldn't load this day's checklist. Please refresh the page.</p>
       ) : (

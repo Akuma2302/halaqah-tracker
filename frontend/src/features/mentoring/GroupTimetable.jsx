@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarCheck, CalendarClock, Users } from 'lucide-react';
 import client from '../../services/apiClient';
 import { DAYS, SHORT_DAYS, clock, hueFor, kindLabel, minutes } from '../timetable/timetable';
-import Skeleton from '../../components/Skeleton';
+import { GroupTimetableSkeleton } from '../../components/PageSkeletons';
 
 // The whole day is looked at for a time to meet, 12 am to 12 am.
 const DAY_START = 0;
@@ -100,7 +100,7 @@ export default function GroupTimetable({ people }) {
       </div>
     );
   }
-  if (!timetables) return <Skeleton variant="cards" count={3} compact />;
+  if (!timetables) return <GroupTimetableSkeleton />;
 
   const n = rows.length;
   const everyone = n === 1 ? firstName(rows[0].person) : n === 2 ? 'both' : `all ${n}`;
