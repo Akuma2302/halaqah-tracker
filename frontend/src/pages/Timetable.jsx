@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Tag, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
@@ -992,38 +992,39 @@ export default function Timetable() {
             maxLength={80}
           />
 
-          {/* The type, like Event / Task: the built-in ones, then my own */}
-          <div className="gc-kinds">
-            <div className="chip-row gc-kind-row">
-              {/* Classes are set on the subject; one made earlier keeps its own kind here. */}
-              {/* No plain "Other": a type of your own is added with New type instead. */}
-              {[...CLASS_KINDS.filter(([value]) => value === form.kind), ...TASK_KINDS.filter(([value]) => value !== 'other')].map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`chip${form.kind === value && !(value === 'other' && form.customKind) ? ' on' : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, kind: value, customKind: '' }))}
-                >
-                  {label}
-                </button>
-              ))}
-              {/* My own types, and one this task already has that I have since removed */}
-              {[...new Set([...myKinds, ...(form.kind === 'other' && form.customKind ? [form.customKind] : [])])].map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className={`chip${form.kind === 'other' && form.customKind === name ? ' on' : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, kind: 'other', customKind: name }))}
-                >
-                  {name}
-                </button>
-              ))}
-              {newKind === null && myKinds.length < 12 && (
-                <button type="button" className="chip chip-add" onClick={() => setNewKind('')}>
-                  <Plus size={12} /> New type
-                </button>
-              )}
-            </div>
+          {/* ---------- the type: built-in ones, then my own, and a way to add one ---------- */}
+          <div className="gc-row">
+            <Tag size={18} className="gc-icon" />
+            <div className="gc-body">
+              <select
+                className="input gc-plain"
+                aria-label="Type"
+                value={form.kind === 'other' ? (form.customKind ? `my:${form.customKind}` : 'other') : form.kind}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '__new') return setNewKind('');
+                  setNewKind(null);
+                  if (v.startsWith('my:')) setForm((f) => ({ ...f, kind: 'other', customKind: v.slice(3) }));
+                  else setForm((f) => ({ ...f, kind: v, customKind: '' }));
+                }}
+              >
+                {/* Classes are set on the subject; one made earlier keeps its own kind here. A plain "Other" only shows for one saved that way. */}
+                {[
+                  ...CLASS_KINDS.filter(([value]) => value === form.kind),
+                  ...TASK_KINDS.filter(([value]) => value !== 'other' || (form.kind === 'other' && !form.customKind))
+                ].map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+                {/* My own types, and one this task already has that I have since removed */}
+                {[...new Set([...myKinds, ...(form.kind === 'other' && form.customKind ? [form.customKind] : [])])].map((name) => (
+                  <option key={name} value={`my:${name}`}>
+                    {name}
+                  </option>
+                ))}
+                {myKinds.length < 12 && <option value="__new">+ New type…</option>}
+              </select>
             {newKind !== null && (
               <div className="tt-person-row tt-kind-row">
                 <input
@@ -1054,6 +1055,7 @@ export default function Timetable() {
                 Remove "{form.customKind}" from my types
               </button>
             )}
+            </div>
           </div>
 
           {/* ---------- when: the date, from and to, and how it repeats ---------- */}
