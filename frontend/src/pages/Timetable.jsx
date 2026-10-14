@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, BookOpen, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Tag, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Bell, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Tag, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
 import TypeMenu from '../features/timetable/TypeMenu';
+import { DateMenu, SelectMenu, TimeMenu } from '../features/timetable/pickers';
 import {
   CLASS_KINDS,
   DAYS,
@@ -455,15 +456,22 @@ export default function Timetable() {
     });
   }
 
-  // A time box; tapping anywhere on it opens the picker.
+  // A time picker. Moving the start keeps the length, as a calendar does;
+  // the end lists only later times, unless it ends on another day.
   const timeBox = (key, label) => (
-    <input
-      className="input gc-time"
-      type="time"
+    <TimeMenu
       value={form[key]}
-      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-      onClick={(e) => e.currentTarget.showPicker?.()}
-      aria-label={label}
+      ariaLabel={label}
+      from={key === 'endTime' && !(form.repeat === 'once' && endApart) ? form.startTime : undefined}
+      onChange={(t) =>
+        setForm((f) => {
+          if (key !== 'startTime') return { ...f, endTime: t };
+          if (f.repeat === 'once' && endApart) return { ...f, startTime: t };
+          const len = minutes(f.endTime) - minutes(f.startTime);
+          const end = Math.min(minutes(t) + (len > 0 ? len : 60), 24 * 60 - 1);
+          return { ...f, startTime: t, endTime: `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}` };
+        })
+      }
     />
   );
 
@@ -1057,39 +1065,23 @@ export default function Timetable() {
               {form.repeat === 'once' && endApart ? (
                 <div className="gc-when gc-span">
                   <div className="gc-span-line">
-                    <label className="gc-date">
+                    <DateMenu value={form.startDate} onChange={pickDate} ariaLabel="Start date">
                       <span>{longDay(form.startDate)}</span>
-                      <input type="date" value={form.startDate} onChange={(e) => pickDate(e.target.value)} onClick={(e) => e.currentTarget.showPicker?.()} aria-label="Start date" />
-                    </label>
+                    </DateMenu>
                     {timeBox('startTime', 'Starts at')}
                   </div>
                   <div className="gc-span-line">
-                    <label className="gc-date">
+                    <DateMenu value={form.endDate} min={form.startDate} onChange={(d) => setForm((f) => ({ ...f, endDate: d }))} ariaLabel="End date">
                       <span>{longDay(form.endDate)}</span>
-                      <input
-                        type="date"
-                        min={form.startDate}
-                        value={form.endDate}
-                        onChange={(e) => e.target.value && setForm((f) => ({ ...f, endDate: e.target.value }))}
-                        onClick={(e) => e.currentTarget.showPicker?.()}
-                        aria-label="End date"
-                      />
-                    </label>
+                    </DateMenu>
                     {timeBox('endTime', 'Ends at')}
                   </div>
                 </div>
               ) : (
                 <div className="gc-when">
-                  <label className="gc-date">
+                  <DateMenu value={form.startDate} onChange={pickDate} ariaLabel={form.repeat === 'once' ? 'Date' : 'Starting on'}>
                     <span>{form.startDate ? longDay(form.startDate) : 'Pick a date'}</span>
-                    <input
-                      type="date"
-                      value={form.startDate}
-                      onChange={(e) => pickDate(e.target.value)}
-                      onClick={(e) => e.currentTarget.showPicker?.()}
-                      aria-label={form.repeat === 'once' ? 'Date' : 'Starting on'}
-                    />
-                  </label>
+                  </DateMenu>
                   <span className="gc-times">
                     {timeBox('startTime', 'Starts at')}
                     <span className="gc-dash">–</span>
@@ -1101,18 +1093,24 @@ export default function Timetable() {
                 {isClassKind ? (
                   <span className="gc-note">Weekly on {DAYS[form.days[0]]}. Class times are set in Subjects.</span>
                 ) : (
-                  <label className="gc-repeat">
-                    <span>
-                      {repeatText(form, customDays)} <ChevronDown size={14} />
-                    </span>
-                    <select value={repeatOf(form, customDays)} onChange={(e) => pickRepeat(e.target.value)} aria-label="Repeat">
-                      <option value="none">Does not repeat</option>
-                      {editing === 'new' && <option value="daily">Daily</option>}
-                      <option value="weekly">Weekly on {form.startDate ? DAYS[weekdayOf(form.startDate)] : 'this day'}</option>
-                      {editing === 'new' && <option value="weekdays">Every weekday (Monday to Friday)</option>}
-                      {editing === 'new' && <option value="custom">Custom…</option>}
-                    </select>
-                  </label>
+                  <SelectMenu
+                    look="text"
+                    ariaLabel="Repeat"
+                    value={repeatOf(form, customDays)}
+                    display={repeatText(form, customDays)}
+                    onChange={pickRepeat}
+                    options={[
+                      { value: 'none', label: 'Does not repeat' },
+                      ...(editing === 'new' ? [{ value: 'daily', label: 'Daily' }] : []),
+                      { value: 'weekly', label: `Weekly on ${form.startDate ? DAYS[weekdayOf(form.startDate)] : 'this day'}` },
+                      ...(editing === 'new'
+                        ? [
+                            { value: 'weekdays', label: 'Every weekday (Monday to Friday)' },
+                            { value: 'custom', label: 'Custom…' }
+                          ]
+                        : [])
+                    ]}
+                  />
                 )}
                 {form.repeat === 'once' && !endApart && (
                   <button type="button" className="gc-link" onClick={() => setEndApart(true)}>
@@ -1152,22 +1150,17 @@ export default function Timetable() {
             <div className="gc-row">
               <BookOpen size={18} className="gc-icon" />
               <div className="gc-body">
-                <select
-                  id="tt-subject"
-                  className="input gc-plain"
+                <SelectMenu
+                  ariaLabel="Subject"
                   value={form.subjectId}
-                  onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value }))}
-                  aria-label="Subject"
-                >
-                  <option value="">No subject</option>
-                  {subjects
-                    .filter((s) => s.isVisible !== false || s._id === form.subjectId)
-                    .map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.code ? `${s.name} (${s.code})` : s.name}
-                      </option>
-                    ))}
-                </select>
+                  onChange={(v) => setForm((f) => ({ ...f, subjectId: v }))}
+                  options={[
+                    { value: '', label: 'No subject' },
+                    ...subjects
+                      .filter((s) => s.isVisible !== false || s._id === form.subjectId)
+                      .map((s) => ({ value: s._id, label: s.code ? `${s.name} (${s.code})` : s.name }))
+                  ]}
+                />
               </div>
             </div>
           )}
@@ -1275,13 +1268,13 @@ export default function Timetable() {
                       onChange={(e) => setReminder(i, { n: e.target.value })}
                       aria-label="How long before"
                     />
-                    <select className="input" value={r.unit} onChange={(e) => setReminder(i, { unit: e.target.value })} aria-label="Unit">
-                      {REMINDER_UNITS.map(([key, word]) => (
-                        <option key={key} value={key}>
-                          {word} before
-                        </option>
-                      ))}
-                    </select>
+                    <SelectMenu
+                      look="box"
+                      ariaLabel="Unit"
+                      value={r.unit}
+                      onChange={(unit) => setReminder(i, { unit })}
+                      options={REMINDER_UNITS.map(([key, word]) => ({ value: key, label: `${word} before` }))}
+                    />
                     <button
                       type="button"
                       className="icon-btn"

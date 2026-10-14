@@ -13260,3 +13260,290 @@ button.adm-group:hover {
 .tm-new:hover {
   background: var(--paper);
 }
+
+/* ---------- Pickers in the app's colours: menus, calendar, times ---------- */
+.pk {
+  position: relative;
+  min-width: 0;
+}
+
+.pk-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* A full-width row, like the type */
+.pk-field .pk-button {
+  width: calc(100% + 8px);
+  min-height: 40px;
+  margin-left: -8px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pk-field .pk-button span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pk-field .pk-button:hover,
+.pk-field .pk-button[aria-expanded='true'] {
+  border-color: var(--border);
+  background: var(--paper);
+}
+
+/* Quiet text with an arrow, like the repeat */
+.pk-text .pk-button {
+  min-height: 30px;
+  padding: 0 0 0 10px;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.pk-text .pk-button:hover,
+.pk-text .pk-button[aria-expanded='true'] {
+  color: var(--ink);
+}
+
+.pk-text .tm-menu {
+  min-width: 250px;
+  right: auto;
+  left: 0;
+}
+
+/* A small filled box, like a reminder's unit */
+.pk-box .pk-button {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  border-color: var(--border);
+  border-radius: 10px;
+  background: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pk-box .tm-menu {
+  left: 0;
+}
+
+.tm-menu.up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+/* The date button keeps the soft box look */
+.pk-date {
+  display: flex;
+}
+
+.pk-date .pk-button.gc-date {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pk-date .pk-button.gc-date:hover,
+.pk-date .pk-button.gc-date[aria-expanded="true"] {
+  border-color: var(--border);
+}
+
+@media (max-width: 480px) {
+  .gc-when > .pk-date {
+    flex-basis: 100%;
+  }
+}
+
+.gc-span-line .pk-date {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Calendar */
+.tm-menu.pk-cal {
+  left: 0;
+  right: auto;
+  width: 292px;
+  max-width: calc(100vw - 40px);
+  max-height: none;
+  padding: 12px;
+}
+
+.pk-cal-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.pk-cal-head strong {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.pk-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.pk-nav:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.pk-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.pk-cal-wd {
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.pk-day {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.pk-day:hover:not(:disabled) {
+  background: var(--paper);
+}
+
+.pk-day.out {
+  color: var(--ink-soft);
+  opacity: 0.55;
+}
+
+.pk-day.today {
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+
+.pk-day.on {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.pk-day:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.pk-cal-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+  padding: 6px 4px 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Times */
+.pk-time .pk-button.gc-time-button {
+  justify-content: center;
+  min-width: 100px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pk-time .pk-button.gc-time-button:hover,
+.pk-time .pk-button.gc-time-button[aria-expanded='true'] {
+  border-color: var(--border);
+}
+
+.tm-menu.pk-times {
+  left: 0;
+  right: auto;
+  min-width: 170px;
+  max-height: 240px;
+  padding: 6px;
+}
+
+.pk-t {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pk-t small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.pk-t:hover {
+  background: var(--paper);
+}
+
+.pk-t.on {
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+/* The end time opens from its right edge so it stays on screen */
+.gc-times > .pk-time:last-child .tm-menu,
+.gc-span-line .pk-time .tm-menu {
+  left: auto;
+  right: 0;
+}
