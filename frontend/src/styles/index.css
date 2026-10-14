@@ -14821,3 +14821,16 @@ button.adm-group:hover {
 .mushaf-loading .sk {
   max-width: 100%;
 }
+
+/* A view sliding in (swiping the timetable or between people) starts a little
+   to one side; clip it at the page edge so the page never becomes wider than
+   the screen, which made phones zoom out for a moment. */
+.page {
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  .page {
+    overflow-x: hidden;
+  }
+}
