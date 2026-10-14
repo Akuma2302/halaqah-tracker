@@ -123,7 +123,7 @@ export default function MenteeDetail() {
           !cancelled &&
           setError(
             err.response?.status === 403
-              ? "You can't view this person's updates. Only their mentor and mentoring mates can."
+              ? "You can't view this person's updates. Only their mentor and the mates in their group can."
               : "Couldn't load this person's updates."
           )
       );

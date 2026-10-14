@@ -54,8 +54,9 @@ async function getTree(userId, date) {
     me?.mentoring_group_id ? mentoringGroupRepository.findById(me.mentoring_group_id) : null
   ]);
   const mates = underMyMentor.filter((u) => u.id !== userId);
+  const groupMates = mates.filter((u) => sameGroup(me, u));
   const todayRows = await mutabaahRepository.findByUsersAndDate(
-    [...mentees, ...mates].map((u) => u.id),
+    [...mentees, ...groupMates].map((u) => u.id),
     date
   );
   const rowByUser = Object.fromEntries(todayRows.map((r) => [r.user_id, r]));
@@ -80,7 +81,14 @@ async function getTree(userId, date) {
   return {
     me: publicUser(me),
     mentor: mentor ? publicUser(mentor) : null,
-    mates: withToday(mates),
+    // Everyone under my mentor by name; today's mutabaah only for those in my group.
+    mates: [
+      ...withToday(groupMates).map((m) => ({ ...m, sameGroup: true })),
+      ...mates
+        .filter((u) => !sameGroup(me, u))
+        .map((u) => ({ ...publicUser(u), sameGroup: false }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    ],
     mentees: withToday(mentees),
     // My own groupings of my mentees, and the one my mentor has put me in.
     groups: groups.map(mentoringGroupRepository.serialize),
@@ -131,15 +139,22 @@ async function removeGroup(mentorId, groupId) {
   await mentoringGroupRepository.remove(groupId, mentorId);
 }
 
+// Two mentees of the same mentor who are in the same one of that mentor's
+// groups. Only they see each other's mutabaah; mates in another group, or in
+// none, keep theirs to themselves.
+function sameGroup(a, b) {
+  return !!(a && b && a.mentor_id && a.mentor_id === b.mentor_id && a.mentoring_group_id && a.mentoring_group_id === b.mentoring_group_id);
+}
+
 // Who may see whose detail. Visibility only runs down and sideways:
 //  - a mentor sees their mentees;
-//  - mentees of the same mentor (mentoring mates) see each other;
+//  - mentees of the same mentor in the same group (group mates) see each other;
 //  - nobody sees upwards, so a mentee never sees their mentor's detail.
 // Returns 'mentee', 'mate' or null.
 function relationTo(viewer, target) {
   if (!viewer || !target || viewer.id === target.id) return null;
   if (target.mentor_id === viewer.id) return 'mentee';
-  if (viewer.mentor_id && target.mentor_id === viewer.mentor_id) return 'mate';
+  if (sameGroup(viewer, target)) return 'mate';
   return null;
 }
 
@@ -451,7 +466,7 @@ function groupSummary(people) {
 async function getTimetables(userId) {
   const me = await userRepository.findById(userId);
   const [mentees, underMyMentor] = await Promise.all([userRepository.findMentees(userId), me?.mentor_id ? userRepository.findMentees(me.mentor_id) : []]);
-  const everyone = [me, ...mentees, ...underMyMentor.filter((u) => u.id !== userId)].filter(Boolean);
+  const everyone = [me, ...mentees, ...underMyMentor.filter((u) => u.id !== userId && sameGroup(me, u))].filter(Boolean);
   const lists = await Promise.all(
     everyone.map((u) => Promise.all([timetableRepository.findByUser(u.id), timetableRepository.findSharedWith(u.id)]).then(([own, shared]) => [...own, ...shared]))
   );
@@ -484,7 +499,8 @@ async function getDashboard(userId, { date, weekStart, days = null }) {
     userRepository.findMentees(userId),
     me?.mentor_id ? userRepository.findMentees(me.mentor_id) : []
   ]);
-  const mates = underMyMentor.filter((u) => u.id !== userId);
+  // Only my group mates: the others under my mentor keep their mutabaah private.
+  const mates = underMyMentor.filter((u) => u.id !== userId && sameGroup(me, u));
   const everyone = [me, ...mates, ...mentees];
 
   const from = days ? addDays(date, -(days - 1)) : weekStart;
@@ -526,9 +542,10 @@ async function getDashboard(userId, { date, weekStart, days = null }) {
     from,
     groups: groups.map(mentoringGroupRepository.serialize),
     hasMentor: !!me?.mentor_id,
+    inGroup: !!(me?.mentor_id && me?.mentoring_group_id),
     mates: { summary: groupSummary(mateGroup), people: mateGroup },
     mentees: { summary: groupSummary(menteeGroup), people: menteeGroup }
   };
 }
 
-module.exports = { getTimetables, getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, weekStats, rangeStats, groupSummary, alertMentee, saveGroup, removeGroup };
+module.exports = { getTimetables, getTree, setMentor, getMenteeDetail, getDashboard, parseMemberNo, relationTo, sameGroup, weekStats, rangeStats, groupSummary, alertMentee, saveGroup, removeGroup };

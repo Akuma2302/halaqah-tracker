@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BarChart3, CalendarClock, Check, ChevronRight, Clock, Copy, MapPin, Network, Pencil, Plus, Share2, Trash2, UserMinus, UserPlus } from 'lucide-react';
+import { BarChart3, CalendarClock, Check, ChevronRight, Clock, Copy, Lock, MapPin, Network, Pencil, Plus, Share2, Trash2, UserMinus, UserPlus, Users } from 'lucide-react';
 import MentoringDashboard from '../features/mentoring/MentoringDashboard';
 import client from '../services/apiClient';
 import { useToast } from '../hooks/useToast';
@@ -43,8 +43,20 @@ function TodayRing({ done, total }) {
   );
 }
 
-// A mentee or mentoring mate in the tree: opens their detail page.
+// A mentee or mentoring mate in the tree: opens their detail page. A mate
+// outside my group shows only who they are: no mutabaah, nothing to open.
 function PersonNode({ person }) {
+  if (person.sameGroup === false)
+    return (
+      <div className="tree-node tree-private">
+        <Avatar person={person} />
+        <div className="mentor-body">
+          <div className="mentor-name">{person.name}</div>
+          <div className="mentor-meta">{[person.memberId, person.kampus].filter(Boolean).join(' · ')}</div>
+        </div>
+        <Lock size={13} className="tree-private-lock" aria-label="Mutabaah private" />
+      </div>
+    );
   return (
     <Link to={`/mentoring/${person._id}`} className="tree-node tree-link">
       <Avatar person={person} />
@@ -117,7 +129,7 @@ export default function Mentoring() {
   }
 
   function removeMentor() {
-    const message = `Remove ${tree.mentor.name} as your mentor? They and your mentoring mates will no longer see your mutabaah and academic detail, and you will no longer see your mates'.`;
+    const message = `Remove ${tree.mentor.name} as your mentor? They and your group mates will no longer see your mutabaah and academic detail, and you will no longer see your group mates'.`;
     if (window.confirm(message)) saveMentor('');
   }
 
@@ -137,6 +149,9 @@ export default function Mentoring() {
   }
 
   const mates = tree?.mates || [];
+  // Mates in my group (their mutabaah is shared with me) and the rest.
+  const groupMates = mates.filter((m) => m.sameGroup !== false);
+  const otherMates = mates.filter((m) => m.sameGroup === false);
   const mentees = tree?.mentees || [];
   const examsThisWeek = (tree?.menteeExams || []).filter((x) => daysUntil(x.dueDate) <= 7).length;
   const groups = tree?.groups || [];
@@ -381,8 +396,8 @@ export default function Mentoring() {
                 </div>
                 {formError && <p className="form-error">{formError}</p>}
                 <p className="mentor-note">
-                  Your mentor, and the other mentees under them, will see your mutabaah and academic detail. You can
-                  remove them at any time.
+                  Your mentor, and the mates your mentor puts in your group, will see your mutabaah and academic detail.
+                  You can remove them at any time.
                 </p>
               </form>
             )}
@@ -394,8 +409,35 @@ export default function Mentoring() {
                   Under your mentor · {mates.length ? `you and ${mates.length} mate${mates.length === 1 ? '' : 's'}` : 'just you so far'}
                 </div>
               )}
+              {/* My group: me and my group mates, whose mutabaah we share */}
+              {tree.mentor && (
+                <div className="tree-caption tree-caption-sub tree-my-group-caption">
+                  {tree.myGroup ? (
+                    <>
+                      <Users size={11} /> Your group · {tree.myGroup.name} ({groupMates.length + 1})
+                    </>
+                  ) : (
+                    'You are not in a group yet'
+                  )}
+                </div>
+              )}
+              {groupMates.map((m) => (
+                <div className="tree-item" key={m._id}>
+                  <PersonNode person={m} />
+                </div>
+              ))}
+              {/* Me last in my group, since my own mentees hang under me */}
               {youNode}
-              {mates.map((m) => (
+              {tree.mentor && !tree.myGroup && (
+                <p className="tree-group-note">When {tree.mentor.name} puts you in a group, you and your group mates will see each other's mutabaah.</p>
+              )}
+              {/* Everyone else under my mentor: who they are, but not their mutabaah */}
+              {otherMates.length > 0 && (
+                <div className="tree-caption tree-caption-sub">
+                  {tree.myGroup ? 'In other groups or none' : 'Other mates'} ({otherMates.length}) · mutabaah private
+                </div>
+              )}
+              {otherMates.map((m) => (
                 <div className="tree-item" key={m._id}>
                   <PersonNode person={m} />
                 </div>
@@ -468,7 +510,7 @@ export default function Mentoring() {
               </div>
             </div>
           )}
-          {(mates.length > 0 || mentees.length > 0) && (
+          {(groupMates.length > 0 || mentees.length > 0) && (
             <p className="mentor-note">The ring beside each person is their mutabaah today, out of 7. Tap someone to see their updates.</p>
           )}
         </>

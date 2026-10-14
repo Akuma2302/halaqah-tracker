@@ -473,7 +473,7 @@ export default function MentoringDashboard() {
               {myGroups.length > 0 && <option value="none">Not in a group</option>}
             </optgroup>
             <optgroup label="Under my mentor">
-              <option value="mates">Mentoring mates{count(Math.max(0, (data?.mates.summary.count || 1) - 1))}</option>
+              <option value="mates">My group mates{count(Math.max(0, (data?.mates.summary.count || 1) - 1))}</option>
             </optgroup>
           </Select>
         </label>
@@ -595,7 +595,7 @@ export default function MentoringDashboard() {
               ? "You don't have any mentees yet. They appear here once they add your User ID as their mentor."
               : data.hasMentor
                 ? 'Nobody else is under your mentor yet.'
-                : 'Add a mentor on the Tree tab to see how you and your mentoring mates are doing.'}
+                : 'Add a mentor on the Tree tab to see how you and your group mates are doing.'}
           </p>
         </div>
       ) : view === 'timetable' ? (
@@ -618,7 +618,7 @@ export default function MentoringDashboard() {
                 <div className="perf-hero-title">{view === 'academic' ? 'Average study hours' : 'Average mutabaah'}</div>
                 <div className="perf-hero-sub">
                   {active === 'mates'
-                    ? 'You and your mentoring mates'
+                    ? 'You and your group mates'
                     : `${groupFilter ? `${summary.count} of your ${group.total}` : `Your ${summary.count}`} mentee${(groupFilter ? group.total : summary.count) === 1 ? '' : 's'}`}
                   {view === 'academic' ? ` · target ${studyTarget}h each` : ''}
                 </div>
@@ -753,7 +753,7 @@ export default function MentoringDashboard() {
           {/* ---------- everyone ---------- */}
           <div className="card perf-group">
             <div className="perf-list-head">
-              <span className="log-section-title">{active === 'mates' ? 'Mentoring mates' : 'Mentees'}</span>
+              <span className="log-section-title">{active === 'mates' ? 'Group mates' : 'Mentees'}</span>
               <span className="perf-count">
                 {query.trim() ? `${people.length} of ${group.people.length}` : `${group.people.length}`}
               </span>
