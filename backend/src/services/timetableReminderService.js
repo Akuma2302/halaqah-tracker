@@ -1,4 +1,6 @@
 const timetableRepository = require('../repositories/timetableRepository');
+const mentoringGroupRepository = require('../repositories/mentoringGroupRepository');
+const { asRow: groupMeetingRow } = require('./groupMeetings');
 const reminderLogRepository = require('../repositories/reminderLogRepository');
 const notificationService = require('./notificationService');
 const { localClock } = require('./mutabaahReminderService');
@@ -7,7 +9,9 @@ const { clock } = require('../utils/assessments');
 
 // Reminders people set on their own timetable entries: "10 minutes before",
 // "1 day before" and so on, as many as they like on each one. Sent to whoever
-// owns the entry and everyone added to it.
+// owns the entry and everyone added to it. A mentoring group's weekly meeting
+// works the same way: its mentor sets the reminders, and they go to the mentor
+// and everyone in the group.
 //
 // The job runs every ten minutes, so a reminder arrives within about ten
 // minutes after its moment, never before it.
@@ -79,14 +83,16 @@ const nameOf = (row) => row.title || row.subject?.name || row.custom_kind || KIN
 // Safe to call as often as you like: each reminder is sent at most once.
 async function runDueReminders(now = new Date()) {
   const result = { sent: 0 };
-  const rows = (await timetableRepository.findWithReminders()).filter((row) => row.subject?.is_visible !== false);
+  const [entries, groups] = await Promise.all([timetableRepository.findWithReminders(), mentoringGroupRepository.findWithReminders()]);
+  const rows = [...entries.filter((row) => row.subject?.is_visible !== false), ...groups.map(groupMeetingRow).filter(Boolean)];
   const due = dueReminders(rows, now);
   if (!due.length) return result;
 
-  const links = await timetableRepository.findParticipants([...new Set(due.map((d) => d.row.id))]);
+  // People added to an entry; a group meeting's people are its members.
+  const links = await timetableRepository.findParticipants([...new Set(due.filter((d) => !d.row.from_group).map((d) => d.row.id))]);
   const wanted = [];
   due.forEach(({ row, date, minutes, start }) => {
-    const people = [row.user_id, ...links.filter((l) => l.entry_id === row.id).map((l) => l.user_id)];
+    const people = [row.user_id, ...(row.from_group ? row.member_ids : links.filter((l) => l.entry_id === row.id).map((l) => l.user_id))];
     const when = fromNow(start.getTime() - now.getTime());
     [...new Set(people)].forEach((userId) =>
       wanted.push({

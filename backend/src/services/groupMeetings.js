@@ -30,9 +30,11 @@ function asRow(group) {
     custom_kind: '',
     start_date: null,
     end_date: null,
-    reminders: [],
+    reminders: Array.isArray(group.reminders) ? group.reminders : [],
     subject: null,
-    from_group: true
+    from_group: true,
+    // Who a reminder goes to besides the mentor, when known.
+    member_ids: group.member_ids || []
   };
 }
 

@@ -440,6 +440,8 @@ alter table mentoring_groups enable row level security;
 alter table users add column if not exists mentoring_group_id uuid references mentoring_groups(id) on delete set null;
 -- When the meeting ends; without it, members' timetables show it as 1h 30m.
 alter table mentoring_groups add column if not exists end_time time;
+-- Minutes before the meeting to remind the mentor and every member, set by the mentor.
+alter table mentoring_groups add column if not exists reminders jsonb not null default '[]'::jsonb;
 
 -- Ways to reach someone, shown to their mentor, mentees and mentoring mates.
 -- Always a full https link to that service, built by utils/socialLinks.js.

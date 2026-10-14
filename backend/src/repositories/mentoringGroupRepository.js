@@ -16,8 +16,9 @@ async function findById(id) {
   return data;
 }
 
-function toRow({ name, dayOfWeek, startTime, endTime, venue }) {
+function toRow({ name, dayOfWeek, startTime, endTime, venue, reminders }) {
   return {
+    ...(reminders !== undefined ? { reminders } : {}),
     name,
     day_of_week: dayOfWeek === null || dayOfWeek === undefined ? null : dayOfWeek,
     start_time: startTime || null,
@@ -79,8 +80,31 @@ function serialize(row) {
     dayOfWeek: row.day_of_week,
     startTime: row.start_time ? String(row.start_time).slice(0, 5) : null,
     endTime: row.end_time ? String(row.end_time).slice(0, 5) : null,
+    // Minutes before each meeting to remind the mentor and the members.
+    reminders: Array.isArray(row.reminders) ? row.reminders : [],
     venue: row.venue || ''
   };
 }
 
-module.exports = { findByMentor, findById, create, update, remove, setMembers, serialize };
+// Groups that meet at a set time and have reminders, with who is in each.
+async function findWithReminders() {
+  const { data: groups, error } = await supabase
+    .from('mentoring_groups')
+    .select('*')
+    .neq('reminders', '[]')
+    .not('day_of_week', 'is', null)
+    .not('start_time', 'is', null);
+  if (error) throw error;
+  if (!groups.length) return [];
+  const { data: members, error: memberError } = await supabase
+    .from('users')
+    .select('id, mentoring_group_id')
+    .in(
+      'mentoring_group_id',
+      groups.map((g) => g.id)
+    );
+  if (memberError) throw memberError;
+  return groups.map((g) => ({ ...g, member_ids: members.filter((m) => m.mentoring_group_id === g.id).map((m) => m.id) }));
+}
+
+module.exports = { findByMentor, findById, create, update, remove, setMembers, serialize, findWithReminders };

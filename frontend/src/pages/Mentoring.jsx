@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BarChart3, CalendarClock, Check, ChevronRight, Clock, Copy, Lock, MapPin, Network, Pencil, Plus, Share2, Trash2, UserMinus, UserPlus, Users } from 'lucide-react';
+import { BarChart3, Bell, CalendarClock, Check, ChevronRight, Clock, Copy, Lock, MapPin, Network, Pencil, Plus, Share2, Trash2, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import MentoringDashboard from '../features/mentoring/MentoringDashboard';
 import client from '../services/apiClient';
 import { useToast } from '../hooks/useToast';
 import { toDateKey } from '../features/academic/weekUtils';
 import { ASSESSMENT_LABEL, daysUntil } from '../features/academic/deadlines';
-import { DAYS, SHORT_DAYS, clock } from '../features/timetable/timetable';
+import { DAYS, MAX_REMINDERS, MAX_REMINDER_MINUTES, REMINDER_UNITS, SHORT_DAYS, clock, reminderMinutes, reminderParts } from '../features/timetable/timetable';
 import Sheet from '../components/Sheet';
 import SocialLinks from '../components/SocialLinks';
-import { Select, TimeInput } from '../components/pickers';
+import { Select, SelectMenu, TimeInput } from '../components/pickers';
 
 // A steady colour per person (from their name), so faces in the tree are easy
 // to tell apart when there is no photo.
@@ -168,11 +168,14 @@ export default function Mentoring() {
             startTime: group.startTime || '',
             endTime: group.endTime || '',
             venue: group.venue || '',
+            reminders: (group.reminders || []).map(reminderParts),
             memberIds: mentees.filter((m) => m.groupId === group._id).map((m) => m._id)
           }
-        : { name: `Mentoring ${groups.length + 1}`, dayOfWeek: '', startTime: '', endTime: '', venue: '', memberIds: ungrouped.map((m) => m._id) }
+        : { name: `Mentoring ${groups.length + 1}`, dayOfWeek: '', startTime: '', endTime: '', venue: '', reminders: [], memberIds: ungrouped.map((m) => m._id) }
     );
   }
+
+  const setGroupReminder = (i, change) => setGroupForm((f) => ({ ...f, reminders: f.reminders.map((r, j) => (j === i ? { ...r, ...change } : r)) }));
 
   function toggleMember(id) {
     setGroupForm((f) => ({ ...f, memberIds: f.memberIds.includes(id) ? f.memberIds.filter((x) => x !== id) : [...f.memberIds, id] }));
@@ -180,6 +183,9 @@ export default function Mentoring() {
 
   async function saveGroup() {
     if (!groupForm.name.trim()) return setGroupError('Give the group a name.');
+    const reminders = groupForm.reminders.map(reminderMinutes);
+    if (reminders.some((m) => !Number.isFinite(m) || m < 0)) return setGroupError('Each reminder needs a number.');
+    if (reminders.some((m) => m > MAX_REMINDER_MINUTES)) return setGroupError('A reminder can be at most 4 weeks before.');
     setGroupSaving(true);
     setGroupError('');
     const body = {
@@ -188,6 +194,7 @@ export default function Mentoring() {
       startTime: groupForm.startTime || null,
       endTime: groupForm.startTime && groupForm.endTime ? groupForm.endTime : null,
       venue: groupForm.venue.trim(),
+      reminders,
       memberIds: groupForm.memberIds
     };
     try {
@@ -579,6 +586,61 @@ export default function Mentoring() {
                 placeholder="e.g. Surau, Google Meet"
                 maxLength={80}
               />
+            </div>
+            {/* ---------- reminders before each meeting, for the mentor and every member ---------- */}
+            <div className="field">
+              <label>
+                <Bell size={11} /> Reminders
+              </label>
+              {groupForm.reminders.map((r, i) => (
+                <div className="tt-reminder" key={i}>
+                  <input
+                    className="input"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    value={r.n}
+                    onChange={(e) => setGroupReminder(i, { n: e.target.value })}
+                    aria-label="How long before"
+                  />
+                  <SelectMenu
+                    look="box"
+                    ariaLabel="Unit"
+                    value={r.unit}
+                    onChange={(unit) => setGroupReminder(i, { unit })}
+                    options={REMINDER_UNITS.map(([key, word]) => ({ value: key, label: `${word} before` }))}
+                  />
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => setGroupForm((f) => ({ ...f, reminders: f.reminders.filter((_, j) => j !== i) }))}
+                    aria-label="Remove this reminder"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              {groupForm.reminders.length < MAX_REMINDERS && (
+                <button
+                  type="button"
+                  className="gc-link tt-reminder-add"
+                  onClick={() =>
+                    setGroupForm((f) => ({
+                      ...f,
+                      // A sensible next one: an hour, then a day, then ten minutes.
+                      reminders: [...f.reminders, [{ n: 1, unit: 'h' }, { n: 1, unit: 'd' }, { n: 10, unit: 'm' }][f.reminders.length] || { n: 30, unit: 'm' }]
+                    }))
+                  }
+                >
+                  <Plus size={13} /> Add notification
+                </button>
+              )}
+              <p className="field-hint">
+                {groupForm.dayOfWeek === '' || !groupForm.startTime ? 'Set a day and a start time for reminders to be sent. ' : ''}
+                {groupForm.reminders.length
+                  ? 'You and everyone in the group get a notification before each meeting.'
+                  : 'No reminder set. Add one so you and the group are notified before each meeting.'}
+              </p>
             </div>
             <div className="field">
               <label>

@@ -19,6 +19,12 @@ const groupSchema = z.object({
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
     .nullish(),
   venue: z.string().trim().max(80).optional(),
+  // Minutes before the meeting: up to five, each at most four weeks ahead.
+  reminders: z
+    .array(z.number().int().min(0).max(40320))
+    .max(5)
+    .optional()
+    .transform((r) => (r ? [...new Set(r)].sort((a, b) => a - b) : r)),
   memberIds: z.array(z.string().uuid()).max(200).optional()
 });
 const alertSchema = z.object({
