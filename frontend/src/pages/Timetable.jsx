@@ -5,6 +5,7 @@ import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
+import { useSwipe } from '../hooks/useSwipe';
 import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
 import TypeMenu from '../features/timetable/TypeMenu';
 import { MonthCellItems, WeekGrid, YearGrid, shiftKey, sundayOf } from '../features/timetable/CalendarViews';
@@ -380,6 +381,21 @@ export default function Timetable() {
   }, [monthStart]);
 
   const shiftMonth = (n) => setMonthStart((m) => new Date(m.getFullYear(), m.getMonth() + n, 1));
+
+  // On a phone, swipe left for the next day, week, month or year and right for
+  // the one before; the view slides in from that side.
+  const [slide, setSlide] = useState(null); // { dir: 'next' | 'prev', n } to replay the slide
+  const step = (n) => {
+    if (view === 'day') setDay((d) => (d + n + 7) % 7);
+    else if (view === 'week') setWeekStart((k) => shiftKey(k, 7 * n));
+    else if (view === 'month') shiftMonth(n);
+    else setYear((y) => y + n);
+    setSlide((x) => ({ dir: n > 0 ? 'next' : 'prev', n: (x?.n || 0) + 1 }));
+  };
+  const swipe = useSwipe(
+    () => step(1),
+    () => step(-1)
+  );
   const goToToday = () => {
     setMonthStart(new Date(now.getFullYear(), now.getMonth(), 1));
     setPickedDate(todayKey);
@@ -936,6 +952,7 @@ export default function Timetable() {
             </button>
           </div>
 
+          <div className={`tt-swipe${slide ? ` slide-${slide.dir}` : ''}`} key={slide?.n || 0} {...swipe}>
           {view === 'day' ? (
             <>
               <div className="day-tabs" role="tablist" aria-label="Day of the week">
@@ -1075,6 +1092,7 @@ export default function Timetable() {
               )}
             </>
           )}
+          </div>
 
           {/* ---------- every exam still to come, from the subjects ---------- */}
           {(view === 'day' || view === 'week') && exams.length + upcomingEvents.length > 0 && (

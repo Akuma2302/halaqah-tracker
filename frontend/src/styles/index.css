@@ -14577,3 +14577,32 @@ button.adm-group:hover {
   padding: 4px 0;
   background: var(--surface);
 }
+
+/* ---------- Timetable: swiping to the next or previous day, week, month or year ---------- */
+.tt-swipe {
+  touch-action: pan-y;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tt-swipe.slide-next {
+    animation: tt-from-right 0.22s ease-out;
+  }
+
+  .tt-swipe.slide-prev {
+    animation: tt-from-left 0.22s ease-out;
+  }
+}
+
+@keyframes tt-from-right {
+  from {
+    opacity: 0.3;
+    transform: translateX(28px);
+  }
+}
+
+@keyframes tt-from-left {
+  from {
+    opacity: 0.3;
+    transform: translateX(-28px);
+  }
+}
