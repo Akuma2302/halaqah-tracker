@@ -13632,3 +13632,67 @@ button.adm-group:hover {
 .pk-clock-foot .bad {
   color: var(--danger);
 }
+
+/* Add task sheet, tighter: less space between rows, one line under the title, a compact calendar */
+.gc-title {
+  margin-bottom: 4px;
+  padding: 2px 0 6px;
+  font-size: 22px;
+}
+
+.gc-title + .gc-row {
+  border-top: none;
+}
+
+.gc-row {
+  gap: 12px;
+  padding: 7px 0;
+}
+
+.gc-body {
+  gap: 6px;
+}
+
+.gc-when {
+  gap: 6px;
+}
+
+.tm-menu.pk-cal {
+  width: 268px;
+  padding: 8px 10px 6px;
+}
+
+.pk-cal-head {
+  margin-bottom: 2px;
+}
+
+.pk-cal-head strong {
+  font-size: 14px;
+}
+
+.pk-nav {
+  width: 28px;
+  height: 28px;
+}
+
+.pk-cal-grid {
+  gap: 0;
+}
+
+.pk-cal-wd {
+  padding: 2px 0;
+  font-size: 10.5px;
+}
+
+.pk-day {
+  aspect-ratio: auto;
+  height: 32px;
+  width: 32px;
+  justify-self: center;
+  font-size: 13px;
+}
+
+.pk-cal-foot {
+  margin-top: 2px;
+  padding-top: 4px;
+}
