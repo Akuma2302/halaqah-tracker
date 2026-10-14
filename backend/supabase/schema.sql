@@ -546,5 +546,9 @@ alter table timetable_entries add column if not exists start_date date;
 alter table timetable_entries add column if not exists end_date date;
 alter table timetable_entries add column if not exists reminders jsonb not null default '[]'::jsonb;
 alter table timetable_entries add column if not exists custom_kind text not null default '';
+-- A weekly entry taken off single dates ("this event" deleted), and the last
+-- date it happens ("this and following events" deleted).
+alter table timetable_entries add column if not exists skip_dates jsonb not null default '[]'::jsonb;
+alter table timetable_entries add column if not exists repeat_until date;
 -- The types a user has made for their own tasks ("Gym", "Usrah"), kept to offer again.
 alter table users add column if not exists task_kinds jsonb not null default '[]'::jsonb;

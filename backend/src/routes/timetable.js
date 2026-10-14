@@ -9,6 +9,7 @@ const userRepository = require('../repositories/userRepository');
 const notificationService = require('../services/notificationService');
 const { parseMemberNo } = require('../services/mentoringService');
 const { groupMeetingRows } = require('../services/groupMeetings');
+const { skipDatesOf, dayKey } = require('../utils/weekly');
 const { serializeUser } = require('../utils/serializers');
 const { clock } = require('../utils/assessments');
 const serialize = timetableRepository.serialize;
@@ -233,12 +234,37 @@ router.put(
 );
 
 // The owner deletes it for everyone; someone who was added only takes themselves off.
+// Deleting. Someone added to another person's entry takes themselves off it.
+// The owner of a weekly entry can delete one date (?scope=this&date=), that
+// date and every later one (?scope=following&date=), or all of it.
 router.delete(
   '/:id',
   asyncHandler(async (req, res) => {
     const row = await timetableRepository.findById(req.params.id);
-    if (row && row.user_id !== req.userId) await timetableRepository.removeParticipant(req.params.id, req.userId);
-    else await timetableRepository.remove(req.params.id, req.userId);
+    if (row && row.user_id !== req.userId) {
+      await timetableRepository.removeParticipant(req.params.id, req.userId);
+      return res.json({ ok: true });
+    }
+    const scope = String(req.query.scope || 'all');
+    const date = String(req.query.date || '');
+    if (scope !== 'all') {
+      if (!['this', 'following'].includes(scope) || !DATE.test(date)) return res.status(400).json({ error: 'Choose which events to delete' });
+      if (!row) return res.status(404).json({ error: 'Not found' });
+      if (row.start_date) return res.status(400).json({ error: 'Only a weekly entry has other events' });
+      if (scope === 'this') {
+        const skipDates = [...new Set([...skipDatesOf(row), date])].sort();
+        await timetableRepository.setRepeat(row.id, req.userId, { skipDates });
+        return res.json({ ok: true, skipDates });
+      }
+      // The day before the chosen date is the last one it happens.
+      const d = new Date(`${date}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - 1);
+      const repeatUntil = d.toISOString().slice(0, 10);
+      const until = dayKey(row.repeat_until);
+      await timetableRepository.setRepeat(row.id, req.userId, { repeatUntil: until && until < repeatUntil ? until : repeatUntil });
+      return res.json({ ok: true, repeatUntil: until && until < repeatUntil ? until : repeatUntil });
+    }
+    await timetableRepository.remove(req.params.id, req.userId);
     res.json({ ok: true });
   })
 );

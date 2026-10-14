@@ -2,6 +2,7 @@ const timetableRepository = require('../repositories/timetableRepository');
 const subjectRepository = require('../repositories/subjectRepository');
 const widgetService = require('./widgetService');
 const { groupMeetingRows } = require('./groupMeetings');
+const { weeklyOn, skipDatesOf, dayKey } = require('../utils/weekly');
 const { ASSESSMENT_LABEL, isExam, clock } = require('../utils/assessments');
 
 // What is coming up, for things outside the app that can't sign in: a JSON
@@ -100,7 +101,7 @@ async function getAgenda(token, tz) {
     const date = widgetService.shiftDate(today, i);
     entries
       // Weekly entries on their weekday; a one-off event on each day it covers.
-      .filter((row) => (row.start_date ? date >= row.start_date && date <= (row.end_date || row.start_date) : row.day_of_week === weekdayOf(date)))
+      .filter((row) => (row.start_date ? date >= row.start_date && date <= (row.end_date || row.start_date) : row.day_of_week === weekdayOf(date) && weeklyOn(row, date)))
       .forEach((row) =>
         events.push({
           date,
@@ -215,12 +216,19 @@ async function getCalendar(token, tz) {
     }
     // The first one falls in the current week, so it shows straight away.
     const first = widgetService.shiftDate(today, (row.day_of_week - weekdayOf(today) + 7) % 7);
+    // Ended before this week: nothing left to show.
+    const until = dayKey(row.repeat_until);
+    if (until && until < first) return '';
     return vevent([
       `UID:timetable-${row.id}@double4flat`,
       `DTSTAMP:${now}`,
       `DTSTART:${stamp(zonedToUtc(first, hhmm(row.start_time), timeZone))}`,
       `DTEND:${stamp(zonedToUtc(first, hhmm(row.end_time), timeZone))}`,
-      'RRULE:FREQ=WEEKLY',
+      until ? `RRULE:FREQ=WEEKLY;UNTIL=${stamp(zonedToUtc(until, '23:59', timeZone))}` : 'RRULE:FREQ=WEEKLY',
+      // Dates taken off one at a time.
+      ...skipDatesOf(row)
+        .filter((date) => date >= first)
+        .map((date) => `EXDATE:${stamp(zonedToUtc(date, hhmm(row.start_time), timeZone))}`),
       `SUMMARY:${escapeText(entryTitle(row))}`,
       entryDetail(row) && `DESCRIPTION:${escapeText(entryDetail(row))}`,
       row.venue && `LOCATION:${escapeText(row.venue)}`
@@ -255,7 +263,8 @@ async function getCalendar(token, tz) {
     `X-WR-TIMEZONE:${timeZone}`,
     'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
     'X-PUBLISHED-TTL:PT1H',
-    ...events,
+    // An entry ended before this week leaves nothing.
+    ...events.filter(Boolean),
     'END:VCALENDAR',
     ''
   ].join('\r\n');

@@ -13843,3 +13843,151 @@ button.adm-group:hover {
 .group-when-hint {
   margin: -4px 0 12px;
 }
+
+/* ---------- Timetable: one entry in detail, and asking before a delete ---------- */
+.ev-detail {
+  position: relative;
+}
+
+.ev-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: -4px 0 6px;
+}
+
+.ev-when {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ev-dot {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border-radius: 4px;
+  background: hsl(var(--hue, 165) 55% 50%);
+}
+
+.ev-when strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.ev-when span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.ev-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.ev-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ev-row svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--ink-soft);
+}
+
+.ev-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.ev-dialog {
+  width: 100%;
+  max-width: 340px;
+  padding: 20px 18px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  animation: tm-in 0.14s ease-out;
+}
+
+.ev-dialog h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+.ev-dialog p {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.ev-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ev-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.ev-choice:hover {
+  background: var(--paper);
+}
+
+.ev-choice.on {
+  background: var(--primary-tint);
+}
+
+.ev-choice input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.ev-choice span {
+  display: flex;
+  flex-direction: column;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.ev-choice small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.ev-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Search, Tag, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Bell, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Pencil, Plus, Search, Tag, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
@@ -57,6 +57,22 @@ function repeatText(f, custom) {
   const choice = repeatOf(f, custom);
   if (choice === 'weekly') return `Weekly on ${f.startDate ? DAYS[weekdayOf(f.startDate)] : 'this day'}`;
   return { none: 'Does not repeat', daily: 'Daily', weekdays: 'Every weekday', custom: 'Custom' }[choice];
+}
+
+// Whether an entry happens on a date: a weekly one may have been deleted on
+// that date, or ended before it.
+function occursOn(entry, dateKey) {
+  if (entry.startDate) return true;
+  return !(entry.skipDates || []).includes(dateKey) && (!entry.repeatUntil || dateKey <= entry.repeatUntil);
+}
+
+// The date and time of one event, as the details card shows it.
+function occurrenceText(entry, dateKey) {
+  const from = clock(entry.startTime);
+  const to = clock(entry.endTime);
+  if (!entry.startDate) return `${longDay(dateKey)} · ${from} – ${to}`;
+  const end = entry.endDate || entry.startDate;
+  return end === entry.startDate ? `${longDay(entry.startDate)} · ${from} – ${to}` : `${longDay(entry.startDate)}, ${from} – ${longDay(end)}, ${to}`;
 }
 
 // How the form repeats, as the repeat menu shows it.
@@ -137,6 +153,10 @@ export default function Timetable() {
   const [idInput, setIdInput] = useState('');
   // Someone else's task I was added to, open to look at (it can't be edited).
   const [viewing, setViewing] = useState(null);
+  // The date the open entry was tapped on (a weekly entry happens on many).
+  const [viewDate, setViewDate] = useState(null);
+  // Asking before a delete: { entry, date, recurring, scope }.
+  const [askDel, setAskDel] = useState(null);
   const [toast, showToast] = useToast();
   const { user } = useAuth();
 
@@ -201,6 +221,11 @@ export default function Timetable() {
     groups.forEach((g) => g.sort((a, b) => a.startTime.localeCompare(b.startTime)));
     return groups;
   }, [weekly]);
+
+  // The date each weekday falls on in the coming seven days (the day and week views).
+  const weekDates = useMemo(() => DAYS.map((_, d) => toDateKey(addDays(dateOf(toDateKey(now)), (d - now.getDay() + 7) % 7))), [now]);
+  // The weekly entries on a weekday, leaving out a date they were deleted on.
+  const onDay = (d, dateKey) => byDay[d].filter((e) => occursOn(e, dateKey));
 
   // One-off events, on every date they cover (an event can run over several days).
   const eventsByDate = useMemo(() => {
@@ -341,7 +366,7 @@ export default function Timetable() {
   // (A one-off event counts on the day it starts and ends on the same day.)
   const todays = useMemo(
     () =>
-      [...byDay[today], ...(eventsByDate[todayKey] || []).filter((e) => e.startDate === todayKey && (e.endDate || e.startDate) === todayKey)].sort((a, b) =>
+      [...onDay(today, todayKey), ...(eventsByDate[todayKey] || []).filter((e) => e.startDate === todayKey && (e.endDate || e.startDate) === todayKey)].sort((a, b) =>
         a.startTime.localeCompare(b.startTime)
       ),
     [byDay, eventsByDate, today, todayKey]
@@ -478,18 +503,58 @@ export default function Timetable() {
 
   const setReminder = (i, change) => setForm((f) => ({ ...f, reminders: f.reminders.map((r, j) => (j === i ? { ...r, ...change } : r)) }));
 
-  async function leave() {
-    const left = viewing;
+  // The details card for an entry, on the date it was tapped.
+  function openDetail(entry, date) {
+    setViewing(entry);
+    setViewDate(date || entry.startDate || nextDateOn(entry.dayOfWeek));
+  }
+
+  function askToDelete(entry, date) {
+    setAskDel({
+      entry,
+      date: date || entry.startDate || nextDateOn(entry.dayOfWeek),
+      // Only the owner of a weekly entry chooses which events go.
+      recurring: !entry.startDate && !entry.shared,
+      scope: 'this'
+    });
+  }
+
+  // Delete after asking: the whole entry, or (weekly) one date or that date onwards.
+  async function confirmDelete() {
+    const { entry, date, recurring, scope } = askDel;
+    const whole = !recurring || scope === 'all';
+    const dayBefore = toDateKey(addDays(dateOf(date), -1));
+    setAskDel(null);
     setViewing(null);
-    setEntries((list) => list.filter((e) => e._id !== left._id));
+    setEditing(null);
+    setEntries((list) =>
+      whole
+        ? list.filter((e) => e._id !== entry._id)
+        : list.map((e) =>
+            e._id !== entry._id ? e : scope === 'this' ? { ...e, skipDates: [...(e.skipDates || []), date] } : { ...e, repeatUntil: !e.repeatUntil || dayBefore < e.repeatUntil ? dayBefore : e.repeatUntil }
+          )
+    );
     try {
-      await client.delete(`/timetable/${left._id}`);
-      showToast('Removed from your timetable');
+      await client.delete(`/timetable/${entry._id}`, { params: whole ? {} : { scope, date } });
+      showToast(entry.shared ? 'Removed from your timetable' : whole ? 'Deleted' : scope === 'this' ? `Deleted on ${shortDay(date)}` : `Deleted from ${shortDay(date)} onwards`);
     } catch {
-      showToast("Couldn't remove it.");
+      showToast("Couldn't delete it.");
       load();
     }
   }
+
+  // Escape closes the question, not the sheet under it.
+  useEffect(() => {
+    if (!askDel) return undefined;
+    const esc = (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      setAskDel(null);
+    };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [askDel]);
+
 
   async function save() {
     const once = form.repeat === 'once';
@@ -557,19 +622,7 @@ export default function Timetable() {
     }
   }
 
-  async function remove() {
-    if (!window.confirm(`Remove ${nameOf(editing)} (${whenText(editing)}) from your timetable?`)) return;
-    const removed = editing;
-    setEditing(null);
-    setEntries((list) => list.filter((e) => e._id !== removed._id));
-    try {
-      await client.delete(`/timetable/${removed._id}`);
-      showToast('Removed');
-    } catch {
-      showToast("Couldn't remove it.");
-      load();
-    }
-  }
+
 
   function toggleDay(d) {
     setForm((f) => {
@@ -580,7 +633,7 @@ export default function Timetable() {
     });
   }
 
-  function ClassCard({ entry, showState }) {
+  function ClassCard({ entry, showState, on }) {
     const start = minutes(entry.startTime);
     const end = minutes(entry.endTime);
     const isNow = showState && entry.dayOfWeek === today && start <= nowMinutes && nowMinutes < end;
@@ -590,7 +643,7 @@ export default function Timetable() {
         type="button"
         className={`class-card${isNow ? ' now' : ''}${isPast ? ' past' : ''}`}
         style={{ '--hue': hueFor(entry.subject?.name || entry.title) }}
-        onClick={() => openEdit(entry)}
+        onClick={() => openDetail(entry, on)}
       >
         <span className="class-time">
           <strong>{clock(entry.startTime)}</strong>
@@ -653,7 +706,7 @@ export default function Timetable() {
         type="button"
         className={`class-card event-card${isNow ? ' now' : ''}${over ? ' past' : ''}`}
         style={{ '--hue': hueFor(entry.subject?.name || entry.title) }}
-        onClick={() => openEdit(entry)}
+        onClick={() => openDetail(entry, on || entry.startDate)}
       >
         <span className="class-time">
           <strong>{first ? clock(entry.startTime) : on === end ? 'Until' : 'All day'}</strong>
@@ -833,12 +886,12 @@ export default function Timetable() {
                     onClick={() => setDay(d)}
                   >
                     <span>{label}</span>
-                    <small>{byDay[d].length + examsByDay[d].length + eventsByDay[d].length || '·'}</small>
+                    <small>{onDay(d, weekDates[d]).length + examsByDay[d].length + eventsByDay[d].length || '·'}</small>
                   </button>
                 ))}
               </div>
 
-              {byDay[day].length + examsByDay[day].length + eventsByDay[day].length === 0 ? (
+              {onDay(day, weekDates[day]).length + examsByDay[day].length + eventsByDay[day].length === 0 ? (
                 <div className="card class-empty">
                   <p>No classes on {DAYS[day]}.</p>
                   <button className="btn btn-ghost btn-sm" onClick={() => openNew(day)}>
@@ -853,21 +906,21 @@ export default function Timetable() {
                   {eventsByDay[day].map((e) => (
                     <EventCard key={e._id} entry={e} on={toDateKey(addDays(dateOf(todayKey), (day - today + 7) % 7))} />
                   ))}
-                  {byDay[day].map((e) => (
-                    <ClassCard key={e._id} entry={e} showState />
+                  {onDay(day, weekDates[day]).map((e) => (
+                    <ClassCard key={e._id} entry={e} showState on={weekDates[day]} />
                   ))}
                 </div>
               )}
             </>
           ) : view === 'week' ? (
             DAYS.map((label, d) =>
-              byDay[d].length + examsByDay[d].length + eventsByDay[d].length ? (
+              onDay(d, weekDates[d]).length + examsByDay[d].length + eventsByDay[d].length ? (
                 <section key={label} className="week-group">
                   <h2 className={`week-group-title${d === today ? ' today' : ''}`}>
                     {label}
                     {d === today && <span className="badge badge-primary">Today</span>}
                     <small>
-                      {byDay[d].length} class{byDay[d].length === 1 ? '' : 'es'}
+                      {onDay(d, weekDates[d]).length} class{onDay(d, weekDates[d]).length === 1 ? '' : 'es'}
                     </small>
                   </h2>
                   <div className="class-list">
@@ -877,8 +930,8 @@ export default function Timetable() {
                     {eventsByDay[d].map((e) => (
                       <EventCard key={e._id} entry={e} on={toDateKey(addDays(dateOf(todayKey), (d - today + 7) % 7))} />
                     ))}
-                    {byDay[d].map((e) => (
-                      <ClassCard key={e._id} entry={e} showState />
+                    {onDay(d, weekDates[d]).map((e) => (
+                      <ClassCard key={e._id} entry={e} showState on={weekDates[d]} />
                     ))}
                   </div>
                 </section>
@@ -913,7 +966,7 @@ export default function Timetable() {
                   {monthCells.map((dateKey, i) => {
                     if (!dateKey) return <span key={`blank-${i}`} />;
                     const dated = datedByDate[dateKey] || [];
-                    const classes = byDay[i % 7].length + (eventsByDate[dateKey] || []).length;
+                    const classes = onDay(i % 7, dateKey).length + (eventsByDate[dateKey] || []).length;
                     return (
                       <button
                         key={dateKey}
@@ -953,7 +1006,7 @@ export default function Timetable() {
                 })()}
                 {pickedDate === todayKey && <span className="badge badge-primary">Today</span>}
               </h2>
-              {(datedByDate[pickedDate] || []).length + byDay[pickedWeekday].length + (eventsByDate[pickedDate] || []).length === 0 ? (
+              {(datedByDate[pickedDate] || []).length + onDay(pickedWeekday, pickedDate).length + (eventsByDate[pickedDate] || []).length === 0 ? (
                 <div className="card class-empty">
                   <p>Nothing on this day.</p>
                   <button className="btn btn-ghost btn-sm" onClick={() => openNew()}>
@@ -968,8 +1021,8 @@ export default function Timetable() {
                   {(eventsByDate[pickedDate] || []).map((e) => (
                     <EventCard key={e._id} entry={e} on={pickedDate} />
                   ))}
-                  {byDay[pickedWeekday].map((e) => (
-                    <ClassCard key={e._id} entry={e} showState={pickedDate === todayKey} />
+                  {onDay(pickedWeekday, pickedDate).map((e) => (
+                    <ClassCard key={e._id} entry={e} showState={pickedDate === todayKey} on={pickedDate} />
                   ))}
                 </div>
               )}
@@ -1322,7 +1375,7 @@ export default function Timetable() {
         {formError && <p className="form-error">{formError}</p>}
         <div className="entry-actions">
           {editing !== 'new' && (
-            <button className="btn btn-ghost danger-text" onClick={remove} disabled={saving}>
+            <button className="btn btn-ghost danger-text" onClick={() => askToDelete(editing, viewDate)} disabled={saving}>
               <Trash2 size={14} /> Delete
             </button>
           )}
@@ -1332,55 +1385,88 @@ export default function Timetable() {
         </div>
       </Sheet>
 
+      {/* ---------- one entry in detail, with edit and delete ---------- */}
       <Sheet open={!!viewing} onClose={() => setViewing(null)} title={viewing ? nameOf(viewing) : ''}>
         {viewing && (
-          <div className="as-detail">
-            <div className="as-facts">
-              <div className="as-fact">
-                <CalendarDays size={15} />
-                <span>When</span>
-                <strong>{whenText(viewing)}</strong>
-              </div>
-              <div className="as-fact">
-                <Clock size={15} />
-                <span>Kind</span>
-                <strong>{kindLabel(viewing)}</strong>
-              </div>
-              {viewing.venue && (
-                <div className="as-fact">
-                  <MapPin size={15} />
-                  <span>Venue</span>
-                  <strong>{viewing.venue}</strong>
-                </div>
+          <div className="ev-detail">
+            <div className="ev-actions">
+              {!viewing.shared && !viewing.fromGroup && (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => {
+                    const e = viewing;
+                    setViewing(null);
+                    openEdit(e);
+                  }}
+                  aria-label="Edit"
+                  title="Edit"
+                >
+                  <Pencil size={15} />
+                </button>
               )}
-              <div className="as-fact">
-                <Users size={15} />
-                <span>{viewing.fromGroup ? 'Mentor' : 'Added by'}</span>
-                <strong>{[viewing.owner?.name, viewing.owner?.memberId].filter(Boolean).join(' · ') || 'Someone'}</strong>
+              {!viewing.fromGroup && (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => askToDelete(viewing, viewDate)}
+                  aria-label={viewing.shared ? 'Remove from my timetable' : 'Delete'}
+                  title={viewing.shared ? 'Remove from my timetable' : 'Delete'}
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+            <div className="ev-when">
+              <i className="ev-dot" style={{ '--hue': hueFor(viewing.subject?.name || viewing.title) }} />
+              <div>
+                <strong>{occurrenceText(viewing, viewDate)}</strong>
+                <span>
+                  {viewing.startDate
+                    ? 'Does not repeat'
+                    : `Weekly on ${DAYS[viewing.dayOfWeek]}${viewing.repeatUntil ? `, until ${shortDay(viewing.repeatUntil)}` : ''}`}
+                </span>
               </div>
             </div>
-            {viewing.reminders?.length > 0 && (
-              <div className="as-block">
-                <div className="as-block-title">
-                  <Bell size={14} /> Reminders
-                </div>
-                <p>{viewing.reminders.map(reminderText).join(', ')}</p>
+            <div className="ev-rows">
+              <div className="ev-row">
+                <Tag size={16} />
+                <span>{[kindLabel(viewing), viewing.subject && (viewing.subject.code ? `${viewing.subject.name} (${viewing.subject.code})` : viewing.subject.name)].filter(Boolean).join(' · ')}</span>
               </div>
-            )}
-            {others.length > 0 && (
-              <div className="as-block">
-                <div className="as-block-title">
-                  <Users size={14} /> Also on it
+              {viewing.venue && (
+                <div className="ev-row">
+                  <MapPin size={16} />
+                  <span>{viewing.venue}</span>
                 </div>
-                <p>{others.map((x) => x.name).join(', ')}</p>
-              </div>
-            )}
-            {viewing.fromGroup ? (
+              )}
+              {viewing.reminders?.length > 0 && (
+                <div className="ev-row">
+                  <Bell size={16} />
+                  <span>{viewing.reminders.map(reminderText).join(', ')}</span>
+                </div>
+              )}
+              {(viewing.shared || viewing.fromGroup) && (
+                <div className="ev-row">
+                  <CalendarDays size={16} />
+                  <span>
+                    {viewing.fromGroup ? 'Mentor: ' : 'Added by '}
+                    {[viewing.owner?.name, viewing.owner?.memberId].filter(Boolean).join(' · ') || 'someone'}
+                  </span>
+                </div>
+              )}
+              {others.length > 0 && (
+                <div className="ev-row">
+                  <Users size={16} />
+                  <span>{(viewing.shared ? 'Also on it: ' : 'With ') + others.map((x) => x.name).join(', ')}</span>
+                </div>
+              )}
+            </div>
+            {viewing.fromGroup && (
               /* Read from the mentoring group: it changes when the mentor changes the group */
               <p className="as-group-note">
                 {viewing.shared
                   ? 'Your mentoring group meets at this time every week. It updates here whenever your mentor changes it.'
-                  : 'Your mentoring group, on every member\'s timetable. Change the day, time or place in Mentoring.'}
+                  : "Your mentoring group, on every member's timetable. Change the day, time or place in Mentoring."}
                 {!viewing.shared && (
                   <>
                     {' '}
@@ -1390,14 +1476,52 @@ export default function Timetable() {
                   </>
                 )}
               </p>
-            ) : (
-              <button className="btn btn-ghost danger-text as-edit" onClick={leave}>
-                <Trash2 size={14} /> Remove from my timetable
-              </button>
             )}
           </div>
         )}
       </Sheet>
+
+      {/* ---------- asking before a delete ---------- */}
+      {askDel && (
+        <div className="ev-dialog-backdrop" onClick={() => setAskDel(null)}>
+          <div className="ev-dialog" role="dialog" aria-modal="true" aria-labelledby="ev-dialog-title" onClick={(e) => e.stopPropagation()}>
+            <h3 id="ev-dialog-title">
+              {askDel.recurring ? 'Delete recurring event' : askDel.entry.shared ? 'Remove from your timetable?' : `Delete ${nameOf(askDel.entry)}?`}
+            </h3>
+            {askDel.recurring ? (
+              <div className="ev-choices" role="radiogroup">
+                {[
+                  ['this', 'This event', shortDay(askDel.date)],
+                  ['following', 'This and following events', `From ${shortDay(askDel.date)}`],
+                  ['all', 'All events', `Every ${DAYS[askDel.entry.dayOfWeek]}`]
+                ].map(([value, label, hint]) => (
+                  <label key={value} className={`ev-choice${askDel.scope === value ? ' on' : ''}`}>
+                    <input type="radio" name="ev-scope" value={value} checked={askDel.scope === value} onChange={() => setAskDel((a) => ({ ...a, scope: value }))} />
+                    <span>
+                      {label}
+                      <small>{hint}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p>
+                {askDel.entry.shared
+                  ? `${askDel.entry.owner?.name || 'The person who added it'} still keeps it; it just leaves your timetable.`
+                  : `${occurrenceText(askDel.entry, askDel.date)}. This can't be undone.`}
+              </p>
+            )}
+            <div className="ev-dialog-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setAskDel(null)}>
+                Cancel
+              </button>
+              <button type="button" className={`btn ${askDel.recurring ? 'btn-primary' : 'btn-danger'}`} onClick={confirmDelete}>
+                {askDel.recurring ? 'OK' : askDel.entry.shared ? 'Remove' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast}
     </div>

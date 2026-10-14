@@ -111,6 +111,16 @@ async function remove(id, userId) {
   if (error) throw error;
 }
 
+// A weekly entry: take it off one date, or end it after a date.
+async function setRepeat(id, userId, { skipDates, repeatUntil }) {
+  const { error } = await supabase
+    .from('timetable_entries')
+    .update({ ...(skipDates !== undefined ? { skip_dates: skipDates } : {}), ...(repeatUntil !== undefined ? { repeat_until: repeatUntil } : {}) })
+    .eq('id', id)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
 // Postgres returns times as "09:00:00"; the app works in "09:00".
 function serialize(row) {
   return {
@@ -128,6 +138,9 @@ function serialize(row) {
     endDate: row.end_date || null,
     // Minutes before the start to send a reminder.
     reminders: Array.isArray(row.reminders) ? row.reminders : [],
+    // A weekly entry: dates it was taken off, and the last date it happens.
+    skipDates: Array.isArray(row.skip_dates) ? row.skip_dates : [],
+    repeatUntil: row.repeat_until ? String(row.repeat_until).slice(0, 10) : null,
     subject: row.subject
       ? {
           _id: row.subject.id,
@@ -151,6 +164,7 @@ module.exports = {
   create,
   update,
   remove,
+  setRepeat,
   findWithReminders,
   serialize
 };
