@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Pencil, Plus, Search, Tag, Trash2, UserPlus, Users, X } from 'lucide-react';
 import client from '../services/apiClient';
 import Sheet from '../components/Sheet';
@@ -7,6 +7,7 @@ import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
 import TypeMenu from '../features/timetable/TypeMenu';
+import { MonthCellItems, WeekGrid, shiftKey, sundayOf } from '../features/timetable/CalendarViews';
 import { DateMenu, SelectMenu, TimeMenu } from '../components/pickers';
 import {
   CLASS_KINDS,
@@ -135,6 +136,17 @@ export default function Timetable() {
   // Month view: the month on show (its first day) and the date picked in it.
   const [monthStart, setMonthStart] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [pickedDate, setPickedDate] = useState(() => toDateKey(new Date()));
+  // Week view: the Sunday of the week on show.
+  const [weekStart, setWeekStart] = useState(() => sundayOf(toDateKey(new Date())));
+  // On a phone a month cell has room for two things, otherwise three.
+  const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 520px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 520px)');
+    const change = () => setNarrow(mq.matches);
+    mq.addEventListener('change', change);
+    return () => mq.removeEventListener('change', change);
+  }, []);
+  const navigate = useNavigate();
 
   const [editing, setEditing] = useState(null); // null = closed, 'new', or the entry being edited
   const [form, setForm] = useState(() => emptyForm(1, toDateKey(new Date())));
@@ -308,6 +320,52 @@ export default function Timetable() {
     Object.values(map).forEach((list) => list.sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00')));
     return map;
   }, [subjects]);
+
+  // Everything on a date, for the week and month calendars: weekly entries
+  // (not on a date they were deleted on), dated events, and the subjects'
+  // exams, due dates and tasks. An event over several days, or anything with
+  // no time, is an all-day item.
+  const itemsOn = (dateKey) => {
+    const out = [];
+    onDay(dateOf(dateKey).getDay(), dateKey).forEach((e) =>
+      out.push({
+        key: `w-${e._id}`,
+        title: nameOf(e),
+        start: minutes(e.startTime),
+        end: minutes(e.endTime),
+        hue: hueFor(e.subject?.name || e.title),
+        tone: e.fromGroup ? 'group' : 'class',
+        open: () => openDetail(e, dateKey)
+      })
+    );
+    (eventsByDate[dateKey] || []).forEach((e) => {
+      const single = (e.endDate || e.startDate) === e.startDate;
+      out.push({
+        key: `e-${e._id}`,
+        title: nameOf(e),
+        start: single ? minutes(e.startTime) : null,
+        end: single ? minutes(e.endTime) : null,
+        allDay: !single,
+        hue: hueFor(e.subject?.name || e.title),
+        tone: 'event',
+        open: () => openDetail(e, dateKey)
+      });
+    });
+    (datedByDate[dateKey] || []).forEach((x) => {
+      const t = x.time ? minutes(x.time) : null;
+      out.push({
+        key: x.id,
+        title: x.kind === 'task' ? x.task : `${ASSESSMENT_LABEL[x.type] || x.type}${x.kind === 'exam' ? '' : ' due'}: ${x.subject.name}`,
+        start: t,
+        end: t === null ? null : t + (x.kind === 'exam' ? 60 : 30),
+        allDay: t === null,
+        hue: hueFor(x.subject.name),
+        tone: x.kind,
+        open: () => navigate(`/subject-list?edit=${x.subject._id}`)
+      });
+    });
+    return out.sort((a, b) => (a.start ?? -1) - (b.start ?? -1));
+  };
 
   // The weeks of the month on show, Sunday first; days outside it are null.
   const monthCells = useMemo(() => {
@@ -913,30 +971,14 @@ export default function Timetable() {
               )}
             </>
           ) : view === 'week' ? (
-            DAYS.map((label, d) =>
-              onDay(d, weekDates[d]).length + examsByDay[d].length + eventsByDay[d].length ? (
-                <section key={label} className="week-group">
-                  <h2 className={`week-group-title${d === today ? ' today' : ''}`}>
-                    {label}
-                    {d === today && <span className="badge badge-primary">Today</span>}
-                    <small>
-                      {onDay(d, weekDates[d]).length} class{onDay(d, weekDates[d]).length === 1 ? '' : 'es'}
-                    </small>
-                  </h2>
-                  <div className="class-list">
-                    {examsByDay[d].map((x) => (
-                      <ExamCard key={x.id} exam={x} />
-                    ))}
-                    {eventsByDay[d].map((e) => (
-                      <EventCard key={e._id} entry={e} on={toDateKey(addDays(dateOf(todayKey), (d - today + 7) % 7))} />
-                    ))}
-                    {onDay(d, weekDates[d]).map((e) => (
-                      <ClassCard key={e._id} entry={e} showState on={weekDates[d]} />
-                    ))}
-                  </div>
-                </section>
-              ) : null
-            )
+            <WeekGrid
+              weekStart={weekStart}
+              todayKey={todayKey}
+              nowMinutes={nowMinutes}
+              itemsOn={itemsOn}
+              onShift={(n) => setWeekStart((k) => shiftKey(k, 7 * n))}
+              onToday={() => setWeekStart(sundayOf(todayKey))}
+            />
           ) : (
             <>
               {/* ---------- a month at a time ---------- */}
@@ -965,8 +1007,7 @@ export default function Timetable() {
                   ))}
                   {monthCells.map((dateKey, i) => {
                     if (!dateKey) return <span key={`blank-${i}`} />;
-                    const dated = datedByDate[dateKey] || [];
-                    const classes = onDay(i % 7, dateKey).length + (eventsByDate[dateKey] || []).length;
+                    const items = itemsOn(dateKey);
                     return (
                       <button
                         key={dateKey}
@@ -974,28 +1015,13 @@ export default function Timetable() {
                         className={`month-day${dateKey === todayKey ? ' today' : ''}${dateKey === pickedDate ? ' picked' : ''}${dateKey < todayKey ? ' past' : ''}`}
                         onClick={() => setPickedDate(dateKey)}
                         aria-pressed={dateKey === pickedDate}
-                        aria-label={`${dateKey}: ${classes} classes, ${dated.length} dated`}
+                        aria-label={`${dateKey}: ${items.length} on`}
                       >
-                        <span>{Number(dateKey.slice(8))}</span>
-                        <i>
-                          {classes > 0 && <b className="dot-class" />}
-                          {dated.some((x) => x.kind === 'exam') && <b className="dot-exam" />}
-                          {dated.some((x) => x.kind !== 'exam') && <b className="dot-task" />}
-                        </i>
+                        <span className="month-num">{Number(dateKey.slice(8))}</span>
+                        <MonthCellItems items={items} max={narrow ? 2 : 3} />
                       </button>
                     );
                   })}
-                </div>
-                <div className="month-legend">
-                  <span>
-                    <b className="dot-class" /> Class or task
-                  </span>
-                  <span>
-                    <b className="dot-exam" /> Exam
-                  </span>
-                  <span>
-                    <b className="dot-task" /> Due date
-                  </span>
                 </div>
               </div>
 

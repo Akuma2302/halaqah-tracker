@@ -13991,3 +13991,463 @@ button.adm-group:hover {
   gap: 8px;
   margin-top: 14px;
 }
+
+/* ---------- Timetable: the week as a calendar ---------- */
+.card.wk-card {
+  padding: 14px 10px 10px;
+}
+
+.wk-scroll {
+  max-height: 560px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+  overscroll-behavior: contain;
+}
+
+.wk {
+  min-width: 560px;
+}
+
+.wk-head,
+.wk-allday {
+  position: sticky;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 40px repeat(7, minmax(0, 1fr));
+  background: var(--surface);
+}
+
+.wk-head {
+  top: 0;
+  padding: 8px 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wk-allday {
+  top: 58px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wk-corner {
+  align-self: center;
+  font-size: 9.5px;
+  color: var(--ink-soft);
+  text-align: right;
+  padding-right: 6px;
+}
+
+.wk-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-display);
+}
+
+.wk-day small {
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.wk-day b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.wk-day.past b {
+  color: var(--ink-soft);
+}
+
+.wk-day.today small {
+  color: var(--primary);
+}
+
+.wk-day.today b {
+  background: var(--primary);
+  color: #fff;
+}
+
+.wk-allday-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 3px 2px;
+  border-left: 1px solid var(--border);
+}
+
+.wk-chip {
+  overflow: hidden;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: hsl(var(--hue, 165) 50% 42%);
+  color: #fff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.wk-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px repeat(7, minmax(0, 1fr));
+}
+
+.wk-gutter {
+  position: relative;
+}
+
+.wk-gutter span {
+  position: absolute;
+  right: 6px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.wk-col {
+  position: relative;
+  border-left: 1px solid var(--border);
+  background-image: linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 100% var(--hour);
+}
+
+.wk-col.today {
+  background-color: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
+/* One thing at its time: the subject's colour, like the class cards */
+.wk-block {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  padding: 4px 6px;
+  border: 1px solid hsl(var(--hue, 165) 45% 40%);
+  border-left: 3px solid hsl(var(--hue, 165) 55% 52%);
+  border-radius: 7px;
+  background: hsl(var(--hue, 165) 40% 22%);
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-theme='light'] .wk-block,
+:root:not([data-theme='dark']) .wk-block {
+  background: hsl(var(--hue, 165) 55% 90%);
+  color: hsl(var(--hue, 165) 50% 22%);
+}
+
+.wk-block strong {
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wk-block span {
+  overflow: hidden;
+  font-size: 10.5px;
+  opacity: 0.85;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wk-block.short {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding-block: 1px;
+}
+
+.wk-block.short span {
+  display: none;
+}
+
+.wk-block.past {
+  opacity: 0.55;
+}
+
+/* Exams stand out in gold; due dates and tasks are outlined */
+.wk-block.tone-exam,
+.wk-chip.tone-exam {
+  border-color: var(--gold);
+  border-left-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 28%, var(--surface));
+  color: var(--ink);
+}
+
+.wk-block.tone-task,
+.wk-block.tone-due,
+.wk-chip.tone-task,
+.wk-chip.tone-due {
+  background: transparent;
+  color: var(--ink);
+  border-style: dashed;
+}
+
+.wk-chip.tone-task,
+.wk-chip.tone-due {
+  border: 1px dashed hsl(var(--hue, 165) 55% 50%);
+}
+
+.wk-now {
+  position: absolute;
+  z-index: 2;
+  left: -4px;
+  right: 0;
+  height: 2px;
+  background: var(--danger);
+  pointer-events: none;
+}
+
+.wk-now::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+/* ---------- Timetable: the month, with what's on in each day ---------- */
+.month-grid {
+  gap: 3px;
+}
+
+.month-day {
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 2px;
+  min-width: 0;
+  min-height: 96px;
+  padding: 4px 3px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.month-num {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 13px;
+}
+
+.month-day.today .month-num {
+  background: var(--primary);
+  color: #fff;
+}
+
+.month-day.today {
+  border-color: transparent;
+}
+
+.month-day.picked {
+  border-color: var(--primary);
+  background: var(--primary-tint);
+  color: var(--ink);
+}
+
+.mc-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mc-item {
+  display: block;
+  overflow: hidden;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.mc-item em {
+  margin-right: 4px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.mc-item::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: hsl(var(--hue, 165) 55% 50%);
+}
+
+/* All day (an event over days, a due date): a filled bar */
+.mc-item.bar {
+  background: hsl(var(--hue, 165) 50% 42%);
+  color: #fff;
+}
+
+.mc-item.bar::before {
+  display: none;
+}
+
+.mc-item.tone-exam::before {
+  background: var(--gold);
+}
+
+.mc-item.bar.tone-exam {
+  background: color-mix(in srgb, var(--gold) 70%, var(--surface));
+  color: var(--ink);
+}
+
+.mc-item.bar.tone-due,
+.mc-item.bar.tone-task {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px hsl(var(--hue, 165) 55% 50%);
+}
+
+.mc-more {
+  padding: 0 4px;
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: left;
+  color: var(--ink-soft);
+}
+
+.month-day.past .mc-item {
+  opacity: 0.6;
+}
+
+/* A phone: the dot and the name only */
+@media (max-width: 520px) {
+  .card.month-card {
+    padding: 10px 6px;
+  }
+
+  .month-grid {
+    gap: 2px;
+  }
+
+  .month-day {
+    min-height: 74px;
+    padding: 3px 1px;
+    border-radius: 8px;
+  }
+
+  .mc-item {
+    padding: 0 2px;
+    font-size: 9.5px;
+  }
+
+  .mc-item em,
+  .mc-item::before {
+    display: none;
+  }
+
+  .mc-item:not(.bar) {
+    border-left: 2px solid hsl(var(--hue, 165) 55% 50%);
+    border-radius: 0 3px 3px 0;
+  }
+
+  .mc-item.tone-exam:not(.bar) {
+    border-left-color: var(--gold);
+  }
+
+  .mc-more {
+    font-size: 9px;
+  }
+}
+
+/* A phone: all seven days fit, with narrower columns and smaller text */
+@media (max-width: 600px) {
+  .card.wk-card {
+    padding: 12px 4px 6px;
+  }
+
+  .wk {
+    min-width: 0;
+  }
+
+  .wk-head,
+  .wk-allday,
+  .wk-body {
+    grid-template-columns: 30px repeat(7, minmax(0, 1fr));
+  }
+
+  .wk-day small {
+    font-size: 9px;
+  }
+
+  .wk-day b {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+  }
+
+  .wk-gutter span {
+    right: 3px;
+    font-size: 8.5px;
+  }
+
+  .wk-corner {
+    padding-right: 2px;
+    font-size: 8px;
+  }
+
+  .wk-block {
+    padding: 2px 3px;
+    border-radius: 5px;
+    border-left-width: 2px;
+  }
+
+  .wk-block strong {
+    font-size: 9.5px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .wk-block span {
+    display: none;
+  }
+
+  .wk-chip {
+    padding: 1px 3px;
+    font-size: 9px;
+  }
+}
