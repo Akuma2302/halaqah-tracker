@@ -496,40 +496,41 @@ export default function MentoringDashboard() {
       ) : custom ? (
         /* Chosen dates: from and to, up to today and at most about three months apart */
         <div className="perf-when perf-custom">
-          <label>
-            <span>From</span>
-            <DateInput required
-              className="input"
-              value={customFrom}
-              max={customTo}
-              onChange={(e) => {
-                const from = e.target.value;
-                if (!from) return;
-                setCustomFrom(from);
-                // Keep the span within 92 days by moving the end along.
-                const limit = toDateKey(addDays(new Date(`${from}T00:00:00`), 91));
-                if (customTo < from) setCustomTo(from);
-                else if (customTo > limit) setCustomTo(limit < todayKey ? limit : todayKey);
-              }}
-            />
-          </label>
-          <label>
-            <span>To</span>
-            <DateInput required
-              className="input"
-              value={customTo}
-              min={customFrom}
-              max={todayKey}
-              onChange={(e) => {
-                const to = e.target.value;
-                if (!to) return;
-                setCustomTo(to > todayKey ? todayKey : to);
-                const limit = toDateKey(addDays(new Date(`${to}T00:00:00`), -91));
-                if (customFrom > to) setCustomFrom(to);
-                else if (customFrom < limit) setCustomFrom(limit);
-              }}
-            />
-          </label>
+          <DateInput
+            required
+            short
+            aria-label="From"
+            className="input"
+            value={customFrom}
+            max={customTo}
+            onChange={(e) => {
+              const from = e.target.value;
+              if (!from) return;
+              setCustomFrom(from);
+              // Keep the span within 92 days by moving the end along.
+              const limit = toDateKey(addDays(new Date(`${from}T00:00:00`), 91));
+              if (customTo < from) setCustomTo(from);
+              else if (customTo > limit) setCustomTo(limit < todayKey ? limit : todayKey);
+            }}
+          />
+          <span className="perf-custom-dash">–</span>
+          <DateInput
+            required
+            short
+            aria-label="To"
+            className="input"
+            value={customTo}
+            min={customFrom}
+            max={todayKey}
+            onChange={(e) => {
+              const to = e.target.value;
+              if (!to) return;
+              setCustomTo(to > todayKey ? todayKey : to);
+              const limit = toDateKey(addDays(new Date(`${to}T00:00:00`), -91));
+              if (customFrom > to) setCustomFrom(to);
+              else if (customFrom < limit) setCustomFrom(limit);
+            }}
+          />
           <small>
             {rangeDays} day{rangeDays === 1 ? '' : 's'}
           </small>

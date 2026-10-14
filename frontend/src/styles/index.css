@@ -12710,8 +12710,27 @@ button.adm-group:hover {
 
 /* Mentoring dashboard: chosen dates, from and to */
 .perf-when.perf-custom {
-  flex-wrap: wrap;
-  gap: 8px 10px;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.perf-custom .pk-native.input {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+  min-height: 34px;
+  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.perf-custom-dash {
+  color: var(--ink-soft);
+}
+
+.perf-custom small {
+  margin-left: 4px;
+  white-space: nowrap;
 }
 
 .perf-custom label {

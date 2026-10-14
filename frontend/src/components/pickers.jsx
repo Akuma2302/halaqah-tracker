@@ -322,8 +322,14 @@ export function DateMenu({ value, onChange, min, max, ariaLabel, children, class
 }
 
 // A drop-in <input type="date">.
-export function DateInput({ value, onChange, min, max, className = 'input', id, disabled, required, placeholder = 'Pick a date', ...rest }) {
-  const text = value ? dateOf(value).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : placeholder;
+// With `short`, the date reads "1 Oct" (and the year only when it isn't this one).
+export function DateInput({ value, onChange, min, max, className = 'input', id, disabled, required, short, placeholder = 'Pick a date', ...rest }) {
+  const d = value ? dateOf(value) : null;
+  const text = !d
+    ? placeholder
+    : short
+      ? d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) })
+      : d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   return (
     <DateMenu
       value={value || ''}
