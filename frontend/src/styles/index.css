@@ -14880,3 +14880,9 @@ button.adm-group:hover {
 .week-group-title.day-title {
   margin: 4px 0 10px;
 }
+
+/* Dragging a view across with a mouse shouldn't select its text */
+.tt-swipe {
+  -webkit-user-select: none;
+  user-select: none;
+}
