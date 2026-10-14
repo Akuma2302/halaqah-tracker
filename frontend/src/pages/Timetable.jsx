@@ -362,7 +362,7 @@ export default function Timetable() {
   }
 
   function openEdit(entry) {
-    if (entry.shared) return setViewing(entry);
+    if (entry.shared || entry.fromGroup) return setViewing(entry);
     setIdInput('');
     setNewKind(null);
     setForm({
@@ -620,7 +620,11 @@ export default function Timetable() {
               {entry.subject?.lecturerName}
             </span>
           )}
-          {entry.shared ? (
+          {entry.fromGroup ? (
+            <span className="class-meta class-people">
+              <Users size={11} /> Mentoring group{entry.shared && entry.owner ? ` · ${entry.owner.name}` : ''}
+            </span>
+          ) : entry.shared ? (
             <span className="class-meta class-people">
               <Users size={11} /> Added by {entry.owner?.name || 'someone'}
             </span>
@@ -673,7 +677,11 @@ export default function Timetable() {
               <MapPin size={11} /> {entry.venue}
             </span>
           )}
-          {entry.shared ? (
+          {entry.fromGroup ? (
+            <span className="class-meta class-people">
+              <Users size={11} /> Mentoring group{entry.shared && entry.owner ? ` · ${entry.owner.name}` : ''}
+            </span>
+          ) : entry.shared ? (
             <span className="class-meta class-people">
               <Users size={11} /> Added by {entry.owner?.name || 'someone'}
             </span>
@@ -1347,7 +1355,7 @@ export default function Timetable() {
               )}
               <div className="as-fact">
                 <Users size={15} />
-                <span>Added by</span>
+                <span>{viewing.fromGroup ? 'Mentor' : 'Added by'}</span>
                 <strong>{[viewing.owner?.name, viewing.owner?.memberId].filter(Boolean).join(' · ') || 'Someone'}</strong>
               </div>
             </div>
@@ -1367,9 +1375,26 @@ export default function Timetable() {
                 <p>{others.map((x) => x.name).join(', ')}</p>
               </div>
             )}
-            <button className="btn btn-ghost danger-text as-edit" onClick={leave}>
-              <Trash2 size={14} /> Remove from my timetable
-            </button>
+            {viewing.fromGroup ? (
+              /* Read from the mentoring group: it changes when the mentor changes the group */
+              <p className="as-group-note">
+                {viewing.shared
+                  ? 'Your mentoring group meets at this time every week. It updates here whenever your mentor changes it.'
+                  : 'Your mentoring group, on every member\'s timetable. Change the day, time or place in Mentoring.'}
+                {!viewing.shared && (
+                  <>
+                    {' '}
+                    <Link to="/mentoring" onClick={() => setViewing(null)}>
+                      Open Mentoring
+                    </Link>
+                  </>
+                )}
+              </p>
+            ) : (
+              <button className="btn btn-ghost danger-text as-edit" onClick={leave}>
+                <Trash2 size={14} /> Remove from my timetable
+              </button>
+            )}
           </div>
         )}
       </Sheet>

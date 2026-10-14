@@ -14,6 +14,10 @@ const groupSchema = z.object({
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
     .nullish(),
+  endTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .nullish(),
   venue: z.string().trim().max(80).optional(),
   memberIds: z.array(z.string().uuid()).max(200).optional()
 });

@@ -1,6 +1,7 @@
 const timetableRepository = require('../repositories/timetableRepository');
 const subjectRepository = require('../repositories/subjectRepository');
 const widgetService = require('./widgetService');
+const { groupMeetingRows } = require('./groupMeetings');
 const { ASSESSMENT_LABEL, isExam, clock } = require('../utils/assessments');
 
 // What is coming up, for things outside the app that can't sign in: a JSON
@@ -28,13 +29,15 @@ const subjectText = (s) => (s?.code ? `${s.name} (${s.code})` : s?.name || '');
 // The weekly timetable (own entries and ones shared with the user) and the
 // subjects with their assessments and tasks.
 async function load(userId) {
-  const [own, shared, subjects] = await Promise.all([
+  const [own, shared, subjects, meetings] = await Promise.all([
     timetableRepository.findByUser(userId),
     timetableRepository.findSharedWith(userId),
-    subjectRepository.findVisibleForUser(userId)
+    subjectRepository.findVisibleForUser(userId),
+    groupMeetingRows(userId)
   ]);
   // Classes of a hidden subject are left out, as its exams and due dates already are.
-  return { entries: [...own, ...shared].filter((row) => row.subject?.is_visible !== false), subjects };
+  // The mentoring group's weekly meeting comes in like any weekly entry.
+  return { entries: [...own, ...shared, ...meetings].filter((row) => row.subject?.is_visible !== false), subjects };
 }
 
 // One-off dated things from the subjects: exams, due dates, and tasks that

@@ -16,11 +16,12 @@ async function findById(id) {
   return data;
 }
 
-function toRow({ name, dayOfWeek, startTime, venue }) {
+function toRow({ name, dayOfWeek, startTime, endTime, venue }) {
   return {
     name,
     day_of_week: dayOfWeek === null || dayOfWeek === undefined ? null : dayOfWeek,
     start_time: startTime || null,
+    end_time: startTime && endTime ? endTime : null,
     venue: venue || ''
   };
 }
@@ -77,6 +78,7 @@ function serialize(row) {
     name: row.name,
     dayOfWeek: row.day_of_week,
     startTime: row.start_time ? String(row.start_time).slice(0, 5) : null,
+    endTime: row.end_time ? String(row.end_time).slice(0, 5) : null,
     venue: row.venue || ''
   };
 }

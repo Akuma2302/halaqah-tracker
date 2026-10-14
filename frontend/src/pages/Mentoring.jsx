@@ -166,10 +166,11 @@ export default function Mentoring() {
             name: group.name,
             dayOfWeek: group.dayOfWeek === null || group.dayOfWeek === undefined ? '' : String(group.dayOfWeek),
             startTime: group.startTime || '',
+            endTime: group.endTime || '',
             venue: group.venue || '',
             memberIds: mentees.filter((m) => m.groupId === group._id).map((m) => m._id)
           }
-        : { name: `Mentoring ${groups.length + 1}`, dayOfWeek: '', startTime: '', venue: '', memberIds: ungrouped.map((m) => m._id) }
+        : { name: `Mentoring ${groups.length + 1}`, dayOfWeek: '', startTime: '', endTime: '', venue: '', memberIds: ungrouped.map((m) => m._id) }
     );
   }
 
@@ -185,6 +186,7 @@ export default function Mentoring() {
       name: groupForm.name.trim(),
       dayOfWeek: groupForm.dayOfWeek === '' ? null : Number(groupForm.dayOfWeek),
       startTime: groupForm.startTime || null,
+      endTime: groupForm.startTime && groupForm.endTime ? groupForm.endTime : null,
       venue: groupForm.venue.trim(),
       memberIds: groupForm.memberIds
     };
@@ -542,7 +544,7 @@ export default function Mentoring() {
                 </Select>
               </div>
               <div className="field">
-                <label htmlFor="group-time">Time</label>
+                <label htmlFor="group-time">Starts</label>
                 <TimeInput
                   id="group-time"
                   className="input"
@@ -550,7 +552,21 @@ export default function Mentoring() {
                   onChange={(e) => setGroupForm((f) => ({ ...f, startTime: e.target.value }))}
                 />
               </div>
+              <div className="field">
+                <label htmlFor="group-end">Ends</label>
+                <TimeInput
+                  id="group-end"
+                  className="input"
+                  value={groupForm.endTime}
+                  disabled={!groupForm.startTime}
+                  onChange={(e) => setGroupForm((f) => ({ ...f, endTime: e.target.value }))}
+                />
+              </div>
             </div>
+            <p className="field-hint group-when-hint">
+              With a day and a start time, the meeting goes on your timetable and every member's, and updates there when you change it.
+              No end time means 1h 30m.
+            </p>
             <div className="field">
               <label htmlFor="group-venue">
                 <MapPin size={11} /> Place (optional)

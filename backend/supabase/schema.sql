@@ -438,6 +438,8 @@ create table if not exists mentoring_groups (
 create index if not exists idx_mentoring_groups_mentor on mentoring_groups(mentor_id);
 alter table mentoring_groups enable row level security;
 alter table users add column if not exists mentoring_group_id uuid references mentoring_groups(id) on delete set null;
+-- When the meeting ends; without it, members' timetables show it as 1h 30m.
+alter table mentoring_groups add column if not exists end_time time;
 
 -- Ways to reach someone, shown to their mentor, mentees and mentoring mates.
 -- Always a full https link to that service, built by utils/socialLinks.js.

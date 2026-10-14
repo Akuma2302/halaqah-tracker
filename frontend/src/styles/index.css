@@ -2112,8 +2112,8 @@ a {
 
 .group-when {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
 }
 
 .group-members {
@@ -13825,4 +13825,21 @@ button.adm-group:hover {
   font-size: 12px;
   line-height: 1.45;
   color: var(--ink-soft);
+}
+
+/* A mentoring group's meeting, opened from the timetable */
+.as-group-note {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.as-group-note a {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.group-when-hint {
+  margin: -4px 0 12px;
 }

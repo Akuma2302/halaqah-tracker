@@ -8,6 +8,7 @@ const subjectRepository = require('../repositories/subjectRepository');
 const userRepository = require('../repositories/userRepository');
 const notificationService = require('../services/notificationService');
 const { parseMemberNo } = require('../services/mentoringService');
+const { groupMeetingRows } = require('../services/groupMeetings');
 const { serializeUser } = require('../utils/serializers');
 const { clock } = require('../utils/assessments');
 const serialize = timetableRepository.serialize;
@@ -80,12 +81,15 @@ const person = (row) => {
 // Adds who owns each entry, who else is on it, and whether it is someone
 // else's (`shared`) from the viewer's side.
 async function decorate(rows, viewerId) {
-  const links = await timetableRepository.findParticipants(rows.map((r) => r.id));
+  // A mentoring group's meeting isn't a stored entry, so it has no one added to it.
+  const links = await timetableRepository.findParticipants(rows.filter((r) => !r.from_group).map((r) => r.id));
   const users = await userRepository.findByIds([...new Set([...rows.map((r) => r.user_id), ...links.map((l) => l.user_id)])]);
   const userById = Object.fromEntries(users.map((u) => [u.id, u]));
   return rows.map((row) => ({
     ...serialize(row),
     shared: row.user_id !== viewerId,
+    // A mentoring group's meeting: set by the mentor in Mentoring, not edited here.
+    fromGroup: !!row.from_group,
     owner: userById[row.user_id] ? person(userById[row.user_id]) : null,
     participants: links
       .filter((l) => l.entry_id === row.id && userById[l.user_id])
@@ -159,8 +163,12 @@ router.use(requireAuth);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const [own, shared] = await Promise.all([timetableRepository.findByUser(req.userId), timetableRepository.findSharedWith(req.userId)]);
-    res.json(await decorate([...own, ...shared], req.userId));
+    const [own, shared, meetings] = await Promise.all([
+      timetableRepository.findByUser(req.userId),
+      timetableRepository.findSharedWith(req.userId),
+      groupMeetingRows(req.userId)
+    ]);
+    res.json(await decorate([...own, ...shared, ...meetings], req.userId));
   })
 );
 
