@@ -163,47 +163,73 @@ const length = (mins) => {
   return h && m ? `${h} hr ${m} min` : h ? `${h} hr` : `${m} min`;
 };
 
-// A list of times every 15 minutes. With `from` (the start time), it is an end
-// time: only later times, each with how long that makes it.
-export function TimeMenu({ value, onChange, from, ariaLabel }) {
-  const pop = usePop(260);
-  const list = useRef(null);
-  const startAt = from ? toMin(from) + 15 : 0;
-  const times = [];
-  for (let m = startAt; m < 24 * 60; m += 15) times.push(toTime(m));
-  if (value && !times.includes(value) && (!from || toMin(value) > toMin(from))) {
-    times.push(value);
-    times.sort();
-  }
+// A time in three scrolling columns: the hour (1 to 12), the minute (00 to
+// 59) and am / pm. Each tap sets the time at once; Done closes it. With
+// `from` (the start time) it is an end time and says how long that makes it.
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
-  // Open with the chosen time in the middle of the list.
+export function TimeMenu({ value, onChange, from, ariaLabel }) {
+  const pop = usePop(300);
+  const panel = useRef(null);
+  const [h24, m] = (value || '09:00').split(':').map(Number);
+  const hour = h24 % 12 || 12;
+  const pm = h24 >= 12;
+  const set = (h12, min, isPm) => onChange(toTime(((h12 % 12) + (isPm ? 12 : 0)) * 60 + min));
+
+  // Open with each column's choice in the middle.
   useLayoutEffect(() => {
-    if (pop.open) list.current?.querySelector('.on')?.scrollIntoView({ block: 'center' });
+    if (!pop.open) return;
+    panel.current?.querySelectorAll('.pk-col').forEach((col) => {
+      const on = col.querySelector('.on');
+      if (on) col.scrollTop = on.offsetTop - col.clientHeight / 2 + on.offsetHeight / 2;
+    });
   }, [pop.open]);
+
+  const diff = from && value ? toMin(value) - toMin(from) : null;
 
   return (
     <div className="pk pk-time" ref={pop.box}>
-      <button type="button" className="pk-button gc-time-button" onClick={pop.toggle} aria-haspopup="listbox" aria-expanded={pop.open} aria-label={ariaLabel}>
+      <button type="button" className="pk-button gc-time-button" onClick={pop.toggle} aria-haspopup="dialog" aria-expanded={pop.open} aria-label={ariaLabel}>
         {value ? clock(value) : '--:--'}
       </button>
       {pop.open && (
-        <div className={`tm-menu pk-panel pk-times${pop.up ? ' up' : ''}`} role="listbox" aria-label={ariaLabel} ref={list}>
-          {times.map((t) => (
-            <button
-              key={t}
-              type="button"
-              role="option"
-              aria-selected={t === value}
-              className={`pk-t${t === value ? ' on' : ''}`}
-              onClick={() => {
-                pop.close();
-                onChange(t);
-              }}
-            >
-              {clock(t)}
-              {from && <small>{length(toMin(t) - toMin(from))}</small>}
+        <div className={`tm-menu pk-panel pk-clock${pop.up ? ' up' : ''}`} role="dialog" aria-label={ariaLabel} ref={panel}>
+          <div className="pk-clock-cols">
+            <div className="pk-col" role="listbox" aria-label="Hour">
+              {HOURS.map((h) => (
+                <button key={h} type="button" role="option" aria-selected={h === hour} className={`pk-c${h === hour ? ' on' : ''}`} onClick={() => set(h, m, pm)}>
+                  {h}
+                </button>
+              ))}
+            </div>
+            <span className="pk-colon">:</span>
+            <div className="pk-col" role="listbox" aria-label="Minute">
+              {MINUTES.map((n) => (
+                <button key={n} type="button" role="option" aria-selected={n === m} className={`pk-c${n === m ? ' on' : ''}`} onClick={() => set(hour, n, pm)}>
+                  {pad(n)}
+                </button>
+              ))}
+            </div>
+            <div className="pk-col pk-ampm" role="listbox" aria-label="Morning or afternoon">
+              {[
+                [false, 'am'],
+                [true, 'pm']
+              ].map(([isPm, label]) => (
+                <button key={label} type="button" role="option" aria-selected={isPm === pm} className={`pk-c${isPm === pm ? ' on' : ''}`} onClick={() => set(hour, m, isPm)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="pk-clock-foot">
+            <span className={diff !== null && diff <= 0 ? 'bad' : ''}>
+              {diff === null ? clock(value) : diff > 0 ? `${clock(value)} · ${length(diff)}` : 'Ends before it starts'}
+            </span>
+            <button type="button" className="gc-link" onClick={pop.close}>
+              Done
             </button>
-          ))}
+          </div>
         </div>
       )}
     </div>
