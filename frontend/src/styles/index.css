@@ -14612,8 +14612,9 @@ button.adm-group:hover {
   display: flex;
   align-items: flex-start;
   gap: 2px;
-  margin: 2px -14px 12px;
-  padding: 2px 14px 6px;
+  /* Room above and below for the ring, which a sideways-scrolling row would cut */
+  margin: -4px -14px 8px;
+  padding: 8px 14px 8px;
   overflow-x: auto;
   scrollbar-width: none;
   scroll-snap-type: x proximity;
