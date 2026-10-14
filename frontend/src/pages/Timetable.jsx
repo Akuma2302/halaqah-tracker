@@ -977,7 +977,8 @@ export default function Timetable() {
           <div className="gc-kinds">
             <div className="chip-row gc-kind-row">
               {/* Classes are set on the subject; one made earlier keeps its own kind here. */}
-              {[...CLASS_KINDS.filter(([value]) => value === form.kind), ...TASK_KINDS].map(([value, label]) => (
+              {/* No plain "Other": a type of your own is added with New type instead. */}
+              {[...CLASS_KINDS.filter(([value]) => value === form.kind), ...TASK_KINDS.filter(([value]) => value !== 'other')].map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
