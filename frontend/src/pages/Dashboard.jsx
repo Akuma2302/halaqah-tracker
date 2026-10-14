@@ -223,12 +223,22 @@ export default function Dashboard() {
         <div className="home-today-col">
           {/* ---------- today at a glance ---------- */}
           <div className={`card today-hero${today && left === 0 ? ' complete' : ''}`}>
+            {!today ? (
+              /* Until today's ticks arrive: grey shapes, not a 0% that looks real */
+              <div className="today-hero-skeleton" role="status" aria-busy="true" aria-label="Loading today's mutabaah">
+                <span className="sk-bar sk-ring" />
+                <div className="today-hero-text">
+                  <span className="sk-bar" style={{ width: 110, height: 10 }} />
+                  <span className="sk-bar" style={{ width: 150, height: 22 }} />
+                  <span className="sk-bar" style={{ width: 96, height: 10 }} />
+                </div>
+              </div>
+            ) : (
+              <>
             <MutabaahRing entry={today} size={124} caption={false} />
             <div className="today-hero-text">
               <div className="today-hero-label">Today's mutabaah</div>
-              <div className="today-hero-status">
-                {!today ? 'Loading…' : left === 0 ? 'All done. Alhamdulillah.' : done === 0 ? `${TOTAL} to go` : `${left} left today`}
-              </div>
+              <div className="today-hero-status">{left === 0 ? 'All done. Alhamdulillah.' : done === 0 ? `${TOTAL} to go` : `${left} left today`}</div>
               <div className="today-hero-sub">
                 {done} of {TOTAL} completed
               </div>
@@ -249,6 +259,8 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+              </>
+            )}
           </div>
 
           {/* ---------- exams and due dates coming up ---------- */}
@@ -288,7 +300,18 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="quick-checks">
-            {MUTABAAH_FIELDS.map((f) => {
+            {!today &&
+              MUTABAAH_FIELDS.map((f, i) => (
+                <div key={f.key} className="quick-check sk-quick" aria-hidden="true">
+                  <span className="sk-bar sk-pic" />
+                  <span className="sk-lines">
+                    <span className="sk-bar" style={{ width: ['52%', '64%', '48%', '58%', '40%', '46%', '50%'][i % 7], height: 13 }} />
+                    <span className="sk-bar" style={{ width: '30%', height: 9 }} />
+                  </span>
+                  <span className="sk-bar sk-tick" />
+                </div>
+              ))}
+            {today && MUTABAAH_FIELDS.map((f) => {
               const Icon = MUTABAAH_ICONS[f.key] || Check;
               const isDone = !!today?.[f.key];
               const amount =

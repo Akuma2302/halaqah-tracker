@@ -14886,3 +14886,54 @@ button.adm-group:hover {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* Home: today's card and list while today's ticks load */
+.today-hero-skeleton {
+  display: contents;
+}
+
+.sk-bar.sk-ring {
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 13px), #000 calc(100% - 12px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 13px), #000 calc(100% - 12px));
+}
+
+.today-hero-skeleton .today-hero-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.sk-bar.sk-ring {
+  flex-shrink: 0;
+}
+
+/* On a wide screen the card stacks and centres, so do the grey lines */
+@media (min-width: 900px) {
+  .today-hero-skeleton .today-hero-text {
+    align-items: center;
+  }
+}
+
+.quick-check.sk-quick {
+  cursor: default;
+}
+
+.sk-quick .sk-pic {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.sk-quick .sk-lines {
+  gap: 6px;
+}
+
+.sk-bar.sk-tick {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
