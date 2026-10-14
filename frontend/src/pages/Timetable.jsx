@@ -6,6 +6,7 @@ import Sheet from '../components/Sheet';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
+import TypeMenu from '../features/timetable/TypeMenu';
 import {
   CLASS_KINDS,
   DAYS,
@@ -996,35 +997,30 @@ export default function Timetable() {
           <div className="gc-row">
             <Tag size={18} className="gc-icon" />
             <div className="gc-body">
-              <select
-                className="input gc-plain"
-                aria-label="Type"
+              {/* Classes are set on the subject; one made earlier keeps its own kind here. A plain "Other" only shows for one saved that way. */}
+              <TypeMenu
                 value={form.kind === 'other' ? (form.customKind ? `my:${form.customKind}` : 'other') : form.kind}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '__new') return setNewKind('');
+                options={[
+                  ...[
+                    ...CLASS_KINDS.filter(([v]) => v === form.kind),
+                    ...TASK_KINDS.filter(([v]) => v !== 'other' || (form.kind === 'other' && !form.customKind))
+                  ].map(([v, label]) => ({ value: v, label })),
+                  // My own types, and one this task already has that I have since removed
+                  ...[...new Set([...myKinds, ...(form.kind === 'other' && form.customKind ? [form.customKind] : [])])].map((name) => ({
+                    value: `my:${name}`,
+                    label: name,
+                    mine: myKinds.includes(name)
+                  }))
+                ]}
+                onPick={(v) => {
                   setNewKind(null);
                   if (v.startsWith('my:')) setForm((f) => ({ ...f, kind: 'other', customKind: v.slice(3) }));
                   else setForm((f) => ({ ...f, kind: v, customKind: '' }));
                 }}
-              >
-                {/* Classes are set on the subject; one made earlier keeps its own kind here. A plain "Other" only shows for one saved that way. */}
-                {[
-                  ...CLASS_KINDS.filter(([value]) => value === form.kind),
-                  ...TASK_KINDS.filter(([value]) => value !== 'other' || (form.kind === 'other' && !form.customKind))
-                ].map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-                {/* My own types, and one this task already has that I have since removed */}
-                {[...new Set([...myKinds, ...(form.kind === 'other' && form.customKind ? [form.customKind] : [])])].map((name) => (
-                  <option key={name} value={`my:${name}`}>
-                    {name}
-                  </option>
-                ))}
-                {myKinds.length < 12 && <option value="__new">+ New type…</option>}
-              </select>
+                onNew={() => setNewKind('')}
+                onRemove={removeKind}
+                canAdd={myKinds.length < 12}
+              />
             {newKind !== null && (
               <div className="tt-person-row tt-kind-row">
                 <input
@@ -1049,11 +1045,6 @@ export default function Timetable() {
                   <X size={14} />
                 </button>
               </div>
-            )}
-            {form.kind === 'other' && form.customKind && myKinds.includes(form.customKind) && (
-              <button type="button" className="tt-kind-remove" onClick={() => removeKind(form.customKind)}>
-                Remove "{form.customKind}" from my types
-              </button>
             )}
             </div>
           </div>
