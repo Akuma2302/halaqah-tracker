@@ -558,3 +558,5 @@ alter table timetable_entries add column if not exists repeat_from date;
 alter table timetable_entries add column if not exists repeat_count smallint;
 -- The types a user has made for their own tasks ("Gym", "Usrah"), kept to offer again.
 alter table users add column if not exists task_kinds jsonb not null default '[]'::jsonb;
+-- The colour (a hue, 0-359) the user picked for a type: "study", or "my:Gym" for their own.
+alter table users add column if not exists kind_colors jsonb not null default '{}'::jsonb;

@@ -38,6 +38,12 @@ const cleanText = (text) =>
     .trim()
     .slice(0, 40);
 const kindsSchema = z.object({ kinds: z.array(z.string().trim().min(1).max(30)).max(12) });
+// A colour per type, as a hue: built-in types by their key ("study"), my own as "my:Name".
+const colorsSchema = z.object({
+  colors: z
+    .record(z.string().min(1).max(40), z.number().int().min(0).max(359))
+    .refine((c) => Object.keys(c).length <= 40, { message: 'Too many colours' })
+});
 
 // A weekly slot: a day (0 = Sunday), a start and end time ("HH:MM", 24h),
 // and either one of the user's subjects or a free-text title (or both).
@@ -210,6 +216,24 @@ router.put(
     const kinds = req.body.kinds.filter((k, i, all) => all.findIndex((x) => x.toLowerCase() === k.toLowerCase()) === i);
     await userRepository.update(req.userId, { task_kinds: kinds });
     res.json(kinds);
+  })
+);
+
+// The colours the user picked for their types.
+router.get(
+  '/colors',
+  asyncHandler(async (req, res) => {
+    const me = await userRepository.findById(req.userId);
+    res.json(me?.kind_colors && typeof me.kind_colors === 'object' ? me.kind_colors : {});
+  })
+);
+
+router.put(
+  '/colors',
+  validate(colorsSchema),
+  asyncHandler(async (req, res) => {
+    await userRepository.update(req.userId, { kind_colors: req.body.colors });
+    res.json(req.body.colors);
   })
 );
 

@@ -15192,3 +15192,54 @@ button.adm-group:hover {
   font-size: 13.5px;
   color: var(--ink-soft);
 }
+
+/* Type menu: a colour per type */
+.tm-paint.on {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.tm-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 10px 30px;
+}
+
+.tm-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: hsl(var(--hue, 165) 55% 50%);
+  color: #fff;
+  cursor: pointer;
+}
+
+.tm-swatch.on {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px hsl(var(--hue, 165) 55% 50%);
+}
+
+.tm-swatch.auto {
+  width: auto;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px dashed var(--border);
+  background: none;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tm-swatch.auto.on {
+  border-style: solid;
+  border-color: var(--primary);
+  color: var(--ink);
+  box-shadow: none;
+}

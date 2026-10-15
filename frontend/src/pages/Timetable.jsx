@@ -173,6 +173,8 @@ export default function Timetable() {
   const [form, setForm] = useState(() => emptyForm(1, toDateKey(new Date())));
   // My own task types, kept in my account and offered beside the built-in ones.
   const [myKinds, setMyKinds] = useState([]);
+  // The colours I picked for types, by type ("study", or "my:Gym" for my own).
+  const [kindColors, setKindColors] = useState({});
   const [newKind, setNewKind] = useState(null); // null = not adding; otherwise what is typed
   // Finding people to add: what is typed, and who it matches.
   const [found, setFound] = useState([]);
@@ -212,6 +214,10 @@ export default function Timetable() {
       .get('/timetable/kinds')
       .then((res) => setMyKinds(Array.isArray(res.data) ? res.data : []))
       .catch(() => setMyKinds([]));
+    client
+      .get('/timetable/colors')
+      .then((res) => setKindColors(res.data && typeof res.data === 'object' && !Array.isArray(res.data) ? res.data : {}))
+      .catch(() => setKindColors({}));
   }, []);
 
   // Look people up as the box is typed in: by User ID, or by two or more letters of a name.
@@ -353,7 +359,7 @@ export default function Timetable() {
         title: nameOf(e),
         start: minutes(e.startTime),
         end: minutes(e.endTime),
-        hue: hueFor(e.subject?.name || e.title),
+        hue: colorOf(e),
         tone: e.fromGroup ? 'group' : 'class',
         open: () => openDetail(e, dateKey)
       })
@@ -366,7 +372,7 @@ export default function Timetable() {
         start: single ? minutes(e.startTime) : null,
         end: single ? minutes(e.endTime) : null,
         allDay: !single,
-        hue: hueFor(e.subject?.name || e.title),
+        hue: colorOf(e),
         tone: 'event',
         open: () => openDetail(e, dateKey)
       });
@@ -537,6 +543,22 @@ export default function Timetable() {
     const existing = myKinds.find((k) => k.toLowerCase() === name.toLowerCase());
     if (existing) return setForm((f) => ({ ...f, kind: 'other', customKind: existing }));
     saveKinds([...myKinds, name], name);
+  }
+
+  // An entry's colour: its type's, when I picked one; otherwise by its subject or name.
+  const colorOf = (e) => kindColors[e.kind === 'other' && e.customKind ? `my:${e.customKind}` : e.kind] ?? hueFor(e.subject?.name || e.title);
+
+  // A colour for a type (null: back to automatic), kept in my account.
+  async function setKindColor(key, hue) {
+    const next = { ...kindColors };
+    if (hue === null) delete next[key];
+    else next[key] = hue;
+    setKindColors(next);
+    try {
+      await client.put('/timetable/colors', { colors: next });
+    } catch {
+      showToast("Couldn't save the colour.");
+    }
   }
 
   function removeKind(name) {
@@ -742,7 +764,7 @@ export default function Timetable() {
       <button
         type="button"
         className={`class-card${isNow ? ' now' : ''}${isPast ? ' past' : ''}`}
-        style={{ '--hue': hueFor(entry.subject?.name || entry.title) }}
+        style={{ '--hue': colorOf(entry) }}
         onClick={() => openDetail(entry, on)}
       >
         <span className="class-time">
@@ -805,7 +827,7 @@ export default function Timetable() {
       <button
         type="button"
         className={`class-card event-card${isNow ? ' now' : ''}${over ? ' past' : ''}`}
-        style={{ '--hue': hueFor(entry.subject?.name || entry.title) }}
+        style={{ '--hue': colorOf(entry) }}
         onClick={() => openDetail(entry, on || entry.startDate)}
       >
         <span className="class-time">
@@ -1194,6 +1216,8 @@ export default function Timetable() {
                 }}
                 onNew={() => setNewKind('')}
                 onRemove={removeKind}
+                colors={kindColors}
+                onColor={setKindColor}
                 canAdd={myKinds.length < 12}
               />
             {newKind !== null && (
@@ -1522,7 +1546,7 @@ export default function Timetable() {
               )}
             </div>
             <div className="ev-when">
-              <i className="ev-dot" style={{ '--hue': hueFor(viewing.subject?.name || viewing.title) }} />
+              <i className="ev-dot" style={{ '--hue': colorOf(viewing) }} />
               <div>
                 <strong>{occurrenceText(viewing, viewDate)}</strong>
                 <span>
