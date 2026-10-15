@@ -60,6 +60,13 @@ const entrySchema = z
     customKind: z.string().trim().max(30).optional(),
     // Up to five, each at most four weeks ahead.
     reminders: z.array(z.number().int().min(0).max(40320)).max(5).optional(),
+    // A custom repeat: every N days, weeks, months or years from a date, until
+    // a date or for N times (the app works out that last date).
+    repeatEvery: z.number().int().min(1).max(99).optional(),
+    repeatUnit: z.enum(['day', 'week', 'month', 'year']).optional(),
+    repeatFrom: z.string().regex(DATE).nullish(),
+    repeatUntil: z.string().regex(DATE).nullish(),
+    repeatCount: z.number().int().min(1).max(999).nullish(),
     memberIds: z.array(z.string().trim().max(20)).max(20).optional()
   })
   .refine((e) => e.startDate || e.dayOfWeek !== undefined, { message: 'Choose a day or a date' })

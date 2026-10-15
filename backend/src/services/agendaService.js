@@ -2,7 +2,7 @@ const timetableRepository = require('../repositories/timetableRepository');
 const subjectRepository = require('../repositories/subjectRepository');
 const widgetService = require('./widgetService');
 const { groupMeetingRows } = require('./groupMeetings');
-const { weeklyOn, skipDatesOf, dayKey } = require('../utils/weekly');
+const { occursOn, skipDatesOf, dayKey } = require('../utils/weekly');
 const { ASSESSMENT_LABEL, isExam, clock } = require('../utils/assessments');
 
 // What is coming up, for things outside the app that can't sign in: a JSON
@@ -101,7 +101,7 @@ async function getAgenda(token, tz) {
     const date = widgetService.shiftDate(today, i);
     entries
       // Weekly entries on their weekday; a one-off event on each day it covers.
-      .filter((row) => (row.start_date ? date >= row.start_date && date <= (row.end_date || row.start_date) : row.day_of_week === weekdayOf(date) && weeklyOn(row, date)))
+      .filter((row) => (row.start_date ? date >= row.start_date && date <= (row.end_date || row.start_date) : occursOn(row, date)))
       .forEach((row) =>
         events.push({
           date,
@@ -214,17 +214,25 @@ async function getCalendar(token, tz) {
         row.venue && `LOCATION:${escapeText(row.venue)}`
       ]);
     }
-    // The first one falls in the current week, so it shows straight away.
-    const first = widgetService.shiftDate(today, (row.day_of_week - weekdayOf(today) + 7) % 7);
-    // Ended before this week: nothing left to show.
+    // The first one from this week on, so it shows straight away (a rule of
+    // every few weeks, months or years may first fall later).
+    const weekStart = widgetService.shiftDate(today, -weekdayOf(today));
+    let first = null;
+    for (let i = 0; i < 800 && !first; i += 1) {
+      const date = widgetService.shiftDate(weekStart, i);
+      if (occursOn({ ...row, skip_dates: [], repeat_until: null }, date)) first = date;
+    }
+    // Ended before then: nothing left to show.
     const until = dayKey(row.repeat_until);
-    if (until && until < first) return '';
+    if (!first || (until && until < first)) return '';
+    const freq = { day: 'DAILY', week: 'WEEKLY', month: 'MONTHLY', year: 'YEARLY' }[row.repeat_unit || 'week'] || 'WEEKLY';
+    const rule = `RRULE:FREQ=${freq}${(row.repeat_every || 1) > 1 ? `;INTERVAL=${row.repeat_every}` : ''}`;
     return vevent([
       `UID:timetable-${row.id}@double4flat`,
       `DTSTAMP:${now}`,
       `DTSTART:${stamp(zonedToUtc(first, hhmm(row.start_time), timeZone))}`,
       `DTEND:${stamp(zonedToUtc(first, hhmm(row.end_time), timeZone))}`,
-      until ? `RRULE:FREQ=WEEKLY;UNTIL=${stamp(zonedToUtc(until, '23:59', timeZone))}` : 'RRULE:FREQ=WEEKLY',
+      until ? `${rule};UNTIL=${stamp(zonedToUtc(until, '23:59', timeZone))}` : rule,
       // Dates taken off one at a time.
       ...skipDatesOf(row)
         .filter((date) => date >= first)

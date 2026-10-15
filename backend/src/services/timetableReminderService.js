@@ -1,7 +1,7 @@
 const timetableRepository = require('../repositories/timetableRepository');
 const mentoringGroupRepository = require('../repositories/mentoringGroupRepository');
 const { asRow: groupMeetingRow } = require('./groupMeetings');
-const { weeklyOn } = require('../utils/weekly');
+const { occursOn } = require('../utils/weekly');
 const reminderLogRepository = require('../repositories/reminderLogRepository');
 const notificationService = require('./notificationService');
 const { localClock } = require('./mutabaahReminderService');
@@ -53,7 +53,7 @@ function startDates(row, today) {
   const dates = [];
   for (let i = 0; i <= LOOK_AHEAD_DAYS; i += 1) {
     const date = addDays(today, i);
-    if (new Date(`${date}T00:00:00Z`).getUTCDay() === row.day_of_week && weeklyOn(row, date)) dates.push(date);
+    if (occursOn(row, date)) dates.push(date);
   }
   return dates;
 }

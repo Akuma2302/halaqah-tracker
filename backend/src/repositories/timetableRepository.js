@@ -61,8 +61,12 @@ async function removeParticipant(entryId, userId) {
 
 // Reminders and the custom type are only touched when they are sent, so the
 // subject editor (which knows nothing of them) leaves them as they are.
-function toRow({ subjectId, title, dayOfWeek, startTime, endTime, venue, kind, startDate, endDate, reminders, customKind }) {
+function toRow({ subjectId, title, dayOfWeek, startTime, endTime, venue, kind, startDate, endDate, reminders, customKind, repeatEvery, repeatUnit, repeatFrom, repeatUntil, repeatCount }) {
   return {
+    // A custom repeat, only when one is sent (the subject editor sends none).
+    ...(repeatUnit !== undefined
+      ? { repeat_every: repeatEvery || 1, repeat_unit: repeatUnit, repeat_from: repeatFrom || null, repeat_until: repeatUntil || null, repeat_count: repeatCount || null }
+      : {}),
     subject_id: subjectId || null,
     title: title || '',
     day_of_week: dayOfWeek,
@@ -141,6 +145,11 @@ function serialize(row) {
     // A weekly entry: dates it was taken off, and the last date it happens.
     skipDates: Array.isArray(row.skip_dates) ? row.skip_dates : [],
     repeatUntil: row.repeat_until ? String(row.repeat_until).slice(0, 10) : null,
+    // A custom repeat: every N days / weeks / months / years from a date, or N times.
+    repeatEvery: row.repeat_every || 1,
+    repeatUnit: row.repeat_unit || 'week',
+    repeatFrom: row.repeat_from ? String(row.repeat_from).slice(0, 10) : null,
+    repeatCount: row.repeat_count || null,
     subject: row.subject
       ? {
           _id: row.subject.id,

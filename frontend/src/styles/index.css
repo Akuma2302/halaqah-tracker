@@ -15036,3 +15036,159 @@ button.adm-group:hover {
 .sk-shaped .class-time.sk-col {
   width: 64px;
 }
+
+/* ---------- Timetable: custom recurrence ---------- */
+/* Pickers opened from a dialog sit above it */
+.tm-menu.pk-float {
+  z-index: 1200;
+}
+
+.ev-dialog.cr-dialog {
+  max-width: 380px;
+}
+
+.cr-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cr-line .pk-box {
+  min-width: 110px;
+}
+
+.cr-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.cr-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.cr-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cr-stepper input {
+  width: 56px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.cr-stepper input::-webkit-outer-spin-button,
+.cr-stepper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cr-arrows {
+  display: flex;
+  flex-direction: column;
+}
+
+.cr-arrows button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.cr-arrows button:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.cr-days {
+  display: flex;
+  gap: 8px;
+}
+
+.cr-day {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cr-day.on {
+  background: var(--primary);
+  color: #fff;
+}
+
+.cr-ends {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cr-end {
+  display: grid;
+  grid-template-columns: 22px 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cr-end input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.cr-end-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cr-end-field.off {
+  opacity: 0.45;
+}
+
+.cr-end-field .pk-button.cr-box {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cr-times {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}

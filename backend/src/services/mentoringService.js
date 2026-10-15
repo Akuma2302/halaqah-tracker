@@ -474,7 +474,8 @@ async function getTimetables(userId) {
     everyone.map((u, i) => [
       u.id,
       lists[i]
-        .filter((row) => row.subject?.is_visible !== false && !row.start_date)
+        // Only what is on every week: a rule of every few weeks, or monthly, isn't a weekly busy time.
+        .filter((row) => row.subject?.is_visible !== false && !row.start_date && (row.repeat_unit || 'week') === 'week' && (row.repeat_every || 1) === 1)
         .map(timetableRepository.serialize)
         .map(({ _id, title, dayOfWeek, startTime, endTime, kind, customKind, subject }) => ({
           _id,

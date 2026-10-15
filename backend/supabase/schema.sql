@@ -550,5 +550,11 @@ alter table timetable_entries add column if not exists custom_kind text not null
 -- date it happens ("this and following events" deleted).
 alter table timetable_entries add column if not exists skip_dates jsonb not null default '[]'::jsonb;
 alter table timetable_entries add column if not exists repeat_until date;
+-- A custom repeat: every N days, weeks, months or years from repeat_from;
+-- repeat_count is "after N times" (repeat_until is then the Nth date).
+alter table timetable_entries add column if not exists repeat_every smallint not null default 1;
+alter table timetable_entries add column if not exists repeat_unit text not null default 'week';
+alter table timetable_entries add column if not exists repeat_from date;
+alter table timetable_entries add column if not exists repeat_count smallint;
 -- The types a user has made for their own tasks ("Gym", "Usrah"), kept to offer again.
 alter table users add column if not exists task_kinds jsonb not null default '[]'::jsonb;

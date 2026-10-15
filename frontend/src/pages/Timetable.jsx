@@ -9,6 +9,8 @@ import { useSwipe } from '../hooks/useSwipe';
 import HomeScreenShortcut from '../features/timetable/HomeScreenShortcut';
 import TypeMenu from '../features/timetable/TypeMenu';
 import { MonthCellItems, WeekGrid, YearGrid, shiftKey, sundayOf } from '../features/timetable/CalendarViews';
+import CustomRepeat from '../features/timetable/CustomRepeat';
+import { entryRuleText, lastOfCount, repeatsOn, ruleText } from '../features/timetable/repeat';
 import { DateMenu, SelectMenu, TimeMenu } from '../components/pickers';
 import {
   CLASS_KINDS,
@@ -59,14 +61,23 @@ const nextDateOn = (weekday) => {
 function repeatText(f, custom) {
   const choice = repeatOf(f, custom);
   if (choice === 'weekly') return `Weekly on ${f.startDate ? DAYS[weekdayOf(f.startDate)] : 'this day'}`;
-  return { none: 'Does not repeat', daily: 'Daily', weekdays: 'Every weekday', custom: 'Custom' }[choice];
+  if (choice === 'custom')
+    return ruleText({
+      every: f.rule.every,
+      unit: f.rule.unit,
+      from: f.startDate,
+      days: f.days,
+      until: f.rule.ends === 'on' ? f.rule.until : null,
+      count: f.rule.ends === 'after' ? f.rule.count : null
+    });
+  return { none: 'Does not repeat', daily: 'Daily', weekdays: 'Every weekday' }[choice];
 }
 
 // Whether an entry happens on a date: a weekly one may have been deleted on
 // that date, or ended before it.
 function occursOn(entry, dateKey) {
   if (entry.startDate) return true;
-  return !(entry.skipDates || []).includes(dateKey) && (!entry.repeatUntil || dateKey <= entry.repeatUntil);
+  return repeatsOn(entry, dateKey);
 }
 
 // The date and time of one event, as the details card shows it.
@@ -122,7 +133,9 @@ function emptyForm(day, date) {
     endTime: '10:00',
     venue: '',
     people: [],
-    reminders: []
+    reminders: [],
+    // A custom repeat (the "Custom…" choice): every N units, and when it ends.
+    rule: { every: 1, unit: 'week', ends: 'never', until: '', count: 13 }
   };
 }
 
@@ -169,6 +182,7 @@ export default function Timetable() {
   const [formError, setFormError] = useState('');
   // The repeat menu's "Custom…" (pick the days), and a one-off that ends on a later day.
   const [customDays, setCustomDays] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
   const [endApart, setEndApart] = useState(false);
   const [idInput, setIdInput] = useState('');
   // Someone else's task I was added to, open to look at (it can't be edited).
@@ -243,7 +257,7 @@ export default function Timetable() {
   }, [weekly]);
 
   // The weekly entries on a weekday, leaving out a date they were deleted on.
-  const onDay = (d, dateKey) => byDay[d].filter((e) => occursOn(e, dateKey));
+  const onDay = (d, dateKey) => weekly.filter((e) => occursOn(e, dateKey)).sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   // One-off events, on every date they cover (an event can run over several days).
   const eventsByDate = useMemo(() => {
@@ -459,8 +473,15 @@ export default function Timetable() {
       customKind: entry.customKind || '',
       repeat: entry.startDate ? 'once' : 'weekly',
       days: [entry.dayOfWeek],
-      // A weekly one shows the next date it falls on.
-      startDate: entry.startDate || nextDateOn(entry.dayOfWeek),
+      // A weekly one shows the next date it falls on; a custom one its first date.
+      startDate: entry.startDate || entry.repeatFrom || nextDateOn(entry.dayOfWeek),
+      rule: {
+        every: entry.repeatEvery || 1,
+        unit: entry.repeatUnit || 'week',
+        ends: entry.repeatCount ? 'after' : entry.repeatFrom && entry.repeatUntil ? 'on' : 'never',
+        until: entry.repeatUntil || '',
+        count: entry.repeatCount || 13
+      },
       endDate: entry.endDate || entry.startDate || nextDateOn(entry.dayOfWeek),
       startTime: entry.startTime,
       endTime: entry.endTime,
@@ -468,7 +489,7 @@ export default function Timetable() {
       reminders: (entry.reminders || []).map(reminderParts)
     });
     setFormError('');
-    setCustomDays(false);
+    setCustomDays(!entry.startDate && (!!entry.repeatFrom || (entry.repeatEvery || 1) > 1 || (entry.repeatUnit || 'week') !== 'week'));
     setEndApart(!!entry.endDate && entry.endDate !== entry.startDate);
     setEditing(entry);
   }
@@ -534,7 +555,9 @@ export default function Timetable() {
   }
 
   function pickRepeat(value) {
-    setCustomDays(value === 'custom');
+    // Custom opens its own window; the choice is made there.
+    if (value === 'custom') return setCustomOpen(true);
+    setCustomDays(false);
     setForm((f) => {
       if (value === 'none') return { ...f, repeat: 'once', endDate: f.endDate < f.startDate ? f.startDate : f.endDate };
       const days = { daily: [0, 1, 2, 3, 4, 5, 6], weekdays: [1, 2, 3, 4, 5], weekly: [weekdayOf(f.startDate)] }[value] || f.days;
@@ -635,9 +658,23 @@ export default function Timetable() {
     if (reminders.some((m) => !Number.isFinite(m) || m < 0)) return setFormError('Each reminder needs a number.');
     if (reminders.some((m) => m > MAX_REMINDER_MINUTES)) return setFormError('A reminder can be at most 4 weeks before.');
 
+    // A custom rule: its last date for "after N times" is worked out here.
+    const custom = !once && customDays;
+    const rule = form.rule;
+    if (custom && rule.ends === 'on' && (!rule.until || rule.until < form.startDate)) return setFormError('The end date must be after the start.');
     setSaving(true);
     setFormError('');
+    const repeatUntil = !custom
+      ? undefined
+      : rule.ends === 'on'
+        ? rule.until
+        : rule.ends === 'after'
+          ? lastOfCount({ every: rule.every, unit: rule.unit, from: form.startDate, days: form.days }, rule.count)
+          : null;
     const body = (dayOfWeek) => ({
+      ...(custom
+        ? { repeatEvery: rule.every, repeatUnit: rule.unit, repeatFrom: form.startDate, repeatUntil, repeatCount: rule.ends === 'after' ? rule.count : null }
+        : {}),
       subjectId: form.subjectId || null,
       title: form.title.trim(),
       kind: form.kind,
@@ -661,7 +698,8 @@ export default function Timetable() {
       if (editing === 'new') {
         // One class per chosen day (e.g. the same lecture on Monday and Wednesday).
         const created = [];
-        for (const d of once ? [null] : [...form.days].sort()) created.push((await client.post('/timetable', body(d))).data);
+        const dayList = once ? [null] : custom && rule.unit !== 'week' ? [weekdayOf(form.startDate)] : [...form.days].sort();
+        for (const d of dayList) created.push((await client.post('/timetable', body(d))).data);
         setEntries((list) => [...(list || []), ...created]);
         if (once) showDate(created[0].startDate);
         // Stay on the day being viewed if the class was added there too.
@@ -697,8 +735,9 @@ export default function Timetable() {
   function ClassCard({ entry, showState, on }) {
     const start = minutes(entry.startTime);
     const end = minutes(entry.endTime);
-    const isNow = showState && entry.dayOfWeek === today && start <= nowMinutes && nowMinutes < end;
-    const isPast = showState && entry.dayOfWeek === today && end <= nowMinutes;
+    const onToday = on ? on === todayKey : entry.dayOfWeek === today;
+    const isNow = showState && onToday && start <= nowMinutes && nowMinutes < end;
+    const isPast = showState && onToday && end <= nowMinutes;
     return (
       <button
         type="button"
@@ -1231,12 +1270,8 @@ export default function Timetable() {
                       { value: 'none', label: 'Does not repeat' },
                       ...(editing === 'new' ? [{ value: 'daily', label: 'Daily' }] : []),
                       { value: 'weekly', label: `Weekly on ${form.startDate ? DAYS[weekdayOf(form.startDate)] : 'this day'}` },
-                      ...(editing === 'new'
-                        ? [
-                            { value: 'weekdays', label: 'Every weekday (Monday to Friday)' },
-                            { value: 'custom', label: 'Custom…' }
-                          ]
-                        : [])
+                      ...(editing === 'new' ? [{ value: 'weekdays', label: 'Every weekday (Monday to Friday)' }] : []),
+                      { value: 'custom', label: 'Custom…' }
                     ]}
                   />
                 )}
@@ -1258,17 +1293,20 @@ export default function Timetable() {
                   </button>
                 )}
               </div>
-              {repeatOf(form, customDays) === 'custom' && (
-                <div className="chip-row gc-days">
-                  {SHORT_DAYS.map((label, d) => (
-                    <button key={label} type="button" className={`chip${form.days.includes(d) ? ' on' : ''}`} onClick={() => toggleDay(d)} aria-pressed={form.days.includes(d)}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <CustomRepeat
+                open={customOpen}
+                startDate={form.startDate}
+                single={editing !== 'new'}
+                initial={{ ...form.rule, days: form.days }}
+                onCancel={() => setCustomOpen(false)}
+                onDone={({ days, ...r }) => {
+                  setCustomOpen(false);
+                  setCustomDays(true);
+                  setForm((f) => ({ ...f, repeat: 'weekly', days: r.unit === 'week' ? days : [weekdayOf(f.startDate)], rule: r }));
+                }}
+              />
               {editing === 'new' && form.repeat === 'weekly' && form.days.length > 1 && (
-                <p className="gc-note">Added as {form.days.length} weekly times, one on each day.</p>
+                <p className="gc-note">Added as {form.days.length} repeating times, one for each day.</p>
               )}
             </div>
           </div>
@@ -1490,7 +1528,7 @@ export default function Timetable() {
                 <span>
                   {viewing.startDate
                     ? 'Does not repeat'
-                    : `Weekly on ${DAYS[viewing.dayOfWeek]}${viewing.repeatUntil ? `, until ${shortDay(viewing.repeatUntil)}` : ''}`}
+                    : entryRuleText(viewing)}
                 </span>
               </div>
             </div>
@@ -1559,7 +1597,7 @@ export default function Timetable() {
                 {[
                   ['this', 'This event', shortDay(askDel.date)],
                   ['following', 'This and following events', `From ${shortDay(askDel.date)}`],
-                  ['all', 'All events', `Every ${DAYS[askDel.entry.dayOfWeek]}`]
+                  ['all', 'All events', entryRuleText(askDel.entry)]
                 ].map(([value, label, hint]) => (
                   <label key={value} className={`ev-choice${askDel.scope === value ? ' on' : ''}`}>
                     <input type="radio" name="ev-scope" value={value} checked={askDel.scope === value} onChange={() => setAskDel((a) => ({ ...a, scope: value }))} />
