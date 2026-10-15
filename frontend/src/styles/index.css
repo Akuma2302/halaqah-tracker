@@ -15243,3 +15243,135 @@ button.adm-group:hover {
   color: var(--ink);
   box-shadow: none;
 }
+
+/* ---------- Timetable day view: the week as a calendar strip ---------- */
+.dw {
+  margin-bottom: 12px;
+  padding: 10px 8px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 18px);
+  background: var(--surface);
+}
+
+.dw-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 6px 8px;
+}
+
+.dw-head strong {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.dw-head .icon-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.day-tabs.dw-days {
+  gap: 0;
+  margin: 0;
+}
+
+.dw-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 0 2px;
+  border: none;
+  border-radius: 14px;
+  background: none;
+  color: var(--ink-soft);
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dw-day:hover .dw-date {
+  background: var(--paper);
+}
+
+.dw-wd {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.dw-date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dw-day.past .dw-date {
+  color: var(--ink-soft);
+}
+
+.dw-day.today .dw-wd {
+  color: var(--primary);
+}
+
+.dw-day.today .dw-date {
+  color: var(--primary);
+  box-shadow: inset 0 0 0 1.5px var(--primary);
+}
+
+.dw-day.selected .dw-date,
+.dw-day.selected:hover .dw-date {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: none;
+}
+
+.dw-day.selected .dw-wd {
+  color: var(--ink);
+}
+
+/* What's on: a dot each, in the item's colour (gold for an exam) */
+.dw-dots {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  height: 6px;
+}
+
+.dw-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: hsl(var(--hue, 165) 55% 52%);
+}
+
+.dw-dots i.exam {
+  background: var(--gold);
+}
+
+.dw-dots i.more {
+  background: var(--ink-soft);
+  opacity: 0.6;
+}
+
+.dw-day.past .dw-dots {
+  opacity: 0.55;
+}
+
+@media (max-width: 400px) {
+  .dw-date {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+}

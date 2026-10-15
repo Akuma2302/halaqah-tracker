@@ -1001,25 +1001,43 @@ export default function Timetable() {
           <div className={`tt-swipe${slide ? ` slide-${slide.dir}` : ''}`} key={slide?.n || 0} {...swipe}>
           {view === 'day' ? (
             <>
-              <div className="day-tabs" role="tablist" aria-label="Days of the week">
-                {dayWeek.map((key, d) => {
-                  const n = countOn(key);
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      role="tab"
-                      aria-selected={key === dayKey}
-                      aria-label={`${longDay(key)}: ${n || 'nothing'} on`}
-                      className={`day-tab${key === dayKey ? ' selected' : ''}${key === todayKey ? ' today' : ''}${key < todayKey ? ' past' : ''}`}
-                      onClick={() => setDayKey(key)}
-                    >
-                      <span>{SHORT_DAYS[d]}</span>
-                      <b>{Number(key.slice(8))}</b>
-                      <small>{n || '·'}</small>
-                    </button>
-                  );
-                })}
+              {/* The week of the date on show: its month, arrows to the next or last
+                  week, and each day as a date in a circle with dots for what's on */}
+              <div className="dw">
+                <div className="dw-head">
+                  <strong>{dateOf(dayKey).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</strong>
+                  <button type="button" className="icon-btn" onClick={() => setDayKey((k) => shiftKey(k, -7))} aria-label="Previous week">
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button type="button" className="icon-btn" onClick={() => setDayKey((k) => shiftKey(k, 7))} aria-label="Next week">
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+                <div className="day-tabs dw-days" role="tablist" aria-label="Days of the week">
+                  {dayWeek.map((key, d) => {
+                    const items = itemsOn(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={key === dayKey}
+                        aria-label={`${longDay(key)}: ${items.length || 'nothing'} on`}
+                        className={`dw-day${key === dayKey ? ' selected' : ''}${key === todayKey ? ' today' : ''}${key < todayKey ? ' past' : ''}`}
+                        onClick={() => setDayKey(key)}
+                      >
+                        <span className="dw-wd">{SHORT_DAYS[d]}</span>
+                        <b className="dw-date">{Number(key.slice(8))}</b>
+                        <span className="dw-dots" aria-hidden="true">
+                          {items.slice(0, 3).map((x) => (
+                            <i key={x.key} style={{ '--hue': x.hue }} className={x.tone === 'exam' ? 'exam' : ''} />
+                          ))}
+                          {items.length > 3 && <i className="more" />}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <h2 className={`week-group-title month-day-title day-title${dayKey === todayKey ? ' today' : ''}`}>

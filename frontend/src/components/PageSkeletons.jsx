@@ -119,14 +119,19 @@ export function TimetableSkeleton() {
           </span>
         ))}
       </div>
-      <div className="day-tabs">
-        {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="day-tab sk-col center">
-            <Bar w="60%" h={8} />
-            <Bar w="42%" h={15} />
-            <Bar w="20%" h={8} />
-          </div>
-        ))}
+      <div className="dw">
+        <div className="dw-head">
+          <Bar w={120} h={15} />
+        </div>
+        <div className="day-tabs dw-days">
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="dw-day sk-col center" style={{ gap: 6 }}>
+              <Bar w={22} h={9} />
+              <Dot s={34} />
+              <Bar w={14} h={5} />
+            </div>
+          ))}
+        </div>
       </div>
       <Bar w="52%" h={16} />
       <div className="class-list">
