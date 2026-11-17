@@ -15618,3 +15618,20 @@ button.adm-group:hover {
   flex: 1;
   min-width: 160px;
 }
+
+/* A note in the list: just its title, in one line */
+.subject-note {
+  align-items: center;
+  padding: 7px 2px;
+}
+
+.subject-note-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+
+.subject-note-text strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}

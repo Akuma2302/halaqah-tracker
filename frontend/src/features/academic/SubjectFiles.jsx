@@ -3,23 +3,13 @@ import { ChevronLeft, ChevronRight, File as FileIcon, Folder, FolderInput, Folde
 import client from '../../services/apiClient';
 import Sheet from '../../components/Sheet';
 import Skeleton from '../../components/Skeleton';
-import NoteSheet, { notePreview } from './NoteSheet';
+import NoteSheet from './NoteSheet';
 
 function formatFileSize(bytes) {
   if (!bytes) return '';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-// "12 Nov" or "2h ago"
-function editedText(iso) {
-  if (!iso) return '';
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} min ago`;
-  if (mins < 24 * 60) return `${Math.round(mins / 60)}h ago`;
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
 // One subject's files and notes, with user-made folders (one level deep).
@@ -323,8 +313,6 @@ export default function SubjectFiles({ subject, showToast }) {
                   {n.title.trim() || 'Untitled note'}
                   {n.pinned && <Pin size={11} className="subject-note-pin" aria-label="Pinned" />}
                 </strong>
-                {notePreview(n.body) && <span className="subject-note-preview">{notePreview(n.body)}</span>}
-                <small>Note · {editedText(n.updatedAt)}</small>
               </span>
             </button>
           ))}
