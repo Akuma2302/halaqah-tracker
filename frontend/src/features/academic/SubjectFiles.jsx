@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, File as FileIcon, Folder, FolderInput, FolderPlus, MoreHorizontal, Pencil, Trash2, Upload, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, File as FileIcon, Folder, FolderInput, FolderPlus, MoreHorizontal, NotebookPen, Pencil, Pin, Trash2, Upload, X } from 'lucide-react';
 import client from '../../services/apiClient';
 import Sheet from '../../components/Sheet';
 import Skeleton from '../../components/Skeleton';
+import NoteSheet, { notePreview } from './NoteSheet';
 
 function formatFileSize(bytes) {
   if (!bytes) return '';
@@ -11,7 +12,17 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// One subject's files, with user-made folders (one level deep).
+// "12 Nov" or "2h ago"
+function editedText(iso) {
+  if (!iso) return '';
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 24 * 60) return `${Math.round(mins / 60)}h ago`;
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+// One subject's files and notes, with user-made folders (one level deep).
 export default function SubjectFiles({ subject, showToast }) {
   const base = `/academic/subjects/${subject._id}`;
   const [files, setFiles] = useState(null);
@@ -20,7 +31,12 @@ export default function SubjectFiles({ subject, showToast }) {
   const [uploading, setUploading] = useState(false);
   const [nameEdit, setNameEdit] = useState(null); // { id: folderId | null (new), name }
   const [menuFor, setMenuFor] = useState(null);
-  const [moving, setMoving] = useState(null); // file being moved
+  const [moving, setMoving] = useState(null); // file (or note, with isNote) being moved
+  const [notes, setNotes] = useState([]);
+  // The note open in the sheet: { id, fresh } (fresh: just made, opens for writing).
+  const [openNote, setOpenNote] = useState(null);
+  const [saveState, setSaveState] = useState('');
+  const saveTimers = useRef({});
 
   useEffect(() => {
     client
@@ -31,6 +47,10 @@ export default function SubjectFiles({ subject, showToast }) {
       .get(`${base}/folders`)
       .then((res) => setFolders(res.data))
       .catch(() => setFolders([]));
+    client
+      .get(`${base}/notes`)
+      .then((res) => setNotes(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setNotes([]));
   }, [base]);
 
   useEffect(() => {
@@ -42,7 +62,79 @@ export default function SubjectFiles({ subject, showToast }) {
 
   const currentFolder = folders.find((f) => f._id === folderId) || null;
   const visibleFiles = (files || []).filter((f) => (f.folderId || null) === folderId);
-  const countIn = (id) => (files || []).filter((f) => f.folderId === id).length;
+  // Pinned first, then the latest edited.
+  const visibleNotes = notes
+    .filter((n) => (n.folderId || null) === folderId)
+    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  const countIn = (id) => (files || []).filter((f) => f.folderId === id).length + notes.filter((n) => n.folderId === id).length;
+
+  // ---------- notes ----------
+  async function newNote() {
+    try {
+      const res = await client.post(`${base}/notes`, { folderId, title: '', body: '' });
+      setNotes((prev) => [res.data, ...prev]);
+      setSaveState('');
+      setOpenNote({ id: res.data._id, fresh: true });
+    } catch {
+      showToast("Couldn't start a note. Try again.");
+    }
+  }
+
+  // Changes show at once and are saved a moment after typing stops.
+  function changeNote(id, change) {
+    setNotes((prev) => prev.map((n) => (n._id === id ? { ...n, ...change, updatedAt: new Date().toISOString() } : n)));
+    setSaveState('Saving…');
+    const timers = saveTimers.current;
+    timers[id] = { change: { ...(timers[id]?.change || {}), ...change } };
+    clearTimeout(timers[`t${id}`]);
+    timers[`t${id}`] = setTimeout(() => flushNote(id), 700);
+  }
+
+  async function flushNote(id) {
+    const timers = saveTimers.current;
+    const pending = timers[id]?.change;
+    clearTimeout(timers[`t${id}`]);
+    delete timers[id];
+    if (!pending) return;
+    try {
+      await client.patch(`${base}/notes/${id}`, pending);
+      setSaveState('Saved');
+    } catch {
+      setSaveState('Not saved');
+      showToast("Couldn't save the note. Check your connection.");
+    }
+  }
+
+  // Closing saves what's waiting; a note left empty isn't kept.
+  async function closeNote() {
+    const id = openNote?.id;
+    setOpenNote(null);
+    if (!id) return;
+    const note = notes.find((n) => n._id === id);
+    if (note && !note.title.trim() && !note.body.trim()) {
+      clearTimeout(saveTimers.current[`t${id}`]);
+      delete saveTimers.current[id];
+      setNotes((prev) => prev.filter((n) => n._id !== id));
+      client.delete(`${base}/notes/${id}`).catch(() => {});
+      return;
+    }
+    await flushNote(id);
+  }
+
+  async function deleteNote(id) {
+    setOpenNote(null);
+    clearTimeout(saveTimers.current[`t${id}`]);
+    delete saveTimers.current[id];
+    const before = notes;
+    setNotes((prev) => prev.filter((n) => n._id !== id));
+    try {
+      await client.delete(`${base}/notes/${id}`);
+      showToast('Note deleted');
+    } catch {
+      setNotes(before);
+      showToast("Couldn't delete the note.");
+    }
+  }
 
   async function upload(e) {
     const file = e.target.files?.[0];
@@ -76,6 +168,17 @@ export default function SubjectFiles({ subject, showToast }) {
   async function moveFile(file, target) {
     setMoving(null);
     if ((file.folderId || null) === target) return;
+    if (file.isNote) {
+      setNotes((prev) => prev.map((n) => (n._id === file._id ? { ...n, folderId: target } : n)));
+      try {
+        await client.patch(`${base}/notes/${file._id}`, { folderId: target });
+        showToast(target ? `Moved to ${folders.find((f) => f._id === target)?.name}` : 'Moved out of folder');
+      } catch {
+        setNotes((prev) => prev.map((n) => (n._id === file._id ? { ...n, folderId: file.folderId } : n)));
+        showToast("Couldn't move the note.");
+      }
+      return;
+    }
     setFiles((prev) => prev.map((f) => (f._id === file._id ? { ...f, folderId: target } : f)));
     try {
       await client.patch(`${base}/files/${file._id}`, { folderId: target });
@@ -107,10 +210,11 @@ export default function SubjectFiles({ subject, showToast }) {
   async function removeFolder(folder) {
     setMenuFor(null);
     const count = countIn(folder._id);
-    const note = count ? ` Its ${count} file${count === 1 ? '' : 's'} will move back to Files.` : '';
+    const note = count ? ` Its ${count} file${count === 1 ? '' : 's'} and note${count === 1 ? '' : 's'} will move back to Files.` : '';
     if (!window.confirm(`Delete folder "${folder.name}"?${note}`)) return;
     setFolders((prev) => prev.filter((f) => f._id !== folder._id));
     setFiles((prev) => prev.map((f) => (f.folderId === folder._id ? { ...f, folderId: null } : f)));
+    setNotes((prev) => prev.map((n) => (n.folderId === folder._id ? { ...n, folderId: null } : n)));
     try {
       await client.delete(`${base}/folders/${folder._id}`);
     } catch {
@@ -136,6 +240,9 @@ export default function SubjectFiles({ subject, showToast }) {
               <FolderPlus size={12} /> Folder
             </button>
           )}
+          <button type="button" className="btn btn-ghost btn-sm" onClick={newNote}>
+            <NotebookPen size={12} /> Note
+          </button>
           <label className="btn btn-ghost btn-sm">
             <Upload size={12} /> {uploading ? 'Uploading…' : 'File'}
             <input type="file" hidden onChange={upload} disabled={uploading} />
@@ -206,6 +313,22 @@ export default function SubjectFiles({ subject, showToast }) {
               </div>
             ))}
 
+          {visibleNotes.map((n) => (
+            <button key={n._id} type="button" className="subject-note" onClick={() => setOpenNote({ id: n._id, fresh: false })}>
+              <span className="subject-note-icon">
+                <NotebookPen size={14} />
+              </span>
+              <span className="subject-note-text">
+                <strong>
+                  {n.title.trim() || 'Untitled note'}
+                  {n.pinned && <Pin size={11} className="subject-note-pin" aria-label="Pinned" />}
+                </strong>
+                {notePreview(n.body) && <span className="subject-note-preview">{notePreview(n.body)}</span>}
+                <small>Note · {editedText(n.updatedAt)}</small>
+              </span>
+            </button>
+          ))}
+
           {visibleFiles.map((f) => (
             <div key={f._id} className="subject-file">
               <FileIcon size={13} />
@@ -224,11 +347,36 @@ export default function SubjectFiles({ subject, showToast }) {
             </div>
           ))}
 
-          {!visibleFiles.length && (currentFolder || !folders.length) && (
-            <p className="log-empty">{currentFolder ? 'This folder is empty.' : 'No files yet.'}</p>
+          {!visibleFiles.length && !visibleNotes.length && (currentFolder || !folders.length) && (
+            <p className="log-empty">{currentFolder ? 'This folder is empty.' : 'No files or notes yet.'}</p>
           )}
         </>
       )}
+
+      {(() => {
+        const note = openNote && notes.find((n) => n._id === openNote.id);
+        const folderName = note?.folderId ? folders.find((f) => f._id === note.folderId)?.name : null;
+        return (
+          <NoteSheet
+            note={note || null}
+            startEditing={!!openNote?.fresh}
+            saveState={saveState}
+            where={`In ${subject.name}${folderName ? ` › ${folderName}` : ''}`}
+            onChange={(change) => note && changeNote(note._id, change)}
+            onClose={closeNote}
+            onDelete={() => note && deleteNote(note._id)}
+            onMove={
+              folders.length > 0 || note?.folderId
+                ? async () => {
+                    const n = note;
+                    await closeNote();
+                    if (n && (n.title.trim() || n.body.trim())) setMoving({ ...n, isNote: true, fileName: n.title.trim() || 'Untitled note' });
+                  }
+                : undefined
+            }
+          />
+        );
+      })()}
 
       <Sheet open={!!moving} onClose={() => setMoving(null)} title="Move to folder">
         {moving && (

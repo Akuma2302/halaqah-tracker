@@ -370,6 +370,22 @@ create index if not exists idx_subject_folders_subject on subject_folders(subjec
 alter table subject_folders enable row level security;
 alter table subject_files add column if not exists folder_id uuid references subject_folders(id) on delete set null;
 
+-- Notes written in the app, kept with a subject's files (in a folder or at
+-- the top). Private to their owner. Deleting a folder moves its notes up.
+create table if not exists subject_notes (
+  id uuid primary key default gen_random_uuid(),
+  subject_id uuid not null references subjects(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  folder_id uuid references subject_folders(id) on delete set null,
+  title text not null default '',
+  body text not null default '',
+  pinned boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_subject_notes_subject on subject_notes(subject_id, user_id);
+alter table subject_notes enable row level security;
+
 -- Quran bookmarks, synced across the user's devices. mark_id is the ayat key
 -- ("2:255"), or "<kind>/<number>" for a whole reader with no ayat known.
 create table if not exists quran_bookmarks (

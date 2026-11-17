@@ -54,4 +54,21 @@ async function removeFolder(req, res) {
   res.json({ ok: true });
 }
 
-module.exports = { list, upload, move, remove, listFolders, createFolder, renameFolder, removeFolder };
+async function listNotes(req, res) {
+  res.json(await subjectFileService.listNotes(req.params.id, req.userId));
+}
+
+async function createNote(req, res) {
+  res.status(201).json(await subjectFileService.createNote(req.params.id, req.userId, req.body));
+}
+
+async function updateNote(req, res) {
+  res.json(await subjectFileService.updateNote(req.params.id, req.params.noteId, req.userId, req.body));
+}
+
+async function removeNote(req, res) {
+  await subjectFileService.removeNote(req.params.noteId, req.userId);
+  res.json({ ok: true });
+}
+
+module.exports = { list, upload, move, remove, listFolders, createFolder, renameFolder, removeFolder, listNotes, createNote, updateNote, removeNote };

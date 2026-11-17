@@ -70,4 +70,4 @@ async function removeFolder(subjectId, folderId, userId) {
   await subjectFileRepository.removeFolder(folderId, userId);
 }
 
-module.exports = { listFiles, addFile, moveFile, removeFile, listFolders, createFolder, renameFolder, removeFolder };
+module.exports = { listFiles, addFile, moveFile, removeFile, listFolders, createFolder, renameFolder, removeFolder, listNotes, createNote, updateNote, removeNote };

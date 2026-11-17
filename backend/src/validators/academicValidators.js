@@ -92,11 +92,20 @@ const subjectFolderSchema = z.object({
   name: z.string().trim().min(1, 'Folder name is required').max(60, 'Folder name is too long')
 });
 
+// A note: any of its fields, as written so far.
+const subjectNoteSchema = z.object({
+  title: z.string().max(120, 'The title is too long').optional(),
+  body: z.string().max(50000, 'The note is too long').optional(),
+  pinned: z.boolean().optional(),
+  folderId: z.string().uuid().nullable().optional()
+});
+
 const moveSubjectFileSchema = z.object({
   folderId: z.string().uuid().nullable()
 });
 
 module.exports = {
+  subjectNoteSchema,
   subjectFolderSchema,
   moveSubjectFileSchema,
   createSubjectSchema,

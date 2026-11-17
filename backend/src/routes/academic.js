@@ -20,7 +20,8 @@ const {
   createConsultationSchema,
   setMentorValidationSchema,
   subjectFolderSchema,
-  moveSubjectFileSchema
+  moveSubjectFileSchema,
+  subjectNoteSchema
 } = require('../validators/academicValidators');
 
 router.use(requireAuth);
@@ -40,6 +41,11 @@ router.get('/subjects/:id/files', asyncHandler(subjectFileController.list));
 router.post('/subjects/:id/files', upload.single('file'), asyncHandler(subjectFileController.upload));
 router.patch('/subjects/:id/files/:fileId', validate(moveSubjectFileSchema), asyncHandler(subjectFileController.move));
 router.delete('/subjects/:id/files/:fileId', asyncHandler(subjectFileController.remove));
+// Notes written in the app, kept with the subject's files
+router.get('/subjects/:id/notes', asyncHandler(subjectFileController.listNotes));
+router.post('/subjects/:id/notes', validate(subjectNoteSchema), asyncHandler(subjectFileController.createNote));
+router.patch('/subjects/:id/notes/:noteId', validate(subjectNoteSchema), asyncHandler(subjectFileController.updateNote));
+router.delete('/subjects/:id/notes/:noteId', asyncHandler(subjectFileController.removeNote));
 router.get('/subjects/:id/folders', asyncHandler(subjectFileController.listFolders));
 router.post('/subjects/:id/folders', validate(subjectFolderSchema), asyncHandler(subjectFileController.createFolder));
 router.put('/subjects/:id/folders/:folderId', validate(subjectFolderSchema), asyncHandler(subjectFileController.renameFolder));
