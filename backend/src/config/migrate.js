@@ -12,6 +12,9 @@ async function runMigrations() {
   const client = await pool.connect();
   try {
     await client.query(sql);
+    // Supabase's API keeps its own list of tables and columns; tell it to
+    // read them again so new ones (made just now) can be used straight away.
+    await client.query("notify pgrst, 'reload schema'");
     console.log('Supabase schema is up to date (tables created/verified from backend/supabase/schema.sql).');
   } finally {
     client.release();

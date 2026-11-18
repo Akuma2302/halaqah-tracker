@@ -65,8 +65,8 @@ export default function SubjectFiles({ subject, showToast }) {
       setNotes((prev) => [res.data, ...prev]);
       setSaveState('');
       setOpenNote({ id: res.data._id, fresh: true });
-    } catch {
-      showToast("Couldn't start a note. Try again.");
+    } catch (err) {
+      showToast(err.response?.data?.error || "Couldn't start a note. Try again.");
     }
   }
 
